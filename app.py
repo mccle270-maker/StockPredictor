@@ -3,9 +3,11 @@ import pandas as pd
 import time
 import numpy as np
 
+
 from stock_screener import screen_stocks
 from prediction_model import predict_next_for_ticker, track_predictions
 from data_fetch import get_history_cached, get_option_snapshot_features
+
 
 def classify_alignment(pred_ret, put_call_oi_ratio):
     """
@@ -19,14 +21,20 @@ def classify_alignment(pred_ret, put_call_oi_ratio):
         return "bearish-aligned"
     return "disagree"
 
-def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv):
+
+def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
     """
     Suggest options strategy based on model prediction and market indicators.
+    Adjusts thresholds based on prediction horizon.
     """
     pred_pct = pred_ret * 100
     
-    # Strong directional prediction (lowered from 2.0 to 1.0 for realistic next-day moves)
-    if abs(pred_pct) > 1.0:
+    # Adjust threshold based on horizon (2-day moves should be ~1.4x larger, 3-day ~1.7x)
+    threshold_multiplier = {1: 1.0, 2: 1.4, 3: 1.7}.get(horizon, 1.0)
+    adjusted_threshold = 1.0 * threshold_multiplier
+    
+    # Strong directional prediction
+    if abs(pred_pct) > adjusted_threshold:
         if pred_pct > 0:
             if put_call_ratio and put_call_ratio > 1.2:
                 return "🚀 BULLISH: Buy Calls (high put OI suggests potential short squeeze)", "bullish"
@@ -39,21 +47,24 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv):
                 return "🔻 BEARISH: Buy Puts or Bear Put Spread", "bearish"
     
     # Moderate prediction with high IV = sell premium
-    elif abs(pred_pct) < 0.5 and atm_iv and atm_iv > 0.35:
+    elif abs(pred_pct) < (0.5 * threshold_multiplier) and atm_iv and atm_iv > 0.35:
         return "⚖️ NEUTRAL: Sell Iron Condor or Straddle (high IV)", "neutral"
     
     # Low conviction
     else:
         return "⏸️ NEUTRAL: Wait for clearer signal or diagonal spread", "neutral"
 
+
 def run_app():
     st.title("Stock Predictor Dashboard")
+
 
     # Initialize session state
     if 'pred_df' not in st.session_state:
         st.session_state.pred_df = None
     if 'model_type' not in st.session_state:
         st.session_state.model_type = "rf"
+
 
     st.sidebar.header("Settings")
     default_watchlist = "AAPL, NVDA"
@@ -62,14 +73,30 @@ def run_app():
         value=default_watchlist,
     )
 
+
     model_label = st.sidebar.selectbox(
         "Model",
         ["Random Forest", "Gradient Boosting"],
     )
     model_type = "rf" if model_label == "Random Forest" else "gbrt"
 
+
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
+
+
+    # NEW: Prediction horizon selector
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Prediction Settings")
+    prediction_horizon = st.sidebar.selectbox(
+        "Prediction Horizon",
+        [1, 2, 3],
+        index=0,
+        help="How many days ahead to predict (1=next day, 2=day after tomorrow, 3=three days out)"
+    )
+    
+    horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day"}[prediction_horizon]
+
 
     st.sidebar.markdown(
         """
@@ -81,12 +108,15 @@ def run_app():
         """
     )
 
+
     tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
+
 
     if st.sidebar.button("Run Screener + Model"):
         if not tickers:
             st.error("Please enter at least one ticker.")
             return
+
 
         # Screener results
         st.subheader("Screener Results")
@@ -99,20 +129,24 @@ def run_app():
             st.warning("No data returned for these tickers.")
             return
 
+
         st.dataframe(screener_df)
+
 
         flagged_df = screener_df[screener_df["flag"] == True]
         if not flagged_df.empty:
             st.write("**Flagged by screener:**")
             st.dataframe(flagged_df)
 
+
         flagged = flagged_df["ticker"].tolist()
         if not flagged:
             st.info("No tickers flagged by screener; using full watchlist.")
             flagged = tickers
 
+
         st.subheader(
-            f"Next-Day Predictions ({model_label}) + Options Snapshot"
+            f"{horizon_label} Predictions ({model_label}) + Options Snapshot"
         )
         
         # Show progress bar
@@ -133,6 +167,7 @@ def run_app():
                     tk,
                     period="5y",
                     model_type=model_type,
+                    horizon=prediction_horizon,  # UPDATED: Pass horizon
                 )
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
@@ -147,24 +182,31 @@ def run_app():
         progress_bar.empty()
         status_text.empty()
 
+
         if results:
             # Store in session state
             st.session_state.pred_df = pd.DataFrame(results)
             st.session_state.pred_df["pred_next_ret_pct"] = st.session_state.pred_df["pred_next_ret"] * 100
             st.session_state.model_type = model_type
             st.session_state.screener_df = screener_df
+            st.session_state.prediction_horizon = prediction_horizon  # UPDATED: Store horizon
         else:
             st.warning("No predictions generated.")
             return
+
 
     # Display results if they exist in session state
     if st.session_state.pred_df is not None:
         pred_df = st.session_state.pred_df
         model_type = st.session_state.model_type
+        display_horizon = st.session_state.get('prediction_horizon', 1)
+        display_horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day"}[display_horizon]
+
 
         display = pred_df[[
             "ticker",
             "model_type",
+            "horizon",  # UPDATED: Show horizon in results
             "last_close",
             "vol_20d",
             "pe_ratio",
@@ -180,13 +222,14 @@ def run_app():
         display.rename(columns={
             "ticker": "Ticker",
             "model_type": "Model",
+            "horizon": "Days Ahead",  # UPDATED: New column
             "last_close": "Last Close",
             "vol_20d": "Vol 20D",
             "pe_ratio": "P/E",
             "num_features": "# Features",
             "atm_iv": "ATM IV",
             "put_call_oi_ratio": "Put/Call OI Ratio",
-            "pred_next_ret_pct": "Predicted Return (%)",
+            "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",  # UPDATED: Dynamic label
             "pred_next_price": "Predicted Price",
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
@@ -194,16 +237,19 @@ def run_app():
         
         st.dataframe(display)
 
+
         # Bar chart of predicted returns
-        bar_data = display.set_index("Ticker")["Predicted Return (%)"]
-        st.subheader("Predicted Returns by Ticker")
+        bar_data = display.set_index("Ticker")[f"Predicted {display_horizon_label} Return (%)"]
+        st.subheader(f"Predicted {display_horizon_label} Returns by Ticker")
         st.bar_chart(bar_data)
+
 
         # Feature importance display
         st.subheader("Top Features by Ticker")
         for _, row in pred_df.iterrows():
             with st.expander(f"{row['ticker']} - Top 5 Most Important Features"):
                 st.markdown(row['top_features'])
+
 
         # Options Strategy Recommendations
         st.subheader("Options Strategy Recommendations")
@@ -212,7 +258,8 @@ def run_app():
             strategy, sentiment = suggest_options_strategy(
                 row['pred_next_ret'],
                 row.get('put_call_oi_ratio'),
-                row.get('atm_iv')
+                row.get('atm_iv'),
+                horizon=display_horizon  # UPDATED: Pass horizon to adjust thresholds
             )
             
             color = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[sentiment]
@@ -242,7 +289,7 @@ def run_app():
                 warnings.append("⚠️ Model and options market disagree")
             
             # Build expander title with warnings
-            title = f"{color} {row['ticker']} - Options Strategy"
+            title = f"{color} {row['ticker']} - Options Strategy ({display_horizon_label})"
             if warnings:
                 title += " ⚠️"
             
@@ -252,29 +299,36 @@ def run_app():
                     for warning in warnings:
                         st.warning(warning)
                 
-                st.write(f"**Prediction:** {row['pred_next_ret']*100:.2f}%")
+                st.write(f"**{display_horizon_label} Prediction:** {row['pred_next_ret']*100:.2f}%")
                 st.write(f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}" if row.get('put_call_oi_ratio') else "**Put/Call Ratio:** N/A")
                 st.write(f"**IV:** {row.get('atm_iv', 'N/A'):.3f}" if row.get('atm_iv') else "**IV:** N/A")
                 st.write(f"**Strategy:** {strategy}")
                 
                 if row.get('atm_iv'):
-                    expected_move = row['last_close'] * row['atm_iv'] * np.sqrt(1/252)
-                    st.write(f"**Expected 1-day move:** ±${expected_move:.2f}")
+                    # Adjust expected move for horizon
+                    expected_move = row['last_close'] * row['atm_iv'] * np.sqrt(display_horizon/252)
+                    st.write(f"**Expected {display_horizon}-day move:** ±${expected_move:.2f}")
                     st.write(f"**Target strikes:** ${row['last_close'] - expected_move:.2f} to ${row['last_close'] + expected_move:.2f}")
+
 
         # Model Accuracy Testing
         st.subheader("Model Accuracy Testing")
         test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])
         
         if st.button("Run Accuracy Test"):
-            with st.spinner(f"Testing {test_ticker} predictions..."):
+            with st.spinner(f"Testing {test_ticker} {display_horizon_label} predictions..."):
                 try:
-                    results_test, accuracy = track_predictions(test_ticker, period="1y", model_type=model_type)
+                    results_test, accuracy = track_predictions(
+                        test_ticker, 
+                        period="1y", 
+                        model_type=model_type,
+                        horizon=display_horizon  # UPDATED: Pass horizon
+                    )
                     
                     if not results_test.empty:
                         # Show actual number of days tested
                         num_test_days = len(results_test)
-                        st.metric(f"Direction Accuracy (Last {num_test_days} Days)", f"{accuracy*100:.1f}%")
+                        st.metric(f"Direction Accuracy (Last {num_test_days} Days, {display_horizon_label} Horizon)", f"{accuracy*100:.1f}%")
                         
                         display_results = results_test[['date', 'predicted_return', 'actual_return', 
                                                       'predicted_price', 'actual_close', 'correct_direction']].copy()
@@ -283,8 +337,8 @@ def run_app():
                         
                         display_results.rename(columns={
                             'date': 'Date',
-                            'predicted_return': 'Pred Return (%)',
-                            'actual_return': 'Actual Return (%)',
+                            'predicted_return': f'Pred {display_horizon_label} Return (%)',
+                            'actual_return': f'Actual {display_horizon_label} Return (%)',
                             'predicted_price': 'Pred Price',
                             'actual_close': 'Actual Price',
                             'correct_direction': 'Correct?',
@@ -304,6 +358,7 @@ def run_app():
                 except Exception as e:
                     st.error(f"Error testing accuracy: {e}")
 
+
         # Line chart for one ticker
         chosen = st.selectbox("Show price history for:", display["Ticker"], key="price_history_selector")
         hist = get_history_cached(chosen, period="3mo", interval="1d")
@@ -313,16 +368,20 @@ def run_app():
             row = pred_df[pred_df["ticker"] == chosen].iloc[0]
             pred_price = row["pred_next_price"]
 
+
+            # UPDATED: Adjust date offset based on horizon
             extra_point = pd.Series(
                 [pred_price],
-                index=[last_date + pd.Timedelta(days=1)],
+                index=[last_date + pd.Timedelta(days=display_horizon)],
             )
             future = pd.concat([prices, extra_point])
 
-            st.subheader(f"{chosen} recent prices + predicted next price")
+
+            st.subheader(f"{chosen} recent prices + predicted {display_horizon_label} price")
             st.line_chart(future)
         else:
             st.warning(f"No recent price data for {chosen}.")
+
 
 if __name__ == "__main__":
     run_app()
