@@ -100,39 +100,43 @@ def run_app():
         if results:
             pred_df = pd.DataFrame(results)
             pred_df["pred_next_ret_pct"] = pred_df["pred_next_ret"] * 100
-
-            display = pred_df[
-                [
-                    "ticker",
-                    "model_type",
-                    "last_close",
-                    "vol_20d",
-                    "pe_ratio",
-                    "atm_iv",
-                    "put_call_oi_ratio",
-                    "pred_next_ret_pct",
-                    "pred_next_price",
-                    "opt_exp",
-                    "signal_alignment",
-                ]
-            ].copy()
-            display.rename(
-                columns={
-                    "ticker": "Ticker",
-                    "model_type": "Model",
-                    "last_close": "Last Close",
-                    "vol_20d": "Vol 20D",
-                    "pe_ratio": "P/E",
-                    "atm_iv": "ATM IV",
-                    "put_call_oi_ratio": "Put/Call OI Ratio",
-                    "pred_next_ret_pct": "Predicted Return (%)",
-                    "pred_next_price": "Predicted Price",
-                    "opt_exp": "Opt Expiry",
-                    "signal_alignment": "Signal",
-                },
-                inplace=True,
-            )
+            display = pred_df[[
+                "ticker",
+                "model_type",
+                "last_close",
+                "vol_20d",
+                "pe_ratio",
+                "num_features",
+                "atm_iv",
+                "put_call_oi_ratio",
+                "pred_next_ret_pct",
+                "pred_next_price",
+                "opt_exp",
+                "signal_alignment",
+            ]].copy()
+            
+            display.rename(columns={
+                "ticker": "Ticker",
+                "model_type": "Model",
+                "last_close": "Last Close",
+                "vol_20d": "Vol 20D",
+                "pe_ratio": "P/E",
+                "num_features": "# Features",
+                "atm_iv": "ATM IV",
+                "put_call_oi_ratio": "Put/Call OI Ratio",
+                "pred_next_ret_pct": "Predicted Return (%)",
+                "pred_next_price": "Predicted Price",
+                "opt_exp": "Opt Expiry",
+                "signal_alignment": "Signal",
+            }, inplace=True)
+            
             st.dataframe(display)
+            
+            # Add feature importance display
+            st.subheader("Top Features by Ticker")
+            for _, row in pred_df.iterrows():
+                with st.expander(f"{row['ticker']} - Top 5 Most Important Features"):
+                    st.write(row['top_features'])
 
             # Bar chart of predicted returns [web:236][web:245]
             bar_data = display.set_index("Ticker")["Predicted Return (%)"]
