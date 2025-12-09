@@ -6,6 +6,7 @@ import numpy as np
 from stock_screener import screen_stocks
 from prediction_model import predict_next_for_ticker, track_predictions
 from data_fetch import get_history_cached, get_option_snapshot_features
+from yfinance.exceptions import YFRateLimitError
 
 
 def classify_alignment(pred_ret, put_call_oi_ratio):
@@ -111,6 +112,14 @@ def run_app():
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
 
+    # NEW: limit tickers per run to reduce Yahoo rate limiting
+    max_tickers = st.sidebar.slider(
+        "Max tickers per run (to avoid rate limits)",
+        1,
+        5,
+        3,
+    )
+
     st.sidebar.markdown(
         """
         **Filters explanation**
@@ -142,7 +151,7 @@ def run_app():
 
         st.dataframe(screener_df)
 
-        flagged_df = screener_df[screener_df["flag"] == True]
+        flagged_df = screener_df[screener_df["flag"] is True]
         if not flagged_df.empty:
             st.write("**Flagged by screener:**")
             st.dataframe(flagged_df)
@@ -151,6 +160,13 @@ def run_app():
         if not flagged:
             st.info("No tickers flagged by screener; using full watchlist.")
             flagged = tickers
+
+        # NEW: hard-limit how many tickers we hit per run
+        if len(flagged) > max_tickers:
+            st.warning(
+                f"Limiting to first {max_tickers} tickers this run to avoid Yahoo Finance rate limits."
+            )
+            flagged = flagged[:max_tickers]
 
         st.subheader(
             f"{horizon_label} Predictions ({model_label}) + Options Snapshot"
@@ -166,8 +182,9 @@ def run_app():
             progress_bar.progress(progress)
             status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
 
+            # More conservative delay between tickers
             if i > 0:
-                time.sleep(3)
+                time.sleep(5)
 
             try:
                 out = predict_next_for_ticker(
@@ -183,6 +200,15 @@ def run_app():
                     out["put_call_oi_ratio"],
                 )
                 results.append(out)
+
+            except YFRateLimitError:
+                st.error(
+                    "Yahoo Finance is rate limiting this app (Too Many Requests). "
+                    "Try again later and/or use fewer tickers per run."
+                )
+                # Stop requesting more tickers this run
+                break
+
             except Exception as e:
                 st.warning(f"{tk}: ERROR {e}")
 

@@ -3,17 +3,29 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 import streamlit as st
+from yfinance.exceptions import YFRateLimitError
+
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_history_cached(ticker, period="1y", interval="1d"):
     return get_history(ticker, period, interval)
 
+
 def get_history(ticker, period="1y", interval="1d"):
     """
     Download OHLCV history for a ticker.
+    For charts we handle rate limits by returning an empty DataFrame
+    instead of crashing the whole app.
     """
     t = yf.Ticker(ticker)
-    hist = t.history(period=period, interval=interval)
+    try:
+        hist = t.history(period=period, interval=interval)
+    except YFRateLimitError:
+        st.warning(
+            f"Yahoo Finance rate limited price history for {ticker}. "
+            "Chart will be empty; try again later."
+        )
+        return pd.DataFrame()
     return hist
 
 
@@ -24,14 +36,15 @@ def get_option_chain(ticker, expiration=None, calls_only=True):
     """
     t = yf.Ticker(ticker)
 
-    expirations = t.options  # list of strings returned by yfinance [web:42][web:45]
+    # Let YFRateLimitError propagate so app.py can stop the loop
+    expirations = t.options
     if not expirations:
         raise ValueError(f"No options available for {ticker}")
 
     if expiration is None:
         expiration = expirations[0]
 
-    chain = t.option_chain(expiration)  # returns (calls, puts) DataFrames [web:42][web:45]
+    chain = t.option_chain(expiration)
     if calls_only:
         df = chain.calls.copy()
     else:
@@ -49,10 +62,11 @@ def get_option_snapshot_features(ticker, moneyness_window=0.05):
     - approximate ATM implied vol (average IV near current price)
     - put/call open interest ratio
 
-    This is designed for LIVE use (today's snapshot), not historical backtesting. [web:42][web:45]
+    Designed for LIVE use (today's snapshot), not historical backtesting.
     """
     t = yf.Ticker(ticker)
 
+    # Let YFRateLimitError bubble up so app.py can catch and break
     expirations = t.options
     if not expirations:
         return {
@@ -66,6 +80,9 @@ def get_option_snapshot_features(ticker, moneyness_window=0.05):
     try:
         chain = t.option_chain(expiration)
         calls, puts = chain.calls.copy(), chain.puts.copy()
+    except YFRateLimitError:
+        # propagate to app.py
+        raise
     except Exception:
         return {
             "opt_exp": expiration,
@@ -74,9 +91,14 @@ def get_option_snapshot_features(ticker, moneyness_window=0.05):
         }
 
     # Approximate underlying price from recent close
-    hist = t.history(period="5d", interval="1d")
+    try:
+        hist = t.history(period="5d", interval="1d")
+    except YFRateLimitError:
+        # propagate so app knows we're being throttled
+        raise
+
     underlying = None
-    if not hist.empty:
+    if hist is not None and not hist.empty:
         underlying = float(hist["Close"].iloc[-1])
 
     if underlying is not None:
