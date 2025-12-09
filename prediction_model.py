@@ -233,7 +233,7 @@ def track_predictions(ticker, period="3mo", model_type="rf"):
             return pd.DataFrame(), 0.0
         
         # Use more flexible split - test on last 15 days or 20% of data, whichever is smaller
-        test_size = min(15, int(len(df) * 0.2))
+        test_size = min(60, int(len(df) * 0.3))
         
         if test_size < 5:
             print(f"Test size too small: {test_size}")
