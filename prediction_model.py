@@ -4,6 +4,7 @@ import pandas as pd
 import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error
+from xgboost import XGBRegressor
 
 
 from data_fetch import get_history, get_history_cached
@@ -112,6 +113,7 @@ def make_model(model_type: str = "rf", random_state: int = 42):
     Factory for models:
     - 'rf'   -> RandomForestRegressor
     - 'gbrt' -> GradientBoostingRegressor
+    - 'xgb'  -> XGBoost
     """
     if model_type == "gbrt":
         return GradientBoostingRegressor(
@@ -119,6 +121,15 @@ def make_model(model_type: str = "rf", random_state: int = 42):
             learning_rate=0.05,
             max_depth=3,
             random_state=random_state,
+        )
+    elif model_type == "xgb":
+        return XGBRegressor(
+            n_estimators=300,
+            learning_rate=0.05,
+            max_depth=3,
+            random_state=random_state,
+            tree_method='hist',
+            verbosity=0,  # Suppress XGBoost warnings
         )
     else:
         return RandomForestRegressor(
@@ -184,7 +195,7 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf", horizo
     
     ticker: Stock symbol
     period: Historical data period
-    model_type: 'rf' or 'gbrt'
+    model_type: 'rf', 'gbrt', or 'xgb'
     horizon: Number of days ahead to predict (1, 2, or 3)
     """
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
@@ -322,7 +333,7 @@ def backtest_one_ticker(
     horizon=1,
 ):
     """
-    Backtest a single model type ('rf' or 'gbrt') on one ticker with multi-day predictions.
+    Backtest a single model type ('rf', 'gbrt', or 'xgb') on one ticker with multi-day predictions.
     
     horizon: Number of days ahead to predict (1, 2, or 3)
     threshold: Adjusted for multi-day predictions (e.g., 0.004 for 2-day, 0.006 for 3-day)
@@ -393,8 +404,7 @@ def backtest_compare_one_ticker(
     horizon=1,
 ):
     """
-    Run backtests for BOTH Random Forest ('rf') and Gradient Boosting ('gbrt')
-    on the same ticker with multi-day predictions.
+    Run backtests for RF, GBRT, and XGBoost on the same ticker with multi-day predictions.
     """
     rf_res = backtest_one_ticker(
         ticker=ticker,
@@ -412,27 +422,40 @@ def backtest_compare_one_ticker(
         model_type="gbrt",
         horizon=horizon,
     )
-    return {"rf": rf_res, "gbrt": gbrt_res}
+    xgb_res = backtest_one_ticker(
+        ticker=ticker,
+        period=period,
+        test_years=test_years,
+        threshold=threshold,
+        model_type="xgb",
+        horizon=horizon,
+    )
+    return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
 
 if __name__ == "__main__":
-    # Example: compare models on ^GSPC with 1-day, 2-day, and 3-day horizons
+    # Example: compare all three models on ^GSPC with different horizons
     print("=" * 60)
-    print("Testing 1-Day Predictions")
+    print("Testing 1-Day Predictions - All Models")
     print("=" * 60)
     X, y, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=1)
+    
     rf_model, rf_r2, rf_rmse = train_model(X, y, model_type="rf")
-    gbrt_model, gbrt_r2, gbrt_rmse = train_model(X, y, model_type="gbrt")
-
     print("Random Forest (1-day)")
     print(f"  Samples: {len(X)}")
     print(f"  Features: {len(FEATURE_COLUMNS)}")
     print(f"  Test R^2:  {rf_r2:.4f}")
     print(f"  Test RMSE: {rf_rmse:.6f}")
-
+    
+    gbrt_model, gbrt_r2, gbrt_rmse = train_model(X, y, model_type="gbrt")
     print("\nGradient Boosting (1-day)")
     print(f"  Test R^2:  {gbrt_r2:.4f}")
     print(f"  Test RMSE: {gbrt_rmse:.6f}")
+    
+    xgb_model, xgb_r2, xgb_rmse = train_model(X, y, model_type="xgb")
+    print("\nXGBoost (1-day)")
+    print(f"  Test R^2:  {xgb_r2:.4f}")
+    print(f"  Test RMSE: {xgb_rmse:.6f}")
     
     print("\n" + "=" * 60)
     print("Testing 2-Day Predictions")

@@ -76,16 +76,16 @@ def run_app():
 
     model_label = st.sidebar.selectbox(
         "Model",
-        ["Random Forest", "Gradient Boosting"],
+        ["Random Forest", "Gradient Boosting", "XGBoost"],
     )
-    model_type = "rf" if model_label == "Random Forest" else "gbrt"
+    model_type = {"Random Forest": "rf", "Gradient Boosting": "gbrt", "XGBoost": "xgb"}[model_label]
 
 
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
 
 
-    # NEW: Prediction horizon selector
+    # Prediction horizon selector
     st.sidebar.markdown("---")
     st.sidebar.subheader("Prediction Settings")
     prediction_horizon = st.sidebar.selectbox(
@@ -167,7 +167,7 @@ def run_app():
                     tk,
                     period="5y",
                     model_type=model_type,
-                    horizon=prediction_horizon,  # UPDATED: Pass horizon
+                    horizon=prediction_horizon,
                 )
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
@@ -189,7 +189,7 @@ def run_app():
             st.session_state.pred_df["pred_next_ret_pct"] = st.session_state.pred_df["pred_next_ret"] * 100
             st.session_state.model_type = model_type
             st.session_state.screener_df = screener_df
-            st.session_state.prediction_horizon = prediction_horizon  # UPDATED: Store horizon
+            st.session_state.prediction_horizon = prediction_horizon
         else:
             st.warning("No predictions generated.")
             return
@@ -206,7 +206,7 @@ def run_app():
         display = pred_df[[
             "ticker",
             "model_type",
-            "horizon",  # UPDATED: Show horizon in results
+            "horizon",
             "last_close",
             "vol_20d",
             "pe_ratio",
@@ -222,14 +222,14 @@ def run_app():
         display.rename(columns={
             "ticker": "Ticker",
             "model_type": "Model",
-            "horizon": "Days Ahead",  # UPDATED: New column
+            "horizon": "Days Ahead",
             "last_close": "Last Close",
             "vol_20d": "Vol 20D",
             "pe_ratio": "P/E",
             "num_features": "# Features",
             "atm_iv": "ATM IV",
             "put_call_oi_ratio": "Put/Call OI Ratio",
-            "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",  # UPDATED: Dynamic label
+            "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
             "pred_next_price": "Predicted Price",
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
@@ -259,7 +259,7 @@ def run_app():
                 row['pred_next_ret'],
                 row.get('put_call_oi_ratio'),
                 row.get('atm_iv'),
-                horizon=display_horizon  # UPDATED: Pass horizon to adjust thresholds
+                horizon=display_horizon
             )
             
             color = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[sentiment]
@@ -322,7 +322,7 @@ def run_app():
                         test_ticker, 
                         period="1y", 
                         model_type=model_type,
-                        horizon=display_horizon  # UPDATED: Pass horizon
+                        horizon=display_horizon
                     )
                     
                     if not results_test.empty:
@@ -369,7 +369,7 @@ def run_app():
             pred_price = row["pred_next_price"]
 
 
-            # UPDATED: Adjust date offset based on horizon
+            # Adjust date offset based on horizon
             extra_point = pd.Series(
                 [pred_price],
                 index=[last_date + pd.Timedelta(days=display_horizon)],
