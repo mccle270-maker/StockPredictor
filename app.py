@@ -5,7 +5,7 @@ import numpy as np
 
 from stock_screener import screen_stocks
 from prediction_model import predict_next_for_ticker, track_predictions
-from data_fetch import get_history_cached, get_option_snapshot_features
+from data_fetch import get_history_cached, get_option_snapshot_features, get_news_for_ticker
 from yfinance.exceptions import YFRateLimitError
 
 
@@ -353,16 +353,32 @@ def run_app():
                 )
                 st.write(f"**Strategy:** {strategy}")
 
-                if row.get("atm_iv"):
-                    expected_move = row["last_close"] * row["atm_iv"] * np.sqrt(
-                        display_horizon / 252
-                    )
-                    st.write(f"**Expected {display_horizon}-day move:** ±${expected_move:.2f}")
-                    st.write(
-                        f"**Target strikes:** ${row['last_close'] - expected_move:.2f} "
-                        f"to ${row['last_close'] + expected_move:.2f}"
-                    )
+            if row.get("atm_iv"):
+                expected_move = row["last_close"] * row["atm_iv"] * np.sqrt(
+                    display_horizon / 252
+                )
+                st.write(f"**Expected {display_horizon}-day move:** ±${expected_move:.2f}")
+                st.write(
+                    f"**Target strikes:** ${row['last_close'] - expected_move:.2f} "
+                    f"to ${row['last_close'] + expected_move:.2f}"
+                )
 
+            # --- Key headlines block ---
+            news = get_news_for_ticker(row["ticker"], limit=3)
+            if news:
+                st.markdown("**Key recent headlines:**")
+                for art in news:
+                    title = art.get("title", "No title")
+                    src = art.get("source", "Unknown")
+                    url = art.get("url")
+                    sent = art.get("sentiment")
+                    sent_label = f" (sentiment: {sent:.2f})" if isinstance(sent, (int, float)) else ""
+                    if url:
+                        st.markdown(f"- [{title}]({url}) — {src}{sent_label}")
+                    else:
+                        st.markdown(f"- {title} — {src}{sent_label}")
+            else:
+                st.markdown("**Key recent headlines:** none available or API not configured.")
         # Model Accuracy Testing
         st.subheader("Model Accuracy Testing")
         test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])

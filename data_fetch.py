@@ -3,8 +3,50 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 import streamlit as st
+import requests
 from yfinance.exceptions import YFRateLimitError
 
+@st.cache_data(ttl=900)  # cache for 15 minutes
+def get_news_for_ticker(ticker, limit=5):
+    """
+    Fetch recent finance news headlines for a ticker using Marketaux (or a similar API).
+    Requires MARKETAUX_API_KEY in st.secrets.
+    Returns a list of article dicts with title, source, url, published_at.
+    """
+    api_key = st.secrets.get("MARKETAUX_API_KEY")
+    if not api_key:
+        # No key configured; fail gracefully
+        return []
+
+    base_url = "https://api.marketaux.com/v1/news"
+    params = {
+        "symbols": ticker,
+        "language": "en",
+        "filter_entities": "true",
+        "api_token": api_key,
+        "limit": limit,
+    }
+
+    try:
+        resp = requests.get(base_url, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        st.warning(f"News fetch error for {ticker}: {e}")
+        return []
+
+    articles = []
+    for item in data.get("data", []):
+        articles.append(
+            {
+                "title": item.get("title"),
+                "source": item.get("source"),
+                "url": item.get("url"),
+                "published_at": item.get("published_at"),
+                "sentiment": item.get("sentiment"),  # Marketaux often provides this
+            }
+        )
+    return articles
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_history_cached(ticker, period="1y", interval="1d"):
