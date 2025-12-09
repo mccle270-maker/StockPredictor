@@ -25,8 +25,8 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv):
     """
     pred_pct = pred_ret * 100
     
-    # Strong directional prediction
-    if abs(pred_pct) > 2.0:
+    # Strong directional prediction (lowered from 2.0 to 1.0 for realistic next-day moves)
+    if abs(pred_pct) > 1.0:
         if pred_pct > 0:
             if put_call_ratio and put_call_ratio > 1.2:
                 return "🚀 BULLISH: Buy Calls (high put OI suggests potential short squeeze)", "bullish"
@@ -39,7 +39,7 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv):
                 return "🔻 BEARISH: Buy Puts or Bear Put Spread", "bearish"
     
     # Moderate prediction with high IV = sell premium
-    elif abs(pred_pct) < 1.0 and atm_iv and atm_iv > 0.3:
+    elif abs(pred_pct) < 0.5 and atm_iv and atm_iv > 0.35:
         return "⚖️ NEUTRAL: Sell Iron Condor or Straddle (high IV)", "neutral"
     
     # Low conviction
@@ -52,7 +52,7 @@ def run_app():
     # Initialize session state
     if 'pred_df' not in st.session_state:
         st.session_state.pred_df = None
-    if 'model_type' not in st.session_state:  # ADD THIS LINE
+    if 'model_type' not in st.session_state:
         st.session_state.model_type = "rf"
 
     st.sidebar.header("Settings")
@@ -227,7 +227,7 @@ def run_app():
                     st.write(f"**Expected 1-day move:** ±${expected_move:.2f}")
                     st.write(f"**Target strikes:** ${row['last_close'] - expected_move:.2f} to ${row['last_close'] + expected_move:.2f}")
 
-                # Model Accuracy Testing
+        # Model Accuracy Testing
         st.subheader("Model Accuracy Testing")
         test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])
         
@@ -271,7 +271,7 @@ def run_app():
 
         # Line chart for one ticker
         chosen = st.selectbox("Show price history for:", display["Ticker"], key="price_history_selector")
-        hist = hist = get_history_cached(chosen, period="3mo", interval="1d")
+        hist = get_history_cached(chosen, period="3mo", interval="1d")
         prices = hist["Close"].copy()
         if not prices.empty:
             last_date = prices.index[-1]
