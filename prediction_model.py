@@ -138,7 +138,6 @@ def build_features_and_target(ticker="^GSPC", period="5y"):
     last_close = last_row["Close"]
     last_vol_20d = last_row["vol_20d"]
 
-    # Return feature importance info as well
     return X, y, last_row_features, last_close, last_vol_20d
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42):
@@ -196,7 +195,7 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf"):
     # Calculate feature importances for top 5 features
     feature_importance = dict(zip(FEATURE_COLUMNS, model.feature_importances_))
     top_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)[:5]
-    top_features_str = ", ".join([f"{feat}: {imp:.3f}" for feat, imp in top_features])
+    top_features_str = "\n".join([f"- **{feat}**: {imp:.3f}" for feat, imp in top_features])
 
     return {
         "ticker": ticker,
@@ -209,6 +208,54 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf"):
         "num_features": len(FEATURE_COLUMNS),
         "top_features": top_features_str,
     }
+
+def track_predictions(ticker, period="2mo", model_type="rf"):
+    """
+    Compare model predictions to actual next-day returns over the past period.
+    Returns DataFrame with dates, predictions, actual returns, and accuracy.
+    """
+    hist = get_history(ticker, period=period, interval="1d")
+    hist = add_price_features(hist)
+    hist["target_ret_1d_ahead"] = hist["ret_1d"].shift(-1)
+    
+    df = hist.dropna().copy()
+    
+    if len(df) < 30:
+        return pd.DataFrame(), 0.0
+    
+    # Train model on all available data except last 20 days
+    train_df = df.iloc[:-20]
+    test_df = df.iloc[-20:]
+    
+    if len(test_df) == 0:
+        return pd.DataFrame(), 0.0
+    
+    X_train = train_df[FEATURE_COLUMNS].values
+    y_train = train_df["target_ret_1d_ahead"].values
+    
+    model = make_model(model_type=model_type, random_state=42)
+    model.fit(X_train, y_train)
+    
+    # Make predictions for test period
+    X_test = test_df[FEATURE_COLUMNS].values
+    y_test = test_df["target_ret_1d_ahead"].values
+    y_pred = model.predict(X_test)
+    
+    results = pd.DataFrame({
+        'date': test_df.index,
+        'actual_close': test_df['Close'],
+        'predicted_return': y_pred,
+        'actual_return': y_test,
+        'pred_direction': np.sign(y_pred),
+        'actual_direction': np.sign(y_test),
+        'correct_direction': np.sign(y_pred) == np.sign(y_test),
+    })
+    
+    results['predicted_price'] = results['actual_close'] * (1 + results['predicted_return'])
+    
+    accuracy = results['correct_direction'].mean()
+    
+    return results, accuracy
 
 def backtest_one_ticker(
     ticker="AAPL",
