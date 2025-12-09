@@ -234,7 +234,7 @@ def run_app():
         if st.button("Run Accuracy Test"):
             with st.spinner(f"Testing {test_ticker} predictions..."):
                 try:
-                    results_test, accuracy = track_predictions(test_ticker, period="2mo", model_type=model_type)
+                    results_test, accuracy = track_predictions(test_ticker, period="6mo", model_type=model_type)
                     
                     if not results_test.empty:
                         st.metric("Direction Accuracy (Last 20 Days)", f"{accuracy*100:.1f}%")
