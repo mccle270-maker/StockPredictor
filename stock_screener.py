@@ -1,7 +1,7 @@
 # stock_screener.py
 import yfinance as yf
 import pandas as pd
-from data_fetch import get_history
+from data_fetch import get_history_cached
 
 
 def compute_basic_signals(ticker, lookback_days=30):
@@ -11,7 +11,7 @@ def compute_basic_signals(ticker, lookback_days=30):
     - volume spike vs average
     - 20-day realized volatility
     """
-    hist = get_history(ticker, period=f"{lookback_days}d", interval="1d")
+    hist = get_history_cached(ticker, period=f"{lookback_days}d", interval="1d")
     if hist.empty or len(hist) < 5:
         return None
 

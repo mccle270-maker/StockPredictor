@@ -5,7 +5,7 @@ import numpy as np
 
 from stock_screener import screen_stocks
 from prediction_model import predict_next_for_ticker, track_predictions
-from data_fetch import get_history, get_option_snapshot_features
+from data_fetch import get_history_cached, get_option_snapshot_features
 
 def classify_alignment(pred_ret, put_call_oi_ratio):
     """
@@ -271,7 +271,7 @@ def run_app():
 
         # Line chart for one ticker
         chosen = st.selectbox("Show price history for:", display["Ticker"], key="price_history_selector")
-        hist = get_history(chosen, period="3mo", interval="1d")
+        hist = hist = get_history_cached(chosen, period="3mo", interval="1d")
         prices = hist["Close"].copy()
         if not prices.empty:
             last_date = prices.index[-1]

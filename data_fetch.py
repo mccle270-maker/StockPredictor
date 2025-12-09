@@ -2,7 +2,11 @@
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import streamlit as st
 
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def get_history_cached(ticker, period="1y", interval="1d"):
+    return get_history(ticker, period, interval)
 
 def get_history(ticker, period="1y", interval="1d"):
     """

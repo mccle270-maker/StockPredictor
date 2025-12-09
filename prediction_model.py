@@ -5,7 +5,7 @@ import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error
 
-from data_fetch import get_history
+from data_fetch import get_history_cached
 
 # Extended feature columns with new indicators
 FEATURE_COLUMNS = [
@@ -123,7 +123,7 @@ def build_features_and_target(ticker="^GSPC", period="5y"):
     Build feature matrix X, target vector y, and the latest row info
     for next-day prediction, using price + TA indicators.
     """
-    hist = get_history(ticker, period=period, interval="1d")
+    hist = get_history_cached(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
 
     # Target: next-day return
