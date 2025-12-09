@@ -49,6 +49,12 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv):
 def run_app():
     st.title("Stock Predictor Dashboard")
 
+    # Initialize session state
+    if 'pred_df' not in st.session_state:
+        st.session_state.pred_df = None
+    if 'model_type' not in st.session_state:  # ADD THIS LINE
+        st.session_state.model_type = "rf"
+
     st.sidebar.header("Settings")
     default_watchlist = "AAPL, NVDA"
     watchlist_text = st.sidebar.text_input(
@@ -115,173 +121,170 @@ def run_app():
         
         results = []
         for i, tk in enumerate(flagged):
-            # Update progress
             progress = (i + 1) / len(flagged)
             progress_bar.progress(progress)
             status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
             
-            # Add delay between tickers (except first one)
             if i > 0:
                 time.sleep(3)
             
             try:
-                # model prediction
                 out = predict_next_for_ticker(
                     tk,
                     period="5y",
                     model_type=model_type,
                 )
-
-                # options snapshot
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
-
                 out["signal_alignment"] = classify_alignment(
                     out["pred_next_ret"],
                     out["put_call_oi_ratio"],
                 )
-
                 results.append(out)
             except Exception as e:
                 st.warning(f"{tk}: ERROR {e}")
         
-        # Clear progress indicators
         progress_bar.empty()
         status_text.empty()
 
         if results:
-            pred_df = pd.DataFrame(results)
-            pred_df["pred_next_ret_pct"] = pred_df["pred_next_ret"] * 100
-
-            display = pred_df[[
-                "ticker",
-                "model_type",
-                "last_close",
-                "vol_20d",
-                "pe_ratio",
-                "num_features",
-                "atm_iv",
-                "put_call_oi_ratio",
-                "pred_next_ret_pct",
-                "pred_next_price",
-                "opt_exp",
-                "signal_alignment",
-            ]].copy()
-            
-            display.rename(columns={
-                "ticker": "Ticker",
-                "model_type": "Model",
-                "last_close": "Last Close",
-                "vol_20d": "Vol 20D",
-                "pe_ratio": "P/E",
-                "num_features": "# Features",
-                "atm_iv": "ATM IV",
-                "put_call_oi_ratio": "Put/Call OI Ratio",
-                "pred_next_ret_pct": "Predicted Return (%)",
-                "pred_next_price": "Predicted Price",
-                "opt_exp": "Opt Expiry",
-                "signal_alignment": "Signal",
-            }, inplace=True)
-            
-            st.dataframe(display)
-
-            # Bar chart of predicted returns
-            bar_data = display.set_index("Ticker")["Predicted Return (%)"]
-            st.subheader("Predicted Returns by Ticker")
-            st.bar_chart(bar_data)
-
-            # Feature importance display
-            st.subheader("Top Features by Ticker")
-            for _, row in pred_df.iterrows():
-                with st.expander(f"{row['ticker']} - Top 5 Most Important Features"):
-                    st.markdown(row['top_features'])
-
-            # Options Strategy Recommendations
-            st.subheader("Options Strategy Recommendations")
-            
-            for _, row in pred_df.iterrows():
-                strategy, sentiment = suggest_options_strategy(
-                    row['pred_next_ret'],
-                    row.get('put_call_oi_ratio'),
-                    row.get('atm_iv')
-                )
-                
-                color = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[sentiment]
-                
-                with st.expander(f"{color} {row['ticker']} - Options Strategy"):
-                    st.write(f"**Prediction:** {row['pred_next_ret']*100:.2f}%")
-                    st.write(f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}" if row.get('put_call_oi_ratio') else "**Put/Call Ratio:** N/A")
-                    st.write(f"**IV:** {row.get('atm_iv', 'N/A'):.3f}" if row.get('atm_iv') else "**IV:** N/A")
-                    st.write(f"**Strategy:** {strategy}")
-                    
-                    # Show which strikes to target
-                    if row.get('atm_iv'):
-                        expected_move = row['last_close'] * row['atm_iv'] * np.sqrt(1/252)
-                        st.write(f"**Expected 1-day move:** ±${expected_move:.2f}")
-                        st.write(f"**Target strikes:** ${row['last_close'] - expected_move:.2f} to ${row['last_close'] + expected_move:.2f}")
-
-            # Model Accuracy Testing
-            st.subheader("Model Accuracy Testing")
-            test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])
-            
-            if st.button("Run Accuracy Test"):
-                with st.spinner(f"Testing {test_ticker} predictions..."):
-                    try:
-                        results_test, accuracy = track_predictions(test_ticker, period="2mo", model_type=model_type)
-                        
-                        if not results_test.empty:
-                            st.metric("Direction Accuracy (Last 20 Days)", f"{accuracy*100:.1f}%")
-                            
-                            # Show recent predictions vs actuals
-                            display_results = results_test[['date', 'predicted_return', 'actual_return', 
-                                                          'predicted_price', 'actual_close', 'correct_direction']].copy()
-                            display_results['predicted_return'] = display_results['predicted_return'] * 100
-                            display_results['actual_return'] = display_results['actual_return'] * 100
-                            
-                            display_results.rename(columns={
-                                'date': 'Date',
-                                'predicted_return': 'Pred Return (%)',
-                                'actual_return': 'Actual Return (%)',
-                                'predicted_price': 'Pred Price',
-                                'actual_close': 'Actual Price',
-                                'correct_direction': 'Correct?',
-                            }, inplace=True)
-                            
-                            st.dataframe(display_results.tail(10))
-                            
-                            # Chart: Predicted vs Actual
-                            chart_df = pd.DataFrame({
-                                'Predicted': results_test['predicted_return'].values * 100,
-                                'Actual': results_test['actual_return'].values * 100,
-                            }, index=results_test['date'])
-                            
-                            st.line_chart(chart_df)
-                        else:
-                            st.warning("Not enough data to test accuracy.")
-                    except Exception as e:
-                        st.error(f"Error testing accuracy: {e}")
-
-            # Line chart for one ticker: recent history + predicted next price
-            chosen = st.selectbox("Show price history for:", display["Ticker"])
-            hist = get_history(chosen, period="3mo", interval="1d")
-            prices = hist["Close"].copy()
-            if not prices.empty:
-                last_date = prices.index[-1]
-                row = pred_df[pred_df["ticker"] == chosen].iloc[0]
-                pred_price = row["pred_next_price"]
-
-                extra_point = pd.Series(
-                    [pred_price],
-                    index=[last_date + pd.Timedelta(days=1)],
-                )
-                future = pd.concat([prices, extra_point])
-
-                st.subheader(f"{chosen} recent prices + predicted next price")
-                st.line_chart(future)
-            else:
-                st.warning(f"No recent price data for {chosen}.")
+            # Store in session state
+            st.session_state.pred_df = pd.DataFrame(results)
+            st.session_state.pred_df["pred_next_ret_pct"] = st.session_state.pred_df["pred_next_ret"] * 100
+            st.session_state.model_type = model_type
         else:
             st.warning("No predictions generated.")
+            return
+
+    # Display results if they exist in session state
+    if st.session_state.pred_df is not None:
+        pred_df = st.session_state.pred_df
+        model_type = st.session_state.model_type
+
+        display = pred_df[[
+            "ticker",
+            "model_type",
+            "last_close",
+            "vol_20d",
+            "pe_ratio",
+            "num_features",
+            "atm_iv",
+            "put_call_oi_ratio",
+            "pred_next_ret_pct",
+            "pred_next_price",
+            "opt_exp",
+            "signal_alignment",
+        ]].copy()
+        
+        display.rename(columns={
+            "ticker": "Ticker",
+            "model_type": "Model",
+            "last_close": "Last Close",
+            "vol_20d": "Vol 20D",
+            "pe_ratio": "P/E",
+            "num_features": "# Features",
+            "atm_iv": "ATM IV",
+            "put_call_oi_ratio": "Put/Call OI Ratio",
+            "pred_next_ret_pct": "Predicted Return (%)",
+            "pred_next_price": "Predicted Price",
+            "opt_exp": "Opt Expiry",
+            "signal_alignment": "Signal",
+        }, inplace=True)
+        
+        st.dataframe(display)
+
+        # Bar chart of predicted returns
+        bar_data = display.set_index("Ticker")["Predicted Return (%)"]
+        st.subheader("Predicted Returns by Ticker")
+        st.bar_chart(bar_data)
+
+        # Feature importance display
+        st.subheader("Top Features by Ticker")
+        for _, row in pred_df.iterrows():
+            with st.expander(f"{row['ticker']} - Top 5 Most Important Features"):
+                st.markdown(row['top_features'])
+
+        # Options Strategy Recommendations
+        st.subheader("Options Strategy Recommendations")
+        
+        for _, row in pred_df.iterrows():
+            strategy, sentiment = suggest_options_strategy(
+                row['pred_next_ret'],
+                row.get('put_call_oi_ratio'),
+                row.get('atm_iv')
+            )
+            
+            color = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[sentiment]
+            
+            with st.expander(f"{color} {row['ticker']} - Options Strategy"):
+                st.write(f"**Prediction:** {row['pred_next_ret']*100:.2f}%")
+                st.write(f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}" if row.get('put_call_oi_ratio') else "**Put/Call Ratio:** N/A")
+                st.write(f"**IV:** {row.get('atm_iv', 'N/A'):.3f}" if row.get('atm_iv') else "**IV:** N/A")
+                st.write(f"**Strategy:** {strategy}")
+                
+                if row.get('atm_iv'):
+                    expected_move = row['last_close'] * row['atm_iv'] * np.sqrt(1/252)
+                    st.write(f"**Expected 1-day move:** ±${expected_move:.2f}")
+                    st.write(f"**Target strikes:** ${row['last_close'] - expected_move:.2f} to ${row['last_close'] + expected_move:.2f}")
+
+        # Model Accuracy Testing
+        st.subheader("Model Accuracy Testing")
+        test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])
+        
+        if st.button("Run Accuracy Test"):
+            with st.spinner(f"Testing {test_ticker} predictions..."):
+                try:
+                    results_test, accuracy = track_predictions(test_ticker, period="2mo", model_type=model_type)
+                    
+                    if not results_test.empty:
+                        st.metric("Direction Accuracy (Last 20 Days)", f"{accuracy*100:.1f}%")
+                        
+                        display_results = results_test[['date', 'predicted_return', 'actual_return', 
+                                                      'predicted_price', 'actual_close', 'correct_direction']].copy()
+                        display_results['predicted_return'] = display_results['predicted_return'] * 100
+                        display_results['actual_return'] = display_results['actual_return'] * 100
+                        
+                        display_results.rename(columns={
+                            'date': 'Date',
+                            'predicted_return': 'Pred Return (%)',
+                            'actual_return': 'Actual Return (%)',
+                            'predicted_price': 'Pred Price',
+                            'actual_close': 'Actual Price',
+                            'correct_direction': 'Correct?',
+                        }, inplace=True)
+                        
+                        st.dataframe(display_results.tail(10))
+                        
+                        chart_df = pd.DataFrame({
+                            'Predicted': results_test['predicted_return'].values * 100,
+                            'Actual': results_test['actual_return'].values * 100,
+                        }, index=results_test['date'])
+                        
+                        st.line_chart(chart_df)
+                    else:
+                        st.warning("Not enough data to test accuracy.")
+                except Exception as e:
+                    st.error(f"Error testing accuracy: {e}")
+
+        # Line chart for one ticker
+        chosen = st.selectbox("Show price history for:", display["Ticker"], key="price_history_selector")
+        hist = get_history(chosen, period="3mo", interval="1d")
+        prices = hist["Close"].copy()
+        if not prices.empty:
+            last_date = prices.index[-1]
+            row = pred_df[pred_df["ticker"] == chosen].iloc[0]
+            pred_price = row["pred_next_price"]
+
+            extra_point = pd.Series(
+                [pred_price],
+                index=[last_date + pd.Timedelta(days=1)],
+            )
+            future = pd.concat([prices, extra_point])
+
+            st.subheader(f"{chosen} recent prices + predicted next price")
+            st.line_chart(future)
+        else:
+            st.warning(f"No recent price data for {chosen}.")
 
 if __name__ == "__main__":
     run_app()
