@@ -152,6 +152,7 @@ def run_app():
             st.session_state.pred_df = pd.DataFrame(results)
             st.session_state.pred_df["pred_next_ret_pct"] = st.session_state.pred_df["pred_next_ret"] * 100
             st.session_state.model_type = model_type
+            st.session_state.screener_df = screener_df
         else:
             st.warning("No predictions generated.")
             return
@@ -220,7 +221,7 @@ def run_app():
             warnings = []
             
             # Check for earnings risk (get from screener data if available)
-            ticker_screener_data = screener_df[screener_df['ticker'] == row['ticker']]
+            ticker_screener_data = st.session_state.screener_df[st.session_state.screener_df['ticker'] == row['ticker']] if 'screener_df' in st.session_state else pd.DataFrame()
             if not ticker_screener_data.empty:
                 days_to_earnings = ticker_screener_data.iloc[0].get('days_to_earnings')
                 if days_to_earnings is not None and 0 <= days_to_earnings <= 7:
