@@ -6,38 +6,45 @@ from data_fetch import get_history_cached
 
 def compute_basic_signals(ticker, lookback_days=30):
     """
-    Compute simple signals for a single ticker:
-    - recent return over lookback_days
-    - volume spike vs average
-    - 20-day realized volatility
+    Compute simple signals for a single ticker.
     """
-    hist = get_history_cached(ticker, period=f"{lookback_days}d", interval="1d")
-    if hist.empty or len(hist) < 5:
-        return None
-
-    hist["ret"] = hist["Close"].pct_change()
-    recent_ret = hist["Close"].iloc[-1] / hist["Close"].iloc[0] - 1
-    vol_spike = hist["Volume"].iloc[-1] / hist["Volume"].mean()
-    vol_20d = hist["ret"].rolling(20).std().iloc[-1]
-
-    t = yf.Ticker(ticker)
     try:
-        cal = t.calendar  # small earnings/calendar DataFrame from Yahoo [web:86]
-        next_earnings = (
-            cal.loc["Earnings Date"].iloc[0]
-            if "Earnings Date" in cal.index
-            else None
-        )
-    except Exception:
-        next_earnings = None
+        from data_fetch import get_history_cached
+        hist = get_history_cached(ticker, period=f"{lookback_days}d", interval="1d")
+        if hist.empty or len(hist) < 5:
+            return None
 
-    return {
-        "ticker": ticker,
-        "recent_return": recent_ret,
-        "volume_spike": vol_spike,
-        "vol_20d": vol_20d,
-        "next_earnings": next_earnings,
-    }
+        hist["ret"] = hist["Close"].pct_change()
+        recent_ret = hist["Close"].iloc[-1] / hist["Close"].iloc[0] - 1
+        vol_spike = hist["Volume"].iloc[-1] / hist["Volume"].mean()
+        vol_20d = hist["ret"].rolling(20).std().iloc[-1]
+
+        # Try to get earnings date (with error handling)
+        next_earnings = None
+        days_to_earnings = None
+        try:
+            import yfinance as yf
+            t = yf.Ticker(ticker)
+            cal = t.calendar
+            if cal is not None and 'Earnings Date' in cal.index:
+                earnings_date = pd.to_datetime(cal.loc["Earnings Date"].iloc[0])
+                days_to_earnings = (earnings_date - pd.Timestamp.now()).days
+                if days_to_earnings >= 0:  # Only if earnings is in the future
+                    next_earnings = earnings_date.strftime("%Y-%m-%d")
+        except:
+            pass  # Silently fail if earnings date not available
+
+        return {
+            "ticker": ticker,
+            "recent_return": recent_ret,
+            "volume_spike": vol_spike,
+            "vol_20d": vol_20d,
+            "next_earnings": next_earnings,
+            "days_to_earnings": days_to_earnings,
+        }
+    except Exception as e:
+        print(f"Error computing signals for {ticker}: {e}")
+        return None
 
 
 def screen_stocks(tickers, ret_thresh=0.03, vol_spike_thresh=1.5):

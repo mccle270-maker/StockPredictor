@@ -216,7 +216,41 @@ def run_app():
             
             color = {"bullish": "🟢", "bearish": "🔴", "neutral": "🟡"}[sentiment]
             
-            with st.expander(f"{color} {row['ticker']} - Options Strategy"):
+            # Collect warnings
+            warnings = []
+            
+            # Check for earnings risk (get from screener data if available)
+            ticker_screener_data = screener_df[screener_df['ticker'] == row['ticker']]
+            if not ticker_screener_data.empty:
+                days_to_earnings = ticker_screener_data.iloc[0].get('days_to_earnings')
+                if days_to_earnings is not None and 0 <= days_to_earnings <= 7:
+                    warnings.append(f"⚠️ Earnings in {days_to_earnings} days")
+            
+            # Check for very high IV
+            if row.get('atm_iv') and row['atm_iv'] > 0.6:
+                warnings.append("⚠️ Very high IV (60%+) - event expected")
+            
+            # Check for unusual volume
+            if not ticker_screener_data.empty:
+                vol_spike = ticker_screener_data.iloc[0].get('volume_spike')
+                if vol_spike and vol_spike > 3.0:
+                    warnings.append(f"⚠️ Volume spike {vol_spike:.1f}x - unusual activity")
+            
+            # Check for disagreement
+            if row.get('signal_alignment') == 'disagree':
+                warnings.append("⚠️ Model and options market disagree")
+            
+            # Build expander title with warnings
+            title = f"{color} {row['ticker']} - Options Strategy"
+            if warnings:
+                title += " ⚠️"
+            
+            with st.expander(title):
+                # Show warnings at top if any
+                if warnings:
+                    for warning in warnings:
+                        st.warning(warning)
+                
                 st.write(f"**Prediction:** {row['pred_next_ret']*100:.2f}%")
                 st.write(f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}" if row.get('put_call_oi_ratio') else "**Put/Call Ratio:** N/A")
                 st.write(f"**IV:** {row.get('atm_iv', 'N/A'):.3f}" if row.get('atm_iv') else "**IV:** N/A")
