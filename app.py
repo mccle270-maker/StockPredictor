@@ -37,7 +37,10 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
     if abs(pred_pct) > adjusted_threshold:
         if pred_pct > 0:
             if put_call_ratio and put_call_ratio > 1.2:
-                return "🚀 BULLISH: Buy Calls (high put OI suggests potential short squeeze)", "bullish"
+                return (
+                    "🚀 BULLISH: Buy Calls (high put OI suggests potential short squeeze)",
+                    "bullish",
+                )
             else:
                 return "📈 BULLISH: Buy Calls or Bull Call Spread", "bullish"
         else:
@@ -87,7 +90,9 @@ def run_app():
         "Model",
         ["Random Forest", "Gradient Boosting", "XGBoost"],
     )
-    model_type = {"Random Forest": "rf", "Gradient Boosting": "gbrt", "XGBoost": "xgb"}[model_label]
+    model_type = {"Random Forest": "rf", "Gradient Boosting": "gbrt", "XGBoost": "xgb"}[
+        model_label
+    ]
 
     # Generic recommendation based on horizon (no specific tickers)
     if prediction_horizon == 1:
@@ -112,7 +117,7 @@ def run_app():
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
 
-    # NEW: limit tickers per run to reduce Yahoo rate limiting
+    # Limit tickers per run to reduce Yahoo rate limiting
     max_tickers = st.sidebar.slider(
         "Max tickers per run (to avoid rate limits)",
         1,
@@ -151,7 +156,12 @@ def run_app():
 
         st.dataframe(screener_df)
 
-        flagged_df = screener_df[screener_df["flag"] is True]
+        # ---- Flagged tickers (handle missing 'flag' column safely) ----
+        if "flag" in screener_df.columns:
+            flagged_df = screener_df[screener_df["flag"] == True]
+        else:
+            flagged_df = pd.DataFrame(columns=screener_df.columns)
+
         if not flagged_df.empty:
             st.write("**Flagged by screener:**")
             st.dataframe(flagged_df)
@@ -161,7 +171,7 @@ def run_app():
             st.info("No tickers flagged by screener; using full watchlist.")
             flagged = tickers
 
-        # NEW: hard-limit how many tickers we hit per run
+        # Hard-limit how many tickers we hit per run
         if len(flagged) > max_tickers:
             st.warning(
                 f"Limiting to first {max_tickers} tickers this run to avoid Yahoo Finance rate limits."
