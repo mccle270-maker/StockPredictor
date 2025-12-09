@@ -227,7 +227,7 @@ def run_app():
                     st.write(f"**Expected 1-day move:** ±${expected_move:.2f}")
                     st.write(f"**Target strikes:** ${row['last_close'] - expected_move:.2f} to ${row['last_close'] + expected_move:.2f}")
 
-        # Model Accuracy Testing
+                # Model Accuracy Testing
         st.subheader("Model Accuracy Testing")
         test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])
         
@@ -237,7 +237,9 @@ def run_app():
                     results_test, accuracy = track_predictions(test_ticker, period="1y", model_type=model_type)
                     
                     if not results_test.empty:
-                        st.metric("Direction Accuracy (Last 20 Days)", f"{accuracy*100:.1f}%")
+                        # Show actual number of days tested
+                        num_test_days = len(results_test)
+                        st.metric(f"Direction Accuracy (Last {num_test_days} Days)", f"{accuracy*100:.1f}%")
                         
                         display_results = results_test[['date', 'predicted_return', 'actual_return', 
                                                       'predicted_price', 'actual_close', 'correct_direction']].copy()
@@ -253,7 +255,8 @@ def run_app():
                             'correct_direction': 'Correct?',
                         }, inplace=True)
                         
-                        st.dataframe(display_results.tail(10))
+                        # Show ALL results, not just last 10
+                        st.dataframe(display_results)
                         
                         chart_df = pd.DataFrame({
                             'Predicted': results_test['predicted_return'].values * 100,
