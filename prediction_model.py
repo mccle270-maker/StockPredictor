@@ -5,7 +5,7 @@ import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error
 
-from data_fetch import get_history_cached
+from data_fetch import get_history, get_history_cached
 
 # Extended feature columns with new indicators
 FEATURE_COLUMNS = [
