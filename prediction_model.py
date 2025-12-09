@@ -209,53 +209,75 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf"):
         "top_features": top_features_str,
     }
 
-def track_predictions(ticker, period="2mo", model_type="rf"):
+def track_predictions(ticker, period="3mo", model_type="rf"):
     """
     Compare model predictions to actual next-day returns over the past period.
     Returns DataFrame with dates, predictions, actual returns, and accuracy.
     """
-    hist = get_history(ticker, period=period, interval="1d")
-    hist = add_price_features(hist)
-    hist["target_ret_1d_ahead"] = hist["ret_1d"].shift(-1)
-    
-    df = hist.dropna().copy()
-    
-    if len(df) < 30:
+    try:
+        hist = get_history(ticker, period=period, interval="1d")
+        
+        if hist.empty or len(hist) < 50:
+            print(f"Insufficient data for {ticker}: only {len(hist)} rows")
+            return pd.DataFrame(), 0.0
+        
+        hist = add_price_features(hist)
+        hist["target_ret_1d_ahead"] = hist["ret_1d"].shift(-1)
+        
+        df = hist.dropna().copy()
+        
+        print(f"After dropna for {ticker}: {len(df)} rows")
+        
+        if len(df) < 50:
+            print(f"Not enough data after feature engineering for {ticker}")
+            return pd.DataFrame(), 0.0
+        
+        # Use more flexible split - test on last 15 days or 20% of data, whichever is smaller
+        test_size = min(15, int(len(df) * 0.2))
+        
+        if test_size < 5:
+            print(f"Test size too small: {test_size}")
+            return pd.DataFrame(), 0.0
+        
+        train_df = df.iloc[:-test_size]
+        test_df = df.iloc[-test_size:]
+        
+        print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
+        
+        X_train = train_df[FEATURE_COLUMNS].values
+        y_train = train_df["target_ret_1d_ahead"].values
+        
+        model = make_model(model_type=model_type, random_state=42)
+        model.fit(X_train, y_train)
+        
+        # Make predictions for test period
+        X_test = test_df[FEATURE_COLUMNS].values
+        y_test = test_df["target_ret_1d_ahead"].values
+        y_pred = model.predict(X_test)
+        
+        results = pd.DataFrame({
+            'date': test_df.index,
+            'actual_close': test_df['Close'],
+            'predicted_return': y_pred,
+            'actual_return': y_test,
+            'pred_direction': np.sign(y_pred),
+            'actual_direction': np.sign(y_test),
+            'correct_direction': np.sign(y_pred) == np.sign(y_test),
+        })
+        
+        results['predicted_price'] = results['actual_close'] * (1 + results['predicted_return'])
+        
+        accuracy = results['correct_direction'].mean()
+        
+        print(f"Success! Generated {len(results)} test predictions with {accuracy*100:.1f}% accuracy")
+        
+        return results, accuracy
+        
+    except Exception as e:
+        print(f"Error in track_predictions for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
         return pd.DataFrame(), 0.0
-    
-    # Train model on all available data except last 20 days
-    train_df = df.iloc[:-20]
-    test_df = df.iloc[-20:]
-    
-    if len(test_df) == 0:
-        return pd.DataFrame(), 0.0
-    
-    X_train = train_df[FEATURE_COLUMNS].values
-    y_train = train_df["target_ret_1d_ahead"].values
-    
-    model = make_model(model_type=model_type, random_state=42)
-    model.fit(X_train, y_train)
-    
-    # Make predictions for test period
-    X_test = test_df[FEATURE_COLUMNS].values
-    y_test = test_df["target_ret_1d_ahead"].values
-    y_pred = model.predict(X_test)
-    
-    results = pd.DataFrame({
-        'date': test_df.index,
-        'actual_close': test_df['Close'],
-        'predicted_return': y_pred,
-        'actual_return': y_test,
-        'pred_direction': np.sign(y_pred),
-        'actual_direction': np.sign(y_test),
-        'correct_direction': np.sign(y_pred) == np.sign(y_test),
-    })
-    
-    results['predicted_price'] = results['actual_close'] * (1 + results['predicted_return'])
-    
-    accuracy = results['correct_direction'].mean()
-    
-    return results, accuracy
 
 def backtest_one_ticker(
     ticker="AAPL",
