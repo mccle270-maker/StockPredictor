@@ -160,16 +160,6 @@ FEATURE_COLUMNS = [
    "vol_20d",
 
 
-   # lagged returns and rolling stats on returns
-   "ret_1d_lag1",
-   "ret_1d_lag2",
-   "ret_1d_lag5",
-   "ret_1d_rollmean_5",
-   "ret_1d_rollstd_5",
-   "ret_1d_rollmean_10",
-   "ret_1d_rollstd_10",
-
-
    # moving averages / trend & overbought-oversold
    "sma_ratio_10_50",
    "rsi_14",
@@ -185,7 +175,7 @@ FEATURE_COLUMNS = [
    "volume_trend",
    "vol_ma_20",
    "vol_spike_20",
-   "vol_spike_1d_ago",
+   
 
 
    # volume rolling stats
