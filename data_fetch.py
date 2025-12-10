@@ -18,7 +18,7 @@ def get_news_for_ticker(ticker, limit=5):
         # No key configured; fail gracefully
         return []
 
-    base_url = "https://api.marketaux.com/v1/news"
+    base_url = "https://api.marketaux.com/v1/news/all"
     params = {
         "symbols": ticker,
         "language": "en",

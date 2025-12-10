@@ -5,7 +5,11 @@ import numpy as np
 
 from stock_screener import screen_stocks
 from prediction_model import predict_next_for_ticker, track_predictions
-from data_fetch import get_history_cached, get_option_snapshot_features, get_news_for_ticker
+from data_fetch import (
+    get_history_cached,
+    get_option_snapshot_features,
+    get_news_for_ticker,
+)
 from yfinance.exceptions import YFRateLimitError
 
 
@@ -336,10 +340,12 @@ def run_app():
                 title += " ⚠️"
 
             with st.expander(title):
+                # Warnings
                 if warnings:
                     for warning in warnings:
                         st.warning(warning)
 
+                # Core metrics
                 st.write(f"**{display_horizon_label} Prediction:** {row['pred_next_ret']*100:.2f}%")
                 st.write(
                     f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}"
@@ -353,32 +359,42 @@ def run_app():
                 )
                 st.write(f"**Strategy:** {strategy}")
 
-            if row.get("atm_iv"):
-                expected_move = row["last_close"] * row["atm_iv"] * np.sqrt(
-                    display_horizon / 252
-                )
-                st.write(f"**Expected {display_horizon}-day move:** ±${expected_move:.2f}")
-                st.write(
-                    f"**Target strikes:** ${row['last_close'] - expected_move:.2f} "
-                    f"to ${row['last_close'] + expected_move:.2f}"
-                )
+                # Expected move + target strikes (stays with strategy)
+                if row.get("atm_iv"):
+                    expected_move = row["last_close"] * row["atm_iv"] * np.sqrt(
+                        display_horizon / 252
+                    )
+                    st.write(
+                        f"**Expected {display_horizon_label} move:** ±${expected_move:.2f}"
+                    )
+                    st.write(
+                        f"**Target strikes:** ${row['last_close'] - expected_move:.2f} "
+                        f"to ${row['last_close'] + expected_move:.2f}"
+                    )
 
-            # --- Key headlines block ---
-            news = get_news_for_ticker(row["ticker"], limit=3)
-            if news:
-                st.markdown("**Key recent headlines:**")
-                for art in news:
-                    title = art.get("title", "No title")
-                    src = art.get("source", "Unknown")
-                    url = art.get("url")
-                    sent = art.get("sentiment")
-                    sent_label = f" (sentiment: {sent:.2f})" if isinstance(sent, (int, float)) else ""
-                    if url:
-                        st.markdown(f"- [{title}]({url}) — {src}{sent_label}")
-                    else:
-                        st.markdown(f"- {title} — {src}{sent_label}")
-            else:
-                st.markdown("**Key recent headlines:** none available or API not configured.")
+                # Key headlines directly below
+                news = get_news_for_ticker(row["ticker"], limit=3)
+                if news:
+                    st.markdown("**Key recent headlines:**")
+                    for art in news:
+                        title_h = art.get("title", "No title")
+                        src = art.get("source", "Unknown")
+                        url = art.get("url")
+                        sent = art.get("sentiment")
+                        sent_label = (
+                            f" (sentiment: {sent:.2f})"
+                            if isinstance(sent, (int, float))
+                            else ""
+                        )
+                        if url:
+                            st.markdown(f"- [{title_h}]({url}) — {src}{sent_label}")
+                        else:
+                            st.markdown(f"- {title_h} — {src}{sent_label}")
+                else:
+                    st.markdown(
+                        "**Key recent headlines:** none available or API not configured."
+                    )
+
         # Model Accuracy Testing
         st.subheader("Model Accuracy Testing")
         test_ticker = st.selectbox("Test prediction accuracy for:", display["Ticker"])
@@ -462,6 +478,43 @@ def run_app():
             st.line_chart(future)
         else:
             st.warning(f"No recent price data for {chosen}.")
+            # Multi-horizon (1, 2, 3 day) predictions for the chosen ticker
+        st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
+
+        multi_rows = []
+        for h in [1, 2, 3]:
+            try:
+                out_h = predict_next_for_ticker(
+                    chosen,
+                    period="5y",
+                    model_type=model_type,
+                    horizon=h,
+                )
+                multi_rows.append(
+                    {
+                        "Horizon (days)": h,
+                        "Predicted Return (%)": out_h["pred_next_ret"] * 100,
+                        "Predicted Price": out_h["pred_next_price"],
+                    }
+                )
+            except YFRateLimitError:
+                st.warning(
+                    "Yahoo Finance rate limited multi-horizon predictions. "
+                    "Try again later or use fewer tickers."
+                )
+                break
+            except Exception as e:
+                multi_rows.append(
+                    {
+                        "Horizon (days)": h,
+                        "Predicted Return (%)": None,
+                        "Predicted Price": None,
+                    }
+                )
+
+        if multi_rows:
+            mh_df = pd.DataFrame(multi_rows)
+            st.dataframe(mh_df)
 
 
 if __name__ == "__main__":
