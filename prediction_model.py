@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 import yfinance as yf
+
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
@@ -10,14 +11,92 @@ from xgboost import XGBRegressor
 
 from data_fetch import get_history, get_history_cached
 
-# new fundamental feature names
+
+# ---------- Technical indicator helpers ----------
+
+def add_rsi(df, window: int = 14, price_col: str = "Close"):
+    """
+    Add RSI (Relative Strength Index) column to df using Wilder-style smoothing.
+    """
+    delta = df[price_col].diff()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    # Wilder's smoothing
+    avg_gain = gain.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
+
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+
+    df[f"rsi_{window}"] = rsi
+    return df
+
+
+def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signal: int = 9):
+    """
+    Add MACD (fast-slow EMA), signal line, and histogram.
+    """
+    ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
+    ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
+
+    macd = ema_fast - ema_slow
+    macd_signal = macd.ewm(span=signal, adjust=False).mean()
+    macd_hist = macd - macd_signal
+
+    df["macd"] = macd
+    df["macd_signal"] = macd_signal
+    df["macd_hist"] = macd_hist
+    return df
+
+
+def add_mfi(df, window: int = 14):
+    """
+    Add Money Flow Index (MFI) column to df. Requires High, Low, Close, Volume.
+    """
+    # Typical Price
+    tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
+
+    # Raw Money Flow
+    rmf = tp * df["Volume"]
+
+    # Positive/negative money flow
+    tp_shift = tp.shift(1)
+    pos_mf = rmf.where(tp > tp_shift, 0.0)
+    neg_mf = rmf.where(tp < tp_shift, 0.0)
+
+    # Sum over window
+    pos_mf_sum = pos_mf.rolling(window=window, min_periods=window).sum()
+    neg_mf_sum = neg_mf.rolling(window=window, min_periods=window).sum()
+
+    # Avoid division by zero
+    money_flow_ratio = pos_mf_sum / neg_mf_sum.replace(0, np.nan)
+    mfi = 100 - (100 / (1 + money_flow_ratio))
+
+    df[f"mfi_{window}"] = mfi
+    return df
+
+
+def add_technical_indicators(df):
+    """
+    Convenience wrapper to add RSI, MACD, and MFI to a price DataFrame.
+    Assumes df has columns: 'Open', 'High', 'Low', 'Close', 'Volume'.
+    """
+    df = df.copy()
+    df = add_rsi(df, window=14, price_col="Close")
+    df = add_macd(df, price_col="Close", fast=12, slow=26, signal=9)
+    df = add_mfi(df, window=14)
+    return df
+
+
+# ---------- Fundamentals & macro ----------
+
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
 ]
 
-# simple macro features
 MACRO_COLUMNS = ["mkt_ret_1d"]
 _macro_cache = {}
 
@@ -39,7 +118,8 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     return df
 
 
-# Extended feature columns with new indicators
+# ---------- Feature columns ----------
+
 FEATURE_COLUMNS = [
     # returns & realized vol
     "ret_1d",
@@ -47,7 +127,7 @@ FEATURE_COLUMNS = [
     "ret_20d",
     "vol_20d",
 
-    # NEW: lagged returns and rolling stats on returns
+    # lagged returns and rolling stats on returns
     "ret_1d_lag1",
     "ret_1d_lag2",
     "ret_1d_lag5",
@@ -56,13 +136,12 @@ FEATURE_COLUMNS = [
     "ret_1d_rollmean_10",
     "ret_1d_rollstd_10",
 
-    # moving averages / trend & overbought/oversold
+    # moving averages / trend & overbought-oversold
     "sma_ratio_10_50",
     "rsi_14",
-    "MACD",
     "price_to_ma50",
 
-    # bollinger / volatility structure
+    # Bollinger / volatility structure
     "bb_width_20",
 
     # price–volume & volume structure
@@ -72,7 +151,7 @@ FEATURE_COLUMNS = [
     "vol_spike_20",
     "vol_spike_1d_ago",
 
-    # NEW: volume rolling stats
+    # volume rolling stats
     "vol_rollmean_20",
     "vol_rollstd_20",
 
@@ -92,8 +171,16 @@ FEATURE_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
+
+    # new technical indicators
+    "macd",
+    "macd_signal",
+    "macd_hist",
+    "mfi_14",
 ]
 
+
+# ---------- Price feature engineering ----------
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     """
@@ -108,18 +195,18 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     low = hist["Low"]
     volume = hist["Volume"]
 
-    # Original features: Returns and realized volatility
+    # Returns and realized volatility
     hist["ret_1d"] = close.pct_change()
     hist["ret_5d"] = close.pct_change(5)
     hist["ret_20d"] = close.pct_change(20)
     hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
 
-    # NEW: simple lags of daily return
+    # Simple lags of daily return
     hist["ret_1d_lag1"] = hist["ret_1d"].shift(1)
     hist["ret_1d_lag2"] = hist["ret_1d"].shift(2)
     hist["ret_1d_lag5"] = hist["ret_1d"].shift(5)
 
-    # NEW: rolling mean / std of daily returns (short horizons)
+    # Rolling mean / std of daily returns
     hist["ret_1d_rollmean_5"] = hist["ret_1d"].rolling(5).mean()
     hist["ret_1d_rollstd_5"] = hist["ret_1d"].rolling(5).std()
     hist["ret_1d_rollmean_10"] = hist["ret_1d"].rolling(10).mean()
@@ -130,16 +217,6 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     sma_50 = close.rolling(50).mean()
     hist["sma_ratio_10_50"] = sma_10 / (sma_50 + 1e-9)
 
-    # RSI-14
-    delta = close.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(14).mean()
-    avg_loss = loss.rolling(14).mean()
-    rs = avg_gain / (avg_loss + 1e-9)
-    rsi_14 = 100 - (100 / (1 + rs))
-    hist["rsi_14"] = rsi_14
-
     # Bollinger Band width (20d)
     sma_20 = close.rolling(20).mean()
     std_20 = close.rolling(20).std()
@@ -147,11 +224,6 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     lower_20 = sma_20 - 2 * std_20
     bb_width_20 = (upper_20 - lower_20) / (sma_20 + 1e-9)
     hist["bb_width_20"] = bb_width_20
-
-    # MACD (12-26 EMA difference)
-    hist["MACD"] = close.ewm(span=12, adjust=False).mean() - close.ewm(
-        span=26, adjust=False
-    ).mean()
 
     # Price to 50-day MA ratio
     hist["price_to_ma50"] = close / (sma_50 + 1e-9)
@@ -171,7 +243,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
     hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
 
-    # NEW: volume rolling stats (absolute variability of volume)
+    # Volume rolling stats
     hist["vol_rollmean_20"] = volume.rolling(20).mean()
     hist["vol_rollstd_20"] = volume.rolling(20).std()
 
@@ -193,9 +265,13 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
+    # Add RSI, MACD, MFI
+    hist = add_technical_indicators(hist)
+
     return hist
 
 
+# ---------- Model factory ----------
 
 def make_model(model_type: str = "rf", random_state: int = 42):
     """
@@ -218,7 +294,7 @@ def make_model(model_type: str = "rf", random_state: int = 42):
             max_depth=3,
             random_state=random_state,
             tree_method="hist",
-            verbosity=0,  # Suppress XGBoost warnings
+            verbosity=0,
         )
     else:
         return RandomForestRegressor(
@@ -228,6 +304,8 @@ def make_model(model_type: str = "rf", random_state: int = 42):
             n_jobs=-1,
         )
 
+
+# ---------- Fundamentals fetch ----------
 
 def get_fundamental_features(ticker: str) -> dict:
     """
@@ -244,12 +322,11 @@ def get_fundamental_features(ticker: str) -> dict:
     }
     try:
         t = yf.Ticker(ticker)
-        info = t.info  # yfinance fundamentals
+        info = t.info
         feats["fund_pe_trailing"] = info.get("trailingPE", np.nan)
         feats["fund_pb"] = info.get("priceToBook", np.nan)
         feats["fund_market_cap"] = float(info.get("marketCap", np.nan))
     except Exception:
-        # leave NaNs if anything fails
         pass
 
     # Fill missing fundamentals with a neutral 0.0 instead of NaN
@@ -260,6 +337,8 @@ def get_fundamental_features(ticker: str) -> dict:
     return feats
 
 
+# ---------- Build features & target ----------
+
 def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
     """
     Build feature matrix X, target vector y, and the latest row info
@@ -268,8 +347,6 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
     If the requested period does not yield enough usable rows after
     feature engineering, automatically fall back to shorter periods.
     """
-
-    # Try requested period first, then fall back to shorter windows
     fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
     if period in fallback_periods:
         periods_to_try = [period] + [p for p in fallback_periods if p != period]
@@ -277,7 +354,7 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
         periods_to_try = [period] + fallback_periods
 
     last_error = None
-    min_rows = 60  # your safety threshold
+    min_rows = 60  # safety threshold
 
     for per in periods_to_try:
         try:
@@ -291,7 +368,7 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
             macro_df = get_macro_df(symbol="^GSPC", period=per)
             hist = hist.join(macro_df, how="left")
 
-            # add fundamental features as constant columns (with 0.0 fallback)
+            # add fundamental features as constant columns
             fund_feats = get_fundamental_features(ticker)
             for k, v in fund_feats.items():
                 hist[k] = v
@@ -303,13 +380,11 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
 
             df = hist.dropna().copy()
 
-            # Guard against empty / tiny df
             if df.empty or len(df) < min_rows:
                 raise ValueError(
                     f"Only {len(df)} usable rows for {ticker} with period={per}"
                 )
 
-            # Success: build X, y and return
             feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             X = df[feat_cols].values
             y = df[f"target_ret_{horizon}d_ahead"].values
@@ -322,16 +397,16 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
             return X, y, last_row_features, last_close, last_vol_20d
 
         except Exception as e:
-            # Remember the last error and try the next shorter period
             last_error = e
             continue
 
-    # If we get here, all periods failed
     raise ValueError(
         f"No usable history for {ticker} after trying periods {periods_to_try}. "
         f"Last error: {last_error}"
     )
 
+
+# ---------- Train & predict ----------
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42):
     """
@@ -384,7 +459,6 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf", horizo
     except Exception:
         pe_ratio = None
 
-    # Calculate feature importances for top 5 features
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     feature_importance = dict(zip(feat_cols, model.feature_importances_))
     top_features = sorted(
@@ -407,6 +481,8 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf", horizo
         "top_features": top_features_str,
     }
 
+
+# ---------- Tracking & backtests ----------
 
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
     """
@@ -533,7 +609,6 @@ def backtest_one_ticker(
     X_test = test_df[feat_cols].values
     y_test = test_df[f"target_ret_{horizon}d_ahead"].values
 
-    # train model on past only
     model = make_model(model_type=model_type, random_state=42)
     model.fit(X_train, y_train)
 
@@ -599,6 +674,7 @@ def backtest_compare_one_ticker(
         horizon=horizon,
     )
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
+
 
 def tune_xgb_hyperparams(X, y, random_state=42):
     """

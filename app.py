@@ -13,6 +13,7 @@ from data_fetch import (
 )
 from yfinance.exceptions import YFRateLimitError
 
+
 def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
     """
     Return True if there is likely 'big news' in the recent headlines.
@@ -144,7 +145,7 @@ def run_app():
         ["Auto", "Random Forest", "Gradient Boosting", "XGBoost"],
     )
 
-    # Interpret "Auto" generically by horizon, not per-ticker (simpler, no ticker_input bug)
+    # Interpret "Auto" generically by horizon
     if model_label == "Auto":
         if prediction_horizon == 1:
             model_type = "xgb"
@@ -159,7 +160,7 @@ def run_app():
             "XGBoost": "xgb",
         }[model_label]
 
-    # Generic recommendation based on horizon (no specific tickers)
+    # Generic recommendation based on horizon
     if prediction_horizon == 1:
         recommended = "XGBoost"
         rec_detail = "Gradient boosting models often work well for very short-term moves."
@@ -237,7 +238,7 @@ def run_app():
 
         st.dataframe(screener_df)
 
-        # ---- Flagged tickers (handle missing 'flag' column safely) ----
+        # ---- Flagged tickers ----
         if "flag" in screener_df.columns:
             flagged_df = screener_df[screener_df["flag"] == True]
         else:
@@ -490,7 +491,7 @@ def run_app():
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
 
-                 # --- ATM Greeks block ---
+                # --- ATM Greeks block ---
                 try:
                     greeks_info = get_atm_greeks(row["ticker"])
                 except YFRateLimitError:
@@ -531,14 +532,13 @@ def run_app():
 
                 else:
                     st.write("ATM Greeks: N/A (no option data or rate-limited).")
-                    
+
                 # Key headlines directly below
                 news = get_news_for_ticker(row["ticker"], limit=3)
                 has_big_news = detect_big_news(news)
                 if has_big_news:
-                  st.warning("⚠️ Recent BIG news/headlines detected for this ticker.")
+                    st.warning("⚠️ Recent BIG news/headlines detected for this ticker.")
 
-                
                 if news:
                     st.markdown("**Key recent headlines:**")
                     for art in news:
@@ -581,24 +581,29 @@ def run_app():
                             f"{accuracy*100:.1f}%",
                         )
 
-                        # --- New: simple long-only Sharpe ratio from model signals ---
-                        # Long when predicted_return > 0, flat otherwise
+                        # --- Simple long-only Sharpe ratio with confidence threshold ---
+                        # Only trade when |predicted_return| > 1%
+                        conf_thresh = 0.01  # 1% in decimal
+
                         strat = results_test.copy()
-                        strat["position"] = np.where(strat["predicted_return"] > 0, 1.0, 0.0)
+                        strat["position"] = np.where(
+                            strat["predicted_return"] > conf_thresh,
+                            1.0,
+                            0.0,
+                        )
                         strat["strategy_ret"] = strat["actual_return"] * strat["position"]
 
-                        # Drop any NaNs just in case
                         strategy_returns = strat["strategy_ret"].dropna()
 
                         sharpe_value = None
                         if len(strategy_returns) > 1 and strategy_returns.std() > 0:
                             daily_mean = strategy_returns.mean()
                             daily_std = strategy_returns.std()
-                            sharpe_value = (daily_mean / daily_std) * np.sqrt(252)  # annualized Sharpe
+                            sharpe_value = (daily_mean / daily_std) * np.sqrt(252)
 
                         if sharpe_value is not None:
                             st.metric(
-                                f"Sharpe Ratio (Long-on-Positive, {display_horizon_label})",
+                                f"Sharpe Ratio (Long-on-Positive >1%, {display_horizon_label})",
                                 f"{sharpe_value:.2f}",
                             )
                         else:
