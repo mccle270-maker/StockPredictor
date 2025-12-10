@@ -13,6 +13,32 @@ from data_fetch import (
 )
 from yfinance.exceptions import YFRateLimitError
 
+def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
+    """
+    Return True if there is likely 'big news' in the recent headlines.
+    Uses simple keyword + sentiment rules.
+    """
+    if not articles:
+        return False
+
+    keywords = [
+        "earnings", "guidance", "downgrade", "upgrade",
+        "lawsuit", "investigation", "merger", "acquisition",
+        "bankruptcy", "sec charges", "fraud", "buyback",
+    ]
+
+    for art in articles:
+        title = (art.get("title") or "").lower()
+        sent = art.get("sentiment")
+        # keyword hit
+        if any(k in title for k in keywords):
+            return True
+        # extreme sentiment score if available
+        if isinstance(sent, (int, float)) and abs(sent) >= sent_thresh:
+            return True
+
+    return False
+
 
 def suggest_model_for_ticker(ticker: str, horizon: int = 1) -> str:
     """
@@ -487,6 +513,11 @@ def run_app():
 
                 # Key headlines directly below
                 news = get_news_for_ticker(row["ticker"], limit=3)
+                has_big_news = detect_big_news(news)
+                if has_big_news:
+                  st.warning("⚠️ Recent BIG news/headlines detected for this ticker.")
+
+                
                 if news:
                     st.markdown("**Key recent headlines:**")
                     for art in news:
