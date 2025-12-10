@@ -14,6 +14,28 @@ from data_fetch import (
 from yfinance.exceptions import YFRateLimitError
 
 
+def suggest_model_for_ticker(ticker: str, horizon: int = 1) -> str:
+    """
+    Simple hard-coded suggestions from your backtests.
+    Returns one of: 'rf', 'gbrt', 'xgb'.
+    """
+    tk = ticker.upper()
+    if horizon == 1:
+        # 1-day suggestions based on your 2-year Sharpe numbers
+        if tk in ["AAPL", "GOOGL"]:
+            return "xgb"    # XGBoost had the best Sharpe
+        if tk in ["NVDA"]:
+            return "gbrt"   # GBRT was best on NVDA 1-day
+        if tk in ["MSFT"]:
+            return "rf"     # RF looked strongest overall
+        if tk in ["AMZN"]:
+            return "rf"     # all bad; RF as “least bad” baseline
+        return "rf"         # default for unknown tickers
+    else:
+        # For multi-day, RF/GBRT tended to be safer than XGB
+        return "rf"
+
+
 def classify_alignment(pred_ret, put_call_oi_ratio):
     """
     Simple logic to see if model prediction and options sentiment 'agree'.
@@ -93,11 +115,23 @@ def run_app():
     st.sidebar.subheader("Model Selection")
     model_label = st.sidebar.selectbox(
         "Model",
-        ["Random Forest", "Gradient Boosting", "XGBoost"],
+        ["Auto", "Random Forest", "Gradient Boosting", "XGBoost"],
     )
-    model_type = {"Random Forest": "rf", "Gradient Boosting": "gbrt", "XGBoost": "xgb"}[
-        model_label
-    ]
+
+    # Interpret "Auto" generically by horizon, not per-ticker (simpler, no ticker_input bug)
+    if model_label == "Auto":
+        if prediction_horizon == 1:
+            model_type = "xgb"
+        elif prediction_horizon == 2:
+            model_type = "rf"
+        else:
+            model_type = "rf"
+    else:
+        model_type = {
+            "Random Forest": "rf",
+            "Gradient Boosting": "gbrt",
+            "XGBoost": "xgb",
+        }[model_label]
 
     # Generic recommendation based on horizon (no specific tickers)
     if prediction_horizon == 1:
@@ -177,11 +211,9 @@ def run_app():
 
         st.dataframe(screener_df)
 
-       # ---- Flagged tickers (handle missing 'flag' column safely) ----
+        # ---- Flagged tickers (handle missing 'flag' column safely) ----
         if "flag" in screener_df.columns:
-            # boolean mask: rows where flag == True
             flagged_df = screener_df[screener_df["flag"] == True]
-            # or, more idiomatically: flagged_df = screener_df[screener_df["flag"].astype(bool)]
         else:
             flagged_df = pd.DataFrame(columns=screener_df.columns)
 
@@ -239,7 +271,6 @@ def run_app():
                     "Yahoo Finance is rate limiting this app (Too Many Requests). "
                     "Try again later and/or use fewer tickers per run."
                 )
-                # Stop requesting more tickers this run
                 break
 
             except Exception as e:
@@ -347,7 +378,9 @@ def run_app():
             st.write("No strong candidates today based on current filters.")
 
         # Bar chart of predicted returns
-        bar_data = display.set_index("Ticker")[f"Predicted {display_horizon_label} Return (%)"]
+        bar_data = display.set_index("Ticker")[
+            f"Predicted {display_horizon_label} Return (%)"
+        ]
         st.subheader(f"Predicted {display_horizon_label} Returns by Ticker")
         st.bar_chart(bar_data)
 
