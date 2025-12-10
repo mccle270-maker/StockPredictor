@@ -239,12 +239,17 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
     for k, v in fund_feats.items():
         hist[k] = v
 
-    # Target: multi-day return based on horizon
+     # Target: multi-day return based on horizon
     hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
         -horizon
     )
 
     df = hist.dropna().copy()
+
+    # NEW: guard against empty / tiny df (prevents BA 'single positional indexer' errors)
+    if df.empty or len(df) < 60:  # 60 > your largest rolling window (50) [web:913][web:908]
+        raise ValueError(f"No usable history for {ticker} with period={period}")
+
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     X = df[feat_cols].values
     y = df[f"target_ret_{horizon}d_ahead"].values
@@ -332,7 +337,7 @@ def predict_next_for_ticker(ticker="^GSPC", period="5y", model_type="rf", horizo
     }
 
 
-def track_predictions(ticker, period="3mo", model_type="rf", horizon=1):
+def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
     """
     Compare model predictions to actual multi-day returns over the past period.
     """
