@@ -9,14 +9,9 @@ from data_fetch import (
     get_history_cached,
     get_option_snapshot_features,
     get_news_for_ticker,
-)
-from yfinance.exceptions import YFRateLimitError
-from data_fetch import (
-    get_history_cached,
-    get_option_snapshot_features,
-    get_news_for_ticker,
     get_atm_greeks,
 )
+from yfinance.exceptions import YFRateLimitError
 
 
 def classify_alignment(pred_ret, put_call_oi_ratio):
@@ -145,6 +140,22 @@ def run_app():
         """
     )
 
+    # Candidate filters (for recommendations at bottom)
+    st.sidebar.subheader("Candidate Filters")
+    min_move = st.sidebar.slider(
+        "Min |predicted return| (%) for candidates",
+        0.0,
+        5.0,
+        1.0,
+        0.1,
+    )
+    min_iv = st.sidebar.slider("Min ATM IV", 0.0, 1.0, 0.2, 0.05)
+    max_iv = st.sidebar.slider("Max ATM IV", 0.0, 1.0, 0.8, 0.05)
+    exclude_disagree = st.sidebar.checkbox(
+        "Exclude 'disagree' signals from candidates",
+        value=True,
+    )
+
     tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
 
     # ---------------- Main run button ----------------
@@ -168,7 +179,7 @@ def run_app():
 
         # ---- Flagged tickers (handle missing 'flag' column safely) ----
         if "flag" in screener_df.columns:
-            flagged_df = screener_df[screener_df["flag"] == True]
+            flagged_df = screener_df[screener_df["flag"] is True]
         else:
             flagged_df = pd.DataFrame(columns=screener_df.columns)
 
@@ -292,24 +303,23 @@ def run_app():
         )
 
         st.dataframe(display)
+
         # --- Top candidates to watch today ---
         cand_df = st.session_state.pred_df.copy()
         cand_df["abs_pred_pct"] = cand_df["pred_next_ret_pct"].abs()
 
-        # basic filters: at least 1% move, no 'disagree', IV not insane
-        cand_df = cand_df[
-            (cand_df["abs_pred_pct"] >= 1.0)           # magnitude filter
-            & (cand_df["signal_alignment"] != "disagree")
-            & cand_df["atm_iv"].between(0.2, 0.8)      # IV in [20%, 80%]
-        ]
+        mask = cand_df["abs_pred_pct"] >= min_move
+        mask &= cand_df["atm_iv"].between(min_iv, max_iv)
+        if exclude_disagree:
+            mask &= cand_df["signal_alignment"] != "disagree"
 
-        # optional: simple score that penalizes bad context
-        cand_df["score"] = cand_df["abs_pred_pct"]
-
-        cand_df = cand_df.sort_values("score", ascending=False).head(5)
+        cand_df = cand_df[mask]
 
         st.subheader("Top Model Candidates (filtered)")
         if not cand_df.empty:
+            cand_df["score"] = cand_df["abs_pred_pct"]
+            cand_df = cand_df.sort_values("score", ascending=False)
+
             st.dataframe(
                 cand_df[
                     [
@@ -322,6 +332,15 @@ def run_app():
                     ]
                 ].rename(columns={"ticker": "Ticker"})
             )
+
+            # Dropdown for recommended tickers
+            tickers_list = cand_df["ticker"].tolist()
+            selected_ticker = st.selectbox(
+                "Recommended tickers to watch (based on your filters)",
+                options=tickers_list,
+                key="recommended_ticker_select",
+            )
+            st.write(f"You selected **{selected_ticker}** from today's candidates.")
         else:
             st.write("No strong candidates today based on current filters.")
 
@@ -397,7 +416,7 @@ def run_app():
                 )
                 st.write(f"**Strategy:** {strategy}")
 
-                # Expected move + target strikes (stays with strategy)
+                # Expected move + target strikes
                 if row.get("atm_iv"):
                     expected_move = row["last_close"] * row["atm_iv"] * np.sqrt(
                         display_horizon / 252
@@ -409,8 +428,13 @@ def run_app():
                         f"**Target strikes:** ${row['last_close'] - expected_move:.2f} "
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
-                     # --- ATM Greeks block ---
-                greeks_info = get_atm_greeks(row["ticker"])
+
+                # --- ATM Greeks block ---
+                try:
+                    greeks_info = get_atm_greeks(row["ticker"])
+                except YFRateLimitError:
+                    greeks_info = None
+
                 if greeks_info:
                     cg = greeks_info["call_greeks"]
                     pg = greeks_info["put_greeks"]
@@ -424,7 +448,7 @@ def run_app():
                         f"Vega: {pg['vega']:.2f}, Θ: {pg['theta']:.2f}"
                     )
                 else:
-                    st.write("ATM Greeks: N/A (no option data).")
+                    st.write("ATM Greeks: N/A (no option data or rate-limited).")
 
                 # Key headlines directly below
                 news = get_news_for_ticker(row["ticker"], limit=3)
@@ -532,7 +556,8 @@ def run_app():
             st.line_chart(future)
         else:
             st.warning(f"No recent price data for {chosen}.")
-            # Multi-horizon (1, 2, 3 day) predictions for the chosen ticker
+
+        # Multi-horizon (1, 2, 3 day) predictions for the chosen ticker
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
 
         multi_rows = []
@@ -557,7 +582,7 @@ def run_app():
                     "Try again later or use fewer tickers."
                 )
                 break
-            except Exception as e:
+            except Exception:
                 multi_rows.append(
                     {
                         "Horizon (days)": h,
