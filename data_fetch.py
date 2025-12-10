@@ -46,10 +46,10 @@ def get_news_from_marketaux(ticker, limit=5):
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        # Log full error only to the terminal, not the UI
+        # Log full details to the terminal, not the UI
         print(f"Marketaux error for {ticker}: {e}")
 
-        # Short, generic message in the app (or comment this out to be totally silent)
+        # Short, generic message in the app
         st.info(f"No Marketaux news for {ticker}; using backup source.")
         return []
 
@@ -264,7 +264,26 @@ def get_option_snapshot_features(ticker, moneyness_window=0.05):
     }
 
 
-# ---------- Black-Scholes Greeks helpers ----------
+# ---------- Black-Scholes pricing & Greeks helpers ----------
+
+def _bs_price(flag, S, K, T, r, sigma):
+    """
+    Black-Scholes price for a European call or put. [web:147][web:151]
+    flag: 'c' for call, 'p' for put
+    """
+    if T <= 0 or sigma <= 0 or S <= 0 or K <= 0:
+        return None
+
+    d1 = (math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+
+    if flag == "c":
+        # Call: S N(d1) - K e^{-rT} N(d2)
+        return S * norm.cdf(d1) - K * math.exp(-r * T) * norm.cdf(d2)
+    else:
+        # Put: K e^{-rT} N(-d2) - S N(-d1)
+        return K * math.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
 
 def _bs_greeks(flag, S, K, T, r, sigma):
     """
@@ -311,6 +330,7 @@ def get_atm_greeks(ticker, risk_free_rate=0.04):
     """
     Compute approximate ATM call & put Greeks for the nearest option expiry
     using Yahoo Finance option chain + Black-Scholes.
+    Also returns BS fair values and mispricing vs market mids.
     """
     t = yf.Ticker(ticker)
     expiries = t.options
@@ -364,6 +384,29 @@ def get_atm_greeks(ticker, risk_free_rate=0.04):
     K_call = float(call_row["strike"])
     K_put = float(put_row["strike"])
 
+    # Market mids for the chosen ATM strikes
+    call_mid = float((call_row["bid"] + call_row["ask"]) / 2.0)
+    put_mid = float((put_row["bid"] + put_row["ask"]) / 2.0)
+    if not np.isfinite(call_mid) or not np.isfinite(put_mid):
+        call_mid = None
+        put_mid = None
+
+    # Use call_iv as reference vol for BS fair value (could also use an avg ATM IV)
+    sigma_ref = float(call_iv)
+
+    # Black-Scholes "fair" prices for ATM call/put
+    bs_call = _bs_price("c", spot, K_call, T, risk_free_rate, sigma_ref)
+    bs_put = _bs_price("p", spot, K_put, T, risk_free_rate, sigma_ref)
+
+    # Mispricing (market - model): positive = rich/overvalued, negative = cheap/undervalued
+    call_mispricing = None
+    put_mispricing = None
+    if call_mid is not None and bs_call is not None:
+        call_mispricing = call_mid - bs_call
+    if put_mid is not None and bs_put is not None:
+        put_mispricing = put_mid - bs_put
+
+    # Greeks based on leg-specific IVs
     call_greeks = _bs_greeks("c", spot, K_call, T, risk_free_rate, call_iv)
     put_greeks = _bs_greeks("p", spot, K_put, T, risk_free_rate, put_iv)
 
@@ -376,4 +419,10 @@ def get_atm_greeks(ticker, risk_free_rate=0.04):
         "put_iv": put_iv,
         "call_greeks": call_greeks,
         "put_greeks": put_greeks,
+        "call_mid": call_mid,
+        "put_mid": put_mid,
+        "bs_call": bs_call,
+        "bs_put": bs_put,
+        "call_mispricing": call_mispricing,
+        "put_mispricing": put_mispricing,
     }

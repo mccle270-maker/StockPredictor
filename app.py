@@ -490,7 +490,7 @@ def run_app():
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
 
-                # --- ATM Greeks block ---
+                 # --- ATM Greeks block ---
                 try:
                     greeks_info = get_atm_greeks(row["ticker"])
                 except YFRateLimitError:
@@ -508,9 +508,30 @@ def run_app():
                         f"Put  Δ: {pg['delta']:.2f}, Γ: {pg['gamma']:.4f}, "
                         f"Vega: {pg['vega']:.2f}, Θ: {pg['theta']:.2f}"
                     )
+
+                    # Black-Scholes mispricing vs market mids
+                    cm = greeks_info.get("call_mispricing")
+                    pm = greeks_info.get("put_mispricing")
+
+                    if cm is not None:
+                        if cm > 0:
+                            st.write(f"Call mispricing: +${cm:.2f} vs BS (rich/overvalued).")
+                        elif cm < 0:
+                            st.write(f"Call mispricing: -${abs(cm):.2f} vs BS (cheap/undervalued).")
+                        else:
+                            st.write("Call mispricing: ~$0 vs BS (fair).")
+
+                    if pm is not None:
+                        if pm > 0:
+                            st.write(f"Put mispricing: +${pm:.2f} vs BS (rich/overvalued).")
+                        elif pm < 0:
+                            st.write(f"Put mispricing: -${abs(pm):.2f} vs BS (cheap/undervalued).")
+                        else:
+                            st.write("Put mispricing: ~$0 vs BS (fair).")
+
                 else:
                     st.write("ATM Greeks: N/A (no option data or rate-limited).")
-
+                    
                 # Key headlines directly below
                 news = get_news_for_ticker(row["ticker"], limit=3)
                 has_big_news = detect_big_news(news)
