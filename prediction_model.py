@@ -127,39 +127,34 @@ FEATURE_COLUMNS = [
     "ret_20d",
     "vol_20d",
 
-    # lagged returns and rolling stats on returns
-    "ret_1d_lag1",
-    "ret_1d_lag2",
-    "ret_1d_lag5",
-    "ret_1d_rollmean_5",
-    "ret_1d_rollstd_5",
-    "ret_1d_rollmean_10",
-    "ret_1d_rollstd_10",
+    # volume level & spikes
+    "vol_20d_avg",
+    "volume_rel_20d",
 
-    # moving averages / trend & overbought-oversold
-    "sma_ratio_10_50",
+    # moving averages / trend
+    "sma_10",
+    "sma_20",
+    "sma_50",
+    "ema_10",
+    "ema_20",
+    "ema_50",
+    "close_over_sma20",
+    "sma10_over_sma50",
+
+    # RSI / MACD / MFI
     "rsi_14",
-    "price_to_ma50",
+    "macd",
+    "macd_signal",
+    "macd_hist",
+    "mfi_14",
 
-    # Bollinger / volatility structure
+    # Bollinger structure
     "bb_width_20",
+    "bb_pos_20",
 
-    # price–volume & volume structure
-    "volume_price_corr",
-    "volume_trend",
-    "vol_ma_20",
-    "vol_spike_20",
-    "vol_spike_1d_ago",
-
-    # volume rolling stats
-    "vol_rollmean_20",
-    "vol_rollstd_20",
-
-    # intraday structure
-    "high_low_ratio",
+    # simple intraday structure (keep a couple)
     "daily_range",
     "close_position",
-    "hl_range",
     "atr_14",
 
     # calendar effects
@@ -171,21 +166,21 @@ FEATURE_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
-
-    # new technical indicators
-    "macd",
-    "macd_signal",
-    "macd_hist",
-    "mfi_14",
 ]
+
 
 
 # ---------- Price feature engineering ----------
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     """
-    Enhanced feature engineering with technical indicators, volume features,
-    intraday structure, calendar effects, and simple lags/rolling stats.
+    Compact feature engineering:
+      - returns (1/5/20d), 20d vol
+      - volume level & spike vs 20d avg
+      - SMA/EMA (10, 20, 50) and ratios
+      - RSI(14), MACD(12,26,9), MFI(14)
+      - Bollinger bands (20,2) width & position
+      - a few intraday structure + calendar fields
     Expects columns: Open, High, Low, Close, Volume.
     """
     hist = hist.copy()
@@ -195,81 +190,48 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     low = hist["Low"]
     volume = hist["Volume"]
 
-    # Returns and realized volatility
+    # --- Returns & realized vol ---
     hist["ret_1d"] = close.pct_change()
     hist["ret_5d"] = close.pct_change(5)
     hist["ret_20d"] = close.pct_change(20)
     hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
 
-    # Simple lags of daily return
-    hist["ret_1d_lag1"] = hist["ret_1d"].shift(1)
-    hist["ret_1d_lag2"] = hist["ret_1d"].shift(2)
-    hist["ret_1d_lag5"] = hist["ret_1d"].shift(5)
+    # --- Volume level & spike vs 20d avg ---
+    hist["vol_20d_avg"] = volume.rolling(20).mean()
+    hist["volume_rel_20d"] = volume / (hist["vol_20d_avg"] + 1e-9)
 
-    # Rolling mean / std of daily returns
-    hist["ret_1d_rollmean_5"] = hist["ret_1d"].rolling(5).mean()
-    hist["ret_1d_rollstd_5"] = hist["ret_1d"].rolling(5).std()
-    hist["ret_1d_rollmean_10"] = hist["ret_1d"].rolling(10).mean()
-    hist["ret_1d_rollstd_10"] = hist["ret_1d"].rolling(10).std()
+    # --- Moving averages (SMA/EMA) ---
+    for win in [10, 20, 50]:
+        hist[f"sma_{win}"] = close.rolling(win).mean()
+        hist[f"ema_{win}"] = close.ewm(span=win, adjust=False).mean()
 
-    # Moving averages and ratio
-    sma_10 = close.rolling(10).mean()
-    sma_50 = close.rolling(50).mean()
-    hist["sma_ratio_10_50"] = sma_10 / (sma_50 + 1e-9)
+    hist["close_over_sma20"] = close / (hist["sma_20"] + 1e-9)
+    hist["sma10_over_sma50"] = hist["sma_10"] / (hist["sma_50"] + 1e-9)
 
-    # Bollinger Band width (20d)
-    sma_20 = close.rolling(20).mean()
+    # --- Bollinger Bands (20, 2 std) ---
+    sma_20 = hist["sma_20"]
     std_20 = close.rolling(20).std()
     upper_20 = sma_20 + 2 * std_20
     lower_20 = sma_20 - 2 * std_20
-    bb_width_20 = (upper_20 - lower_20) / (sma_20 + 1e-9)
-    hist["bb_width_20"] = bb_width_20
 
-    # Price to 50-day MA ratio
-    hist["price_to_ma50"] = close / (sma_50 + 1e-9)
+    hist["bb_width_20"] = (upper_20 - lower_20) / (sma_20 + 1e-9)
+    hist["bb_pos_20"] = (close - lower_20) / (upper_20 - lower_20 + 1e-9)
 
-    # Volume-Price Correlation (20-day rolling)
-    hist["volume_price_corr"] = (
-        hist["ret_1d"].rolling(20).corr(volume.pct_change())
-    )
-
-    # Volume Trend (10-day avg / 30-day avg)
-    vol_ma_10 = volume.rolling(10).mean()
-    vol_ma_30 = volume.rolling(30).mean()
-    hist["volume_trend"] = vol_ma_10 / (vol_ma_30 + 1e-9)
-
-    # Volume level and spikes
-    hist["vol_ma_20"] = volume.rolling(20).mean()
-    hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
-    hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
-
-    # Volume rolling stats
-    hist["vol_rollmean_20"] = volume.rolling(20).mean()
-    hist["vol_rollstd_20"] = volume.rolling(20).std()
-
-    # High-Low Ratio
-    hist["high_low_ratio"] = high / (low + 1e-9)
-
-    # Daily Range (normalized by close)
+    # --- Intraday structure (keep lean) ---
     hist["daily_range"] = (high - low) / (close + 1e-9)
-
-    # Close Position in Daily Range (0=at low, 1=at high)
     hist["close_position"] = (close - low) / (high - low + 1e-9)
-
-    # High-low range vs prior close & ATR-style vol
     hist["hl_range"] = (high - low) / (close.shift(1) + 1e-9)
     hist["atr_14"] = hist["hl_range"].rolling(14).mean()
 
-    # Calendar Effects
+    # --- Calendar effects ---
     hist["day_of_week"] = hist.index.dayofweek
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
-    # Add RSI, MACD, MFI
+    # --- Add RSI, MACD, MFI (your existing helpers) ---
     hist = add_technical_indicators(hist)
 
     return hist
-
 
 # ---------- Model factory ----------
 
