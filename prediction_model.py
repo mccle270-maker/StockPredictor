@@ -202,6 +202,9 @@ def get_fundamental_features(ticker: str) -> dict:
     """
     Fetch a few slow-moving fundamental metrics for the ticker.
     These are added as constant features across the history window.
+
+    Missing values are filled with 0.0 so that they do not cause the
+    entire history to be dropped by dropna().
     """
     feats = {
         "fund_pe_trailing": np.nan,
@@ -217,6 +220,12 @@ def get_fundamental_features(ticker: str) -> dict:
     except Exception:
         # leave NaNs if anything fails
         pass
+
+    # Fill missing fundamentals with a neutral 0.0 instead of NaN
+    for k in feats:
+        if pd.isna(feats[k]):
+            feats[k] = 0.0
+
     return feats
 
 
@@ -225,41 +234,72 @@ def build_features_and_target(ticker="^GSPC", period="5y", horizon=1):
     Build feature matrix X, target vector y, and the latest row info
     for multi-day prediction.
 
-    horizon: Number of days ahead to predict (1, 2, or 3)
+    If the requested period does not yield enough usable rows after
+    feature engineering, automatically fall back to shorter periods.
     """
-    hist = get_history_cached(ticker, period=period, interval="1d")
-    hist = add_price_features(hist)
 
-    # add macro factor(s)
-    macro_df = get_macro_df(symbol="^GSPC", period=period)
-    hist = hist.join(macro_df, how="left")
+    # Try requested period first, then fall back to shorter windows
+    fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
+    if period in fallback_periods:
+        periods_to_try = [period] + [p for p in fallback_periods if p != period]
+    else:
+        periods_to_try = [period] + fallback_periods
 
-    # add fundamental features as constant columns
-    fund_feats = get_fundamental_features(ticker)
-    for k, v in fund_feats.items():
-        hist[k] = v
+    last_error = None
+    min_rows = 60  # your safety threshold
 
-     # Target: multi-day return based on horizon
-    hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
-        -horizon
+    for per in periods_to_try:
+        try:
+            hist = get_history_cached(ticker, period=per, interval="1d")
+            if hist is None or hist.empty:
+                raise ValueError(f"No raw history for {ticker} with period={per}")
+
+            hist = add_price_features(hist)
+
+            # add macro factor(s)
+            macro_df = get_macro_df(symbol="^GSPC", period=per)
+            hist = hist.join(macro_df, how="left")
+
+            # add fundamental features as constant columns (with 0.0 fallback)
+            fund_feats = get_fundamental_features(ticker)
+            for k, v in fund_feats.items():
+                hist[k] = v
+
+            # Target: multi-day return based on horizon
+            hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(
+                horizon
+            ).shift(-horizon)
+
+            df = hist.dropna().copy()
+
+            # Guard against empty / tiny df
+            if df.empty or len(df) < min_rows:
+                raise ValueError(
+                    f"Only {len(df)} usable rows for {ticker} with period={per}"
+                )
+
+            # Success: build X, y and return
+            feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+            X = df[feat_cols].values
+            y = df[f"target_ret_{horizon}d_ahead"].values
+
+            last_row = df.iloc[-1]
+            last_row_features = last_row[feat_cols].values
+            last_close = last_row["Close"]
+            last_vol_20d = last_row["vol_20d"]
+
+            return X, y, last_row_features, last_close, last_vol_20d
+
+        except Exception as e:
+            # Remember the last error and try the next shorter period
+            last_error = e
+            continue
+
+    # If we get here, all periods failed
+    raise ValueError(
+        f"No usable history for {ticker} after trying periods {periods_to_try}. "
+        f"Last error: {last_error}"
     )
-
-    df = hist.dropna().copy()
-
-    # NEW: guard against empty / tiny df (prevents BA 'single positional indexer' errors)
-    if df.empty or len(df) < 60:  # 60 > your largest rolling window (50) [web:913][web:908]
-        raise ValueError(f"No usable history for {ticker} with period={period}")
-
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-    X = df[feat_cols].values
-    y = df[f"target_ret_{horizon}d_ahead"].values
-
-    last_row = df.iloc[-1]
-    last_row_features = last_row[feat_cols].values
-    last_close = last_row["Close"]
-    last_vol_20d = last_row["vol_20d"]
-
-    return X, y, last_row_features, last_close, last_vol_20d
 
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42):
