@@ -177,9 +177,11 @@ def run_app():
 
         st.dataframe(screener_df)
 
-        # ---- Flagged tickers (handle missing 'flag' column safely) ----
+       # ---- Flagged tickers (handle missing 'flag' column safely) ----
         if "flag" in screener_df.columns:
-            flagged_df = screener_df[screener_df["flag"] is True]
+            # boolean mask: rows where flag == True
+            flagged_df = screener_df[screener_df["flag"] == True]
+            # or, more idiomatically: flagged_df = screener_df[screener_df["flag"].astype(bool)]
         else:
             flagged_df = pd.DataFrame(columns=screener_df.columns)
 
