@@ -131,8 +131,8 @@ def run_app():
     max_tickers = st.sidebar.slider(
         "Max tickers per run (to avoid rate limits)",
         1,
+        20,
         5,
-        3,
     )
 
     st.sidebar.markdown(
@@ -292,6 +292,38 @@ def run_app():
         )
 
         st.dataframe(display)
+        # --- Top candidates to watch today ---
+        cand_df = st.session_state.pred_df.copy()
+        cand_df["abs_pred_pct"] = cand_df["pred_next_ret_pct"].abs()
+
+        # basic filters: at least 1% move, no 'disagree', IV not insane
+        cand_df = cand_df[
+            (cand_df["abs_pred_pct"] >= 1.0)           # magnitude filter
+            & (cand_df["signal_alignment"] != "disagree")
+            & cand_df["atm_iv"].between(0.2, 0.8)      # IV in [20%, 80%]
+        ]
+
+        # optional: simple score that penalizes bad context
+        cand_df["score"] = cand_df["abs_pred_pct"]
+
+        cand_df = cand_df.sort_values("score", ascending=False).head(5)
+
+        st.subheader("Top Model Candidates (filtered)")
+        if not cand_df.empty:
+            st.dataframe(
+                cand_df[
+                    [
+                        "ticker",
+                        "pred_next_ret_pct",
+                        "pred_next_price",
+                        "atm_iv",
+                        "put_call_oi_ratio",
+                        "signal_alignment",
+                    ]
+                ].rename(columns={"ticker": "Ticker"})
+            )
+        else:
+            st.write("No strong candidates today based on current filters.")
 
         # Bar chart of predicted returns
         bar_data = display.set_index("Ticker")[f"Predicted {display_horizon_label} Return (%)"]
