@@ -1,26 +1,35 @@
 # data_fetch.py
+import math
+import os
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
-import yfinance as yf
-import streamlit as st
 import requests
+import streamlit as st
+import yfinance as yf
+from scipy.stats import norm
 from yfinance.exceptions import YFRateLimitError
 
-import math
-from datetime import datetime
-from scipy.stats import norm
+
+# -------- News API keys (Marketaux + Alpha Vantage) --------
+
+MARKETAUX_API_KEY = st.secrets.get("MARKETAUX_API_KEY", None)
+ALPHAVANTAGE_API_KEY = st.secrets.get("ALPHAVANTAGE_API_KEY", None)
+
+# Optional: env fallback for local python3 runs
+if MARKETAUX_API_KEY is None:
+    MARKETAUX_API_KEY = os.environ.get("MARKETAUX_API_KEY")
+if ALPHAVANTAGE_API_KEY is None:
+    ALPHAVANTAGE_API_KEY = os.environ.get("ALPHAVANTAGE_API_KEY")
 
 
-@st.cache_data(ttl=900)  # cache for 15 minutes
-def get_news_for_ticker(ticker, limit=5):
+def get_news_from_marketaux(ticker, limit=5):
     """
-    Fetch recent finance news headlines for a ticker using Marketaux (or a similar API).
-    Requires MARKETAUX_API_KEY in st.secrets.
-    Returns a list of article dicts with title, source, url, published_at.
+    Fetch recent finance news headlines for a ticker using Marketaux.
+    Returns a list of {title, source, url, published_at, sentiment}.
     """
-    api_key = st.secrets.get("MARKETAUX_API_KEY")
-    if not api_key:
-        # No key configured; fail gracefully
+    if not MARKETAUX_API_KEY:
         return []
 
     base_url = "https://api.marketaux.com/v1/news/all"
@@ -28,7 +37,7 @@ def get_news_for_ticker(ticker, limit=5):
         "symbols": ticker,
         "language": "en",
         "filter_entities": "true",
-        "api_token": api_key,
+        "api_token": MARKETAUX_API_KEY,
         "limit": limit,
     }
 
@@ -37,7 +46,7 @@ def get_news_for_ticker(ticker, limit=5):
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        st.warning(f"News fetch error for {ticker}: {e}")
+        st.warning(f"Marketaux news fetch error for {ticker}: {e}")
         return []
 
     articles = []
@@ -48,11 +57,77 @@ def get_news_for_ticker(ticker, limit=5):
                 "source": item.get("source"),
                 "url": item.get("url"),
                 "published_at": item.get("published_at"),
-                "sentiment": item.get("sentiment"),  # Marketaux often provides this
+                "sentiment": item.get("sentiment"),
             }
         )
     return articles
 
+
+def get_news_from_alphavantage(ticker: str, limit: int = 3):
+    """
+    Fetch recent news for a ticker from Alpha Vantage's NEWS_SENTIMENT endpoint.
+    Returns a list of {title, source, url, published_at, sentiment}.
+    """
+    if not ALPHAVANTAGE_API_KEY:
+        return []
+
+    url = "https://www.alphavantage.co/query"
+    params = {
+        "function": "NEWS_SENTIMENT",
+        "tickers": ticker,
+        "sort": "LATEST",
+        "limit": limit,
+        "apikey": ALPHAVANTAGE_API_KEY,
+    }
+
+    try:
+        resp = requests.get(url, params=params, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        st.warning(f"Alpha Vantage news fetch error for {ticker}: {e}")
+        return []
+
+    if "feed" not in data:
+        return []
+
+    articles = []
+    for item in data["feed"][:limit]:
+        articles.append(
+            {
+                "title": item.get("title"),
+                "source": item.get("source"),
+                "url": item.get("url"),
+                "published_at": item.get("time_published"),
+                "sentiment": item.get("overall_sentiment_score"),
+            }
+        )
+    return articles
+
+
+@st.cache_data(ttl=900)  # cache for 15 minutes
+def get_news_for_ticker(ticker, limit=5):
+    """
+    Unified news fetcher with fallback:
+    1) Try Marketaux
+    2) If that fails/empty, try Alpha Vantage
+    3) If both fail, return []
+    """
+    # 1) Marketaux
+    arts = get_news_from_marketaux(ticker, limit=limit)
+    if arts:
+        return arts
+
+    # 2) Alpha Vantage fallback
+    arts = get_news_from_alphavantage(ticker, limit=limit)
+    if arts:
+        return arts
+
+    # 3) Nothing worked
+    return []
+
+
+# -------- Price history (with caching) --------
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_history_cached(ticker, period="1y", interval="1d"):
@@ -76,6 +151,8 @@ def get_history(ticker, period="1y", interval="1d"):
         return pd.DataFrame()
     return hist
 
+
+# -------- Options snapshot features --------
 
 def get_option_chain(ticker, expiration=None, calls_only=True):
     """
@@ -187,7 +264,7 @@ def get_option_snapshot_features(ticker, moneyness_window=0.05):
 
 def _bs_greeks(flag, S, K, T, r, sigma):
     """
-    Basic Black-Scholes Greeks for a European option. [web:406]
+    Basic Black-Scholes Greeks for a European option.
     flag: 'c' for call, 'p' for put
     S: spot price
     K: strike
@@ -229,7 +306,7 @@ def _bs_greeks(flag, S, K, T, r, sigma):
 def get_atm_greeks(ticker, risk_free_rate=0.04):
     """
     Compute approximate ATM call & put Greeks for the nearest option expiry
-    using Yahoo Finance option chain + Black-Scholes. [web:404][web:410]
+    using Yahoo Finance option chain + Black-Scholes.
     """
     t = yf.Ticker(ticker)
     expiries = t.options
