@@ -11,6 +11,12 @@ from data_fetch import (
     get_news_for_ticker,
 )
 from yfinance.exceptions import YFRateLimitError
+from data_fetch import (
+    get_history_cached,
+    get_option_snapshot_features,
+    get_news_for_ticker,
+    get_atm_greeks,
+)
 
 
 def classify_alignment(pred_ret, put_call_oi_ratio):
@@ -371,6 +377,22 @@ def run_app():
                         f"**Target strikes:** ${row['last_close'] - expected_move:.2f} "
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
+                     # --- ATM Greeks block ---
+                greeks_info = get_atm_greeks(row["ticker"])
+                if greeks_info:
+                    cg = greeks_info["call_greeks"]
+                    pg = greeks_info["put_greeks"]
+                    st.markdown("**ATM Greeks (nearest expiry):**")
+                    st.write(
+                        f"Call Δ: {cg['delta']:.2f}, Γ: {cg['gamma']:.4f}, "
+                        f"Vega: {cg['vega']:.2f}, Θ: {cg['theta']:.2f}"
+                    )
+                    st.write(
+                        f"Put  Δ: {pg['delta']:.2f}, Γ: {pg['gamma']:.4f}, "
+                        f"Vega: {pg['vega']:.2f}, Θ: {pg['theta']:.2f}"
+                    )
+                else:
+                    st.write("ATM Greeks: N/A (no option data).")
 
                 # Key headlines directly below
                 news = get_news_for_ticker(row["ticker"], limit=3)

@@ -6,6 +6,11 @@ import streamlit as st
 import requests
 from yfinance.exceptions import YFRateLimitError
 
+import math
+from datetime import datetime
+from scipy.stats import norm
+
+
 @st.cache_data(ttl=900)  # cache for 15 minutes
 def get_news_for_ticker(ticker, limit=5):
     """
@@ -47,6 +52,7 @@ def get_news_for_ticker(ticker, limit=5):
             }
         )
     return articles
+
 
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_history_cached(ticker, period="1y", interval="1d"):
@@ -174,4 +180,119 @@ def get_option_snapshot_features(ticker, moneyness_window=0.05):
         "opt_exp": expiration,
         "atm_iv": atm_iv,
         "put_call_oi_ratio": put_call_oi_ratio,
+    }
+
+
+# ---------- Black-Scholes Greeks helpers ----------
+
+def _bs_greeks(flag, S, K, T, r, sigma):
+    """
+    Basic Black-Scholes Greeks for a European option. [web:406]
+    flag: 'c' for call, 'p' for put
+    S: spot price
+    K: strike
+    T: time to expiry in years
+    r: risk-free rate (e.g. 0.04 for 4%)
+    sigma: implied volatility (e.g. 0.35 for 35%)
+    Returns dict with delta, gamma, vega, theta.
+    """
+    if T <= 0 or sigma <= 0 or S <= 0 or K <= 0:
+        return {"delta": None, "gamma": None, "vega": None, "theta": None}
+
+    d1 = (math.log(S / K) + (r + 0.5 * sigma * sigma) * T) / (sigma * math.sqrt(T))
+    d2 = d1 - sigma * math.sqrt(T)
+
+    if flag == "c":
+        delta = norm.cdf(d1)
+        theta = (
+            - (S * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
+            - r * K * math.exp(-r * T) * norm.cdf(d2)
+        )
+    else:  # put
+        delta = norm.cdf(d1) - 1.0
+        theta = (
+            - (S * norm.pdf(d1) * sigma) / (2 * math.sqrt(T))
+            + r * K * math.exp(-r * T) * norm.cdf(-d2)
+        )
+
+    gamma = norm.pdf(d1) / (S * sigma * math.sqrt(T))
+    vega = S * norm.pdf(d1) * math.sqrt(T)
+
+    return {
+        "delta": delta,
+        "gamma": gamma,
+        "vega": vega,
+        "theta": theta,
+    }
+
+
+def get_atm_greeks(ticker, risk_free_rate=0.04):
+    """
+    Compute approximate ATM call & put Greeks for the nearest option expiry
+    using Yahoo Finance option chain + Black-Scholes. [web:404][web:410]
+    """
+    t = yf.Ticker(ticker)
+    expiries = t.options
+    if not expiries:
+        return None
+
+    # nearest expiry
+    expiry_str = expiries[0]
+    try:
+        expiry_date = datetime.strptime(expiry_str, "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+    today = datetime.utcnow().date()
+    days_to_expiry = (expiry_date - today).days
+    if days_to_expiry <= 0:
+        return None
+
+    T = days_to_expiry / 365.0
+
+    try:
+        chain = t.option_chain(expiry_str)
+    except YFRateLimitError:
+        # let caller decide how to handle rate limit
+        raise
+    except Exception:
+        return None
+
+    calls = chain.calls.copy()
+    puts = chain.puts.copy()
+    if calls.empty or puts.empty:
+        return None
+
+    # spot from most recent close
+    hist = t.history(period="1d", interval="1d")
+    if hist is None or hist.empty:
+        return None
+    spot = float(hist["Close"].iloc[-1])
+
+    # find strike closest to spot
+    calls["dist"] = (calls["strike"] - spot).abs()
+    puts["dist"] = (puts["strike"] - spot).abs()
+    call_row = calls.sort_values("dist").iloc[0]
+    put_row = puts.sort_values("dist").iloc[0]
+
+    call_iv = float(call_row.get("impliedVolatility", np.nan))
+    put_iv = float(put_row.get("impliedVolatility", np.nan))
+    if not np.isfinite(call_iv) or not np.isfinite(put_iv):
+        return None
+
+    K_call = float(call_row["strike"])
+    K_put = float(put_row["strike"])
+
+    call_greeks = _bs_greeks("c", spot, K_call, T, risk_free_rate, call_iv)
+    put_greeks = _bs_greeks("p", spot, K_put, T, risk_free_rate, put_iv)
+
+    return {
+        "expiry": expiry_str,
+        "spot": spot,
+        "K_call": K_call,
+        "K_put": K_put,
+        "call_iv": call_iv,
+        "put_iv": put_iv,
+        "call_greeks": call_greeks,
+        "put_greeks": put_greeks,
     }
