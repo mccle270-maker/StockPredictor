@@ -581,6 +581,29 @@ def run_app():
                             f"{accuracy*100:.1f}%",
                         )
 
+                        # --- New: simple long-only Sharpe ratio from model signals ---
+                        # Long when predicted_return > 0, flat otherwise
+                        strat = results_test.copy()
+                        strat["position"] = np.where(strat["predicted_return"] > 0, 1.0, 0.0)
+                        strat["strategy_ret"] = strat["actual_return"] * strat["position"]
+
+                        # Drop any NaNs just in case
+                        strategy_returns = strat["strategy_ret"].dropna()
+
+                        sharpe_value = None
+                        if len(strategy_returns) > 1 and strategy_returns.std() > 0:
+                            daily_mean = strategy_returns.mean()
+                            daily_std = strategy_returns.std()
+                            sharpe_value = (daily_mean / daily_std) * np.sqrt(252)  # annualized Sharpe
+
+                        if sharpe_value is not None:
+                            st.metric(
+                                f"Sharpe Ratio (Long-on-Positive, {display_horizon_label})",
+                                f"{sharpe_value:.2f}",
+                            )
+                        else:
+                            st.write("Sharpe Ratio: N/A (insufficient variation in returns).")
+
                         display_results = results_test[
                             [
                                 "date",
