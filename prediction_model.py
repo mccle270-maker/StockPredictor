@@ -12,20 +12,36 @@ from data_fetch import get_history, get_history_cached
 
 # Extended feature columns with new indicators
 FEATURE_COLUMNS = [
+    # returns & realized vol
     "ret_1d",
     "ret_5d",
     "ret_20d",
     "vol_20d",
+
+    # moving averages / trend & overbought/oversold
     "sma_ratio_10_50",
     "rsi_14",
-    "bb_width_20",
     "MACD",
     "price_to_ma50",
+
+    # bollinger / volatility structure
+    "bb_width_20",
+
+    # price–volume & volume structure
     "volume_price_corr",
     "volume_trend",
+    "vol_ma_20",
+    "vol_spike_20",
+    "vol_spike_1d_ago",
+
+    # intraday structure
     "high_low_ratio",
     "daily_range",
     "close_position",
+    "hl_range",
+    "atr_14",
+
+    # calendar effects
     "day_of_week",
     "month",
     "is_month_end",
@@ -35,13 +51,15 @@ FEATURE_COLUMNS = [
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     """
     Enhanced feature engineering with technical indicators, volume features,
-    and calendar effects.
+    intraday structure, and calendar effects.
+    Expects columns: Open, High, Low, Close, Volume.
     """
+    hist = hist.copy()
+
     close = hist["Close"]
     high = hist["High"]
     low = hist["Low"]
     volume = hist["Volume"]
-
 
     # Original features: Returns and realized volatility
     hist["ret_1d"] = close.pct_change()
@@ -49,12 +67,10 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["ret_20d"] = close.pct_change(20)
     hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
 
-
     # Moving averages and ratio
     sma_10 = close.rolling(10).mean()
     sma_50 = close.rolling(50).mean()
-    hist["sma_ratio_10_50"] = sma_10 / sma_50
-
+    hist["sma_ratio_10_50"] = sma_10 / (sma_50 + 1e-9)
 
     # RSI-14
     delta = close.diff()
@@ -62,48 +78,58 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     loss = -delta.clip(upper=0)
     avg_gain = gain.rolling(14).mean()
     avg_loss = loss.rolling(14).mean()
-    rs = avg_gain / avg_loss
+    rs = avg_gain / (avg_loss + 1e-9)
     rsi_14 = 100 - (100 / (1 + rs))
     hist["rsi_14"] = rsi_14
-
 
     # Bollinger Band width (20d)
     sma_20 = close.rolling(20).mean()
     std_20 = close.rolling(20).std()
     upper_20 = sma_20 + 2 * std_20
     lower_20 = sma_20 - 2 * std_20
-    bb_width_20 = (upper_20 - lower_20) / sma_20
+    bb_width_20 = (upper_20 - lower_20) / (sma_20 + 1e-9)
     hist["bb_width_20"] = bb_width_20
 
-
-    # NEW FEATURES
-    
     # MACD (12-26 EMA difference)
-    hist["MACD"] = close.ewm(span=12).mean() - close.ewm(span=26).mean()
-    
+    hist["MACD"] = close.ewm(span=12, adjust=False).mean() - close.ewm(
+        span=26, adjust=False
+    ).mean()
+
     # Price to 50-day MA ratio
-    hist["price_to_ma50"] = close / sma_50
-    
+    hist["price_to_ma50"] = close / (sma_50 + 1e-9)
+
     # Volume-Price Correlation (20-day rolling)
-    hist["volume_price_corr"] = hist["ret_1d"].rolling(20).corr(volume.pct_change())
-    
+    hist["volume_price_corr"] = (
+        hist["ret_1d"].rolling(20).corr(volume.pct_change())
+    )
+
     # Volume Trend (10-day avg / 30-day avg)
-    hist["volume_trend"] = volume.rolling(10).mean() / volume.rolling(30).mean()
-    
+    vol_ma_10 = volume.rolling(10).mean()
+    vol_ma_30 = volume.rolling(30).mean()
+    hist["volume_trend"] = vol_ma_10 / (vol_ma_30 + 1e-9)
+
+    # NEW: volume level and spikes
+    hist["vol_ma_20"] = volume.rolling(20).mean()
+    hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
+    hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
+
     # High-Low Ratio
-    hist["high_low_ratio"] = high / low
-    
+    hist["high_low_ratio"] = high / (low + 1e-9)
+
     # Daily Range (normalized by close)
-    hist["daily_range"] = (high - low) / close
-    
+    hist["daily_range"] = (high - low) / (close + 1e-9)
+
     # Close Position in Daily Range (0=at low, 1=at high)
     hist["close_position"] = (close - low) / (high - low + 1e-9)
-    
+
+    # NEW: high-low range vs prior close & ATR-style vol
+    hist["hl_range"] = (high - low) / (close.shift(1) + 1e-9)
+    hist["atr_14"] = hist["hl_range"].rolling(14).mean()
+
     # Calendar Effects
     hist["day_of_week"] = hist.index.dayofweek
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
-
 
     return hist
 
