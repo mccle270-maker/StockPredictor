@@ -46,7 +46,11 @@ def get_news_from_marketaux(ticker, limit=5):
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        st.warning(f"Marketaux news fetch error for {ticker}: {e}")
+        # Log full details to the terminal, not the UI
+        print(f"Marketaux error for {ticker}: {e}")
+
+        # Short, generic message in the app
+        st.info(f"No Marketaux news for {ticker}; using backup source.")
         return []
 
     articles = []
