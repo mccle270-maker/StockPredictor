@@ -4,6 +4,8 @@ import pandas as pd
 import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+
 from xgboost import XGBRegressor
 
 from data_fetch import get_history, get_history_cached
@@ -45,6 +47,15 @@ FEATURE_COLUMNS = [
     "ret_20d",
     "vol_20d",
 
+    # NEW: lagged returns and rolling stats on returns
+    "ret_1d_lag1",
+    "ret_1d_lag2",
+    "ret_1d_lag5",
+    "ret_1d_rollmean_5",
+    "ret_1d_rollstd_5",
+    "ret_1d_rollmean_10",
+    "ret_1d_rollstd_10",
+
     # moving averages / trend & overbought/oversold
     "sma_ratio_10_50",
     "rsi_14",
@@ -60,6 +71,10 @@ FEATURE_COLUMNS = [
     "vol_ma_20",
     "vol_spike_20",
     "vol_spike_1d_ago",
+
+    # NEW: volume rolling stats
+    "vol_rollmean_20",
+    "vol_rollstd_20",
 
     # intraday structure
     "high_low_ratio",
@@ -83,7 +98,7 @@ FEATURE_COLUMNS = [
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     """
     Enhanced feature engineering with technical indicators, volume features,
-    intraday structure, and calendar effects.
+    intraday structure, calendar effects, and simple lags/rolling stats.
     Expects columns: Open, High, Low, Close, Volume.
     """
     hist = hist.copy()
@@ -98,6 +113,17 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["ret_5d"] = close.pct_change(5)
     hist["ret_20d"] = close.pct_change(20)
     hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
+
+    # NEW: simple lags of daily return
+    hist["ret_1d_lag1"] = hist["ret_1d"].shift(1)
+    hist["ret_1d_lag2"] = hist["ret_1d"].shift(2)
+    hist["ret_1d_lag5"] = hist["ret_1d"].shift(5)
+
+    # NEW: rolling mean / std of daily returns (short horizons)
+    hist["ret_1d_rollmean_5"] = hist["ret_1d"].rolling(5).mean()
+    hist["ret_1d_rollstd_5"] = hist["ret_1d"].rolling(5).std()
+    hist["ret_1d_rollmean_10"] = hist["ret_1d"].rolling(10).mean()
+    hist["ret_1d_rollstd_10"] = hist["ret_1d"].rolling(10).std()
 
     # Moving averages and ratio
     sma_10 = close.rolling(10).mean()
@@ -140,10 +166,14 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     vol_ma_30 = volume.rolling(30).mean()
     hist["volume_trend"] = vol_ma_10 / (vol_ma_30 + 1e-9)
 
-    # NEW: volume level and spikes
+    # Volume level and spikes
     hist["vol_ma_20"] = volume.rolling(20).mean()
     hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
     hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
+
+    # NEW: volume rolling stats (absolute variability of volume)
+    hist["vol_rollmean_20"] = volume.rolling(20).mean()
+    hist["vol_rollstd_20"] = volume.rolling(20).std()
 
     # High-Low Ratio
     hist["high_low_ratio"] = high / (low + 1e-9)
@@ -154,7 +184,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     # Close Position in Daily Range (0=at low, 1=at high)
     hist["close_position"] = (close - low) / (high - low + 1e-9)
 
-    # NEW: high-low range vs prior close & ATR-style vol
+    # High-low range vs prior close & ATR-style vol
     hist["hl_range"] = (high - low) / (close.shift(1) + 1e-9)
     hist["atr_14"] = hist["hl_range"].rolling(14).mean()
 
@@ -164,6 +194,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
     return hist
+
 
 
 def make_model(model_type: str = "rf", random_state: int = 42):
@@ -569,6 +600,47 @@ def backtest_compare_one_ticker(
     )
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
+def tune_xgb_hyperparams(X, y, random_state=42):
+    """
+    Simple XGBoost hyperparameter tuning with time-series CV.
+    Use offline to find good defaults, not inside the live app loop.
+    """
+    tscv = TimeSeriesSplit(n_splits=3)
+
+    base_model = XGBRegressor(
+        objective="reg:squarederror",
+        tree_method="hist",
+        random_state=random_state,
+        verbosity=0,
+    )
+
+    param_distributions = {
+        "learning_rate": [0.01, 0.03, 0.05, 0.1],
+        "n_estimators": [200, 400, 600],
+        "max_depth": [3, 4, 5],
+        "min_child_weight": [1, 3, 5],
+        "subsample": [0.7, 0.9, 1.0],
+        "colsample_bytree": [0.7, 0.9, 1.0],
+        "reg_lambda": [0.0, 1.0, 5.0],
+    }
+
+    search = RandomizedSearchCV(
+        estimator=base_model,
+        param_distributions=param_distributions,
+        n_iter=20,
+        scoring="neg_mean_squared_error",
+        cv=tscv,
+        random_state=random_state,
+        n_jobs=-1,
+        verbose=1,
+    )
+
+    search.fit(X, y)
+    print("Best XGB params:", search.best_params_)
+    print("Best CV score (neg MSE):", search.best_score_)
+
+    return search.best_estimator_
+
 
 if __name__ == "__main__":
     # Example: compare all three models on ^GSPC with different horizons
@@ -576,6 +648,7 @@ if __name__ == "__main__":
     print("Testing 1-Day Predictions - All Models")
     print("=" * 60)
     X, y, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=1)
+    best_xgb = tune_xgb_hyperparams(X, y)
 
     rf_model, rf_r2, rf_rmse = train_model(X, y, model_type="rf")
     print("Random Forest (1-day)")
