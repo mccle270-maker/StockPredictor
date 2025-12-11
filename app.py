@@ -208,83 +208,6 @@ def run_app():
 
     tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
 
-    # ----- Main Monte Carlo controls for this run (under main header) -----
-    st.subheader(f"{horizon_label} Monte Carlo settings (for screener run)")
-    mc_mode_main = st.selectbox(
-        "Monte Carlo mode for this run",
-        ["Off", "Basic (default)", "Custom"],
-        index=0,
-        help="Controls whether the model uses Monte Carlo features.",
-    )
-    use_mc_main = mc_mode_main != "Off"
-
-    mc_kwargs_main = {}
-    mc_strike_mode_main = "Use moneyness"
-    if mc_mode_main == "Basic (default)":
-        mc_kwargs_main = {
-            "moneyness": 1.0,
-            "premium": 1.0,
-            "dte": prediction_horizon,
-            "n_paths": 2000,
-        }
-        mc_strike_mode_main = "Use moneyness"
-    elif mc_mode_main == "Custom":
-        col_mc1, col_mc2, col_mc3, col_mc4 = st.columns(4)
-        with col_mc1:
-            mc_strike_mode_main = st.selectbox(
-                "Strike mode",
-                ["Use moneyness", "Use fixed strike"],
-                index=0,
-            )
-        with col_mc2:
-            mc_premium_main = st.number_input(
-                "Premium",
-                value=1.0,
-                min_value=0.0,
-                step=0.1,
-            )
-        with col_mc3:
-            mc_dte_main = st.number_input(
-                "DTE (days)",
-                value=prediction_horizon,
-                min_value=1,
-                step=1,
-            )
-        with col_mc4:
-            mc_n_paths_main = st.number_input(
-                "MC paths",
-                value=2000,
-                min_value=500,
-                max_value=20000,
-                step=500,
-            )
-
-        if mc_strike_mode_main == "Use moneyness":
-            mc_moneyness_main = st.number_input(
-                "Moneyness (K/S0)",
-                value=1.0,
-                step=0.05,
-            )
-            mc_kwargs_main = {
-                "moneyness": float(mc_moneyness_main),
-                "premium": float(mc_premium_main),
-                "dte": int(mc_dte_main),
-                "n_paths": int(mc_n_paths_main),
-            }
-        else:
-            mc_strike_price_main = st.number_input(
-                "Fixed strike price",
-                value=100.0,
-                min_value=0.0,
-                step=1.0,
-            )
-            mc_kwargs_main = {
-                "strike_price": float(mc_strike_price_main),
-                "premium": float(mc_premium_main),
-                "dte": int(mc_dte_main),
-                "n_paths": int(mc_n_paths_main),
-            }
-
     # ---------------- Main run button ----------------
     if st.sidebar.button("Run Screener + Model"):
         if not tickers:
@@ -347,14 +270,12 @@ def run_app():
                     model_type=model_type,
                     horizon=prediction_horizon,
                     use_vol_scaled_target=False,
-                    use_mc_features=use_mc_main,
-                    mc_kwargs=mc_kwargs_main if use_mc_main else None,
                 )
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
                 out["signal_alignment"] = classify_alignment(
                     out["pred_next_ret"],
-                    out["put_call_oi_ratio"],
+                    out.get("put_call_oi_ratio"),
                 )
                 results.append(out)
 
@@ -390,7 +311,6 @@ def run_app():
         display_horizon = st.session_state.get("prediction_horizon", 1)
         display_horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day"}[display_horizon]
 
-        # Include MC columns if present
         cols_to_show = [
             "ticker",
             "model_type",
@@ -406,9 +326,6 @@ def run_app():
             "opt_exp",
             "signal_alignment",
         ]
-        for mc_col in ["mc_ev", "mc_pop_gt0"]:
-            if mc_col in pred_df.columns:
-                cols_to_show.append(mc_col)
 
         display = pred_df[cols_to_show].copy()
 
@@ -426,8 +343,6 @@ def run_app():
             "pred_next_price": "Predicted Price",
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
-            "mc_ev": "MC EV (P/L)",
-            "mc_pop_gt0": "MC POP (>0)",
         }
         display.rename(columns=rename_map, inplace=True)
 
@@ -729,82 +644,9 @@ def run_app():
         else:
             st.warning(f"No recent price data for {chosen}.")
 
-        # ----- Multi-horizon MC controls just above the table -----
+        # ----- Multi-horizon predictions (1–3 days) without Monte Carlo -----
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
 
-        mc_mode_multi = st.selectbox(
-            "Monte Carlo mode for 1–3 day horizons",
-            ["Off", "Basic (match main)", "Custom"],
-            index=1,
-            help="Controls MC used in the 1–3 day horizon table below.",
-        )
-        use_mc_multi = mc_mode_multi != "Off"
-
-        # default: reuse main settings
-        mc_kwargs_multi = mc_kwargs_main
-        mc_strike_mode_multi = mc_strike_mode_main
-
-        if mc_mode_multi == "Basic (match main)":
-            mc_kwargs_multi = mc_kwargs_main
-            mc_strike_mode_multi = mc_strike_mode_main
-        elif mc_mode_multi == "Custom":
-            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
-            with col_m1:
-                mc_strike_mode_multi = st.selectbox(
-                    "Strike mode (multi)",
-                    ["Use moneyness", "Use fixed strike"],
-                    index=0,
-                )
-            with col_m2:
-                mc_premium_multi = st.number_input(
-                    "Premium (multi)",
-                    value=1.0,
-                    min_value=0.0,
-                    step=0.1,
-                )
-            with col_m3:
-                mc_dte_multi = st.number_input(
-                    "DTE (days, multi)",
-                    value=3,
-                    min_value=1,
-                    step=1,
-                )
-            with col_m4:
-                mc_n_paths_multi = st.number_input(
-                    "MC paths (multi)",
-                    value=2000,
-                    min_value=500,
-                    max_value=20000,
-                    step=500,
-                )
-
-            if mc_strike_mode_multi == "Use moneyness":
-                mc_moneyness_multi = st.number_input(
-                    "Moneyness (K/S0, multi)",
-                    value=1.0,
-                    step=0.05,
-                )
-                mc_kwargs_multi = {
-                    "moneyness": float(mc_moneyness_multi),
-                    "premium": float(mc_premium_multi),
-                    "dte": int(mc_dte_multi),
-                    "n_paths": int(mc_n_paths_multi),
-                }
-            else:
-                mc_strike_price_multi = st.number_input(
-                    "Fixed strike price (multi)",
-                    value=100.0,
-                    min_value=0.0,
-                    step=1.0,
-                )
-                mc_kwargs_multi = {
-                    "strike_price": float(mc_strike_price_multi),
-                    "premium": float(mc_premium_multi),
-                    "dte": int(mc_dte_multi),
-                    "n_paths": int(mc_n_paths_multi),
-                }
-
-        # Multi-horizon predictions for chosen ticker
         multi_rows = []
         for h in [1, 2, 3]:
             try:
@@ -813,16 +655,13 @@ def run_app():
                     period="5y",
                     model_type=model_type,
                     horizon=h,
-                    use_mc_features=use_mc_multi,
-                    mc_kwargs=mc_kwargs_multi if use_mc_multi else None,
+                    use_vol_scaled_target=False,
                 )
                 multi_rows.append(
                     {
                         "Horizon (days)": h,
                         "Predicted Return (%)": out_h["pred_next_ret"] * 100,
                         "Predicted Price": out_h["pred_next_price"],
-                        "MC EV (P/L)": out_h.get("mc_ev"),
-                        "MC POP (>0)": out_h.get("mc_pop_gt0"),
                     }
                 )
             except YFRateLimitError:
@@ -837,8 +676,6 @@ def run_app():
                         "Horizon (days)": h,
                         "Predicted Return (%)": None,
                         "Predicted Price": None,
-                        "MC EV (P/L)": None,
-                        "MC POP (>0)": None,
                     }
                 )
 

@@ -1,4 +1,3 @@
-# prediction_model.py
 import os
 import numpy as np
 import pandas as pd
@@ -10,10 +9,10 @@ from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 
 from xgboost import XGBRegressor, XGBClassifier
 
-from data_fetch import get_history, get_history_cached, get_fmp_fundamentals  # NEW IMPORT
+from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 
 
-# ---------- Technical indicator helpers (same as before) ----------
+# ---------- Technical indicator helpers ----------
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
@@ -203,7 +202,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     return hist
 
 
-# ---------- Model factory (extended) ----------
+# ---------- Model factory ----------
 
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     """
@@ -259,7 +258,7 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         )
 
 
-# ---------- Fundamentals fetch (now uses FMP when available) ----------
+# ---------- Fundamentals fetch ----------
 
 def get_fundamental_features(ticker: str) -> dict:
     """
@@ -272,7 +271,7 @@ def get_fundamental_features(ticker: str) -> dict:
         "fund_market_cap": np.nan,
     }
 
-    # 1) Try FMP (implemented in data_fetch.py)
+    # 1) Try FMP
     try:
         fmp_data = get_fmp_fundamentals(ticker)  # should return a dict
         if isinstance(fmp_data, dict):
@@ -421,6 +420,9 @@ def predict_next_for_ticker(
     horizon=1,
     use_vol_scaled_target: bool = False,
 ):
+    """
+    Train on historical data and return a point forecast for price and return.
+    """
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
         ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
     )
@@ -438,17 +440,9 @@ def predict_next_for_ticker(
         pred_ret = pred_ret * float(last_vol_20d)
     pred_price = float(last_close * (1 + pred_ret))
 
-    pe_ratio = None
-    try:
-        t = yf.Ticker(ticker)
-        fast = getattr(t, "fast_info", None)
-        if fast is not None and hasattr(fast, "trailing_pe"):
-            pe_ratio = fast.trailing_pe
-        else:
-            info = t.info
-            pe_ratio = info.get("trailingPE")
-    except Exception:
-        pe_ratio = None
+    # reuse fundamental PE instead of extra Yahoo call
+    fund_feats = get_fundamental_features(ticker)
+    pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     if hasattr(model, "feature_importances_"):
@@ -474,15 +468,6 @@ def predict_next_for_ticker(
         "num_features": len(feat_cols),
         "top_features": top_features_str,
     }
-
-
-# ---------- Backtests (regression + walk-forward) ----------
-# Your existing track_predictions, backtest_one_ticker,
-# backtest_compare_one_ticker, and walk_forward_backtest
-# can stay mostly the same; you can add a flag
-# use_vol_scaled_target to call build_features_and_target
-# with that option and then trade on the scaled/unscaled
-# return exactly as before.
 
 
 # ---------- Tracking & backtests ----------
