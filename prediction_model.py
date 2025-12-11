@@ -1,5 +1,4 @@
 # prediction_model.py
-import os
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -10,22 +9,19 @@ from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 
 from xgboost import XGBRegressor, XGBClassifier
 
-from data_fetch import get_history, get_history_cached, get_fmp_fundamentals  # NEW IMPORT
+from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 
 
-# ---------- Technical indicator helpers (same as before) ----------
+# ---------- Technical indicator helpers ----------
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
-
     avg_gain = gain.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
-
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
-
     df[f"rsi_{window}"] = rsi
     return df
 
@@ -33,11 +29,9 @@ def add_rsi(df, window: int = 14, price_col: str = "Close"):
 def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signal: int = 9):
     ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
     ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
-
     macd = ema_fast - ema_slow
     macd_signal = macd.ewm(span=signal, adjust=False).mean()
     macd_hist = macd - macd_signal
-
     df["macd"] = macd
     df["macd_signal"] = macd_signal
     df["macd_hist"] = macd_hist
@@ -47,17 +41,13 @@ def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signa
 def add_mfi(df, window: int = 14):
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
     rmf = tp * df["Volume"]
-
     tp_shift = tp.shift(1)
     pos_mf = rmf.where(tp > tp_shift, 0.0)
     neg_mf = rmf.where(tp < tp_shift, 0.0)
-
     pos_mf_sum = pos_mf.rolling(window=window, min_periods=window).sum()
     neg_mf_sum = neg_mf.rolling(window=window, min_periods=window).sum()
-
     money_flow_ratio = pos_mf_sum / neg_mf_sum.replace(0, np.nan)
     mfi = 100 - (100 / (1 + money_flow_ratio))
-
     df[f"mfi_{window}"] = mfi
     return df
 
@@ -86,13 +76,131 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     key = (symbol, period)
     if key in _macro_cache:
         return _macro_cache[key]
-
     t = yf.Ticker(symbol)
     hist = t.history(period=period, interval="1d")
     df = pd.DataFrame(index=hist.index)
     df["mkt_ret_1d"] = hist["Close"].pct_change()
     _macro_cache[key] = df
     return df
+
+
+# ---------- Monte Carlo helpers (flexible) ----------
+
+MC_FEATURE_COLUMNS = [
+    "mc_pop_gt0",          # P(P/L > 0)
+    "mc_pop_gt_thresh",    # P(P/L > profit_thresh)
+    "mc_ev",               # E[P/L]
+    "mc_pnl_p05",          # 5th percentile P/L
+    "mc_pnl_p50",          # 50th percentile P/L
+    "mc_pnl_p95",          # 95th percentile P/L
+]
+
+
+def simulate_gbm_paths(S0: float,
+                       mu: float,
+                       sigma: float,
+                       T_years: float,
+                       steps: int,
+                       n_paths: int,
+                       random_state: int | None = None) -> np.ndarray:
+    """
+    GBM simulation: returns array (steps+1, n_paths) of prices.
+    """
+    rng = np.random.default_rng(random_state)
+    dt = T_years / steps
+    z = rng.normal(0.0, 1.0, size=(steps, n_paths))
+    increments = (mu - 0.5 * sigma ** 2) * dt + sigma * np.sqrt(dt) * z
+    log_paths = np.vstack([np.zeros((1, n_paths)), np.cumsum(increments, axis=0)])
+    paths = S0 * np.exp(log_paths)
+    return paths
+
+
+def run_option_mc_for_row(row: pd.Series,
+                          ticker: str,
+                          horizon: int,
+                          profit_thresh: float = 0.0,
+                          n_paths: int = 5000,
+                          steps_per_year: int = 252,
+                          annual_mu: float = 0.0,
+                          annual_rf: float = 0.0,
+                          iv_col: str | None = None,
+                          **mc_kwargs) -> dict:
+    """
+    Flexible Monte Carlo for a *long European call* on the underlying.
+
+    You can pass in from the UI (via mc_kwargs):
+      - strike_price: explicit strike (float)
+      - premium: entry debit/credit per contract (float)
+      - dte: days to expiry (int); if not given, horizon is used
+      - moneyness: if no strike, K = moneyness * S0
+
+    Volatility:
+      - If iv_col is given and present in row, use that as annualized sigma.
+      - Else use 20d realized vol and annualize.
+
+    Returns POP, EV, and P/L percentiles as MC features.
+    """
+    # 1) Underlying price
+    try:
+        S0 = float(row.get("Close"))
+    except Exception:
+        return {k: np.nan for k in MC_FEATURE_COLUMNS}
+
+    # 2) Volatility (annual sigma)
+    if iv_col is not None and iv_col in row and pd.notna(row[iv_col]):
+        sigma = float(row[iv_col])
+    else:
+        vol_20d = row.get("vol_20d")
+        if pd.isna(vol_20d):
+            return {k: np.nan for k in MC_FEATURE_COLUMNS}
+        sigma = float(vol_20d) * np.sqrt(252.0)
+
+    # 3) Time to expiry
+    dte = mc_kwargs.get("dte", horizon)  # days to expiry
+    T_years = max(int(dte), 1) / 252.0
+    steps = max(int(T_years * steps_per_year), 1)
+
+    # 4) Strike and premium
+    strike = mc_kwargs.get("strike_price", row.get("strike_price", None))
+    if strike is None:
+        moneyness = mc_kwargs.get("moneyness", 1.0)
+        strike = float(moneyness) * S0
+    else:
+        strike = float(strike)
+
+    premium = mc_kwargs.get("premium", row.get("premium", 1.0))
+    premium = float(premium)
+
+    # 5) Simulate paths and payoff
+    paths = simulate_gbm_paths(
+        S0=S0,
+        mu=annual_mu,
+        sigma=sigma,
+        T_years=T_years,
+        steps=steps,
+        n_paths=n_paths,
+    )
+    ST = paths[-1]
+    payoff = np.maximum(ST - strike, 0.0)  # long call payoff
+
+    df = np.exp(-annual_rf * T_years)
+    pnl = df * payoff - premium
+
+    pop_gt0 = float(np.mean(pnl > 0.0))
+    pop_gt_thresh = float(np.mean(pnl > profit_thresh))
+    ev = float(np.mean(pnl))
+    p05 = float(np.percentile(pnl, 5))
+    p50 = float(np.percentile(pnl, 50))
+    p95 = float(np.percentile(pnl, 95))
+
+    return {
+        "mc_pop_gt0": pop_gt0,
+        "mc_pop_gt_thresh": pop_gt_thresh,
+        "mc_ev": ev,
+        "mc_pnl_p05": p05,
+        "mc_pnl_p50": p50,
+        "mc_pnl_p95": p95,
+    }
 
 
 # ---------- Feature columns ----------
@@ -135,14 +243,13 @@ FEATURE_COLUMNS = [
     "macd_signal",
     "macd_hist",
     "mfi_14",
-]
+] + MC_FEATURE_COLUMNS
 
 
 # ---------- Price feature engineering ----------
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
-
     close = hist["Close"]
     high = hist["High"]
     low = hist["Low"]
@@ -199,16 +306,12 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
     hist = add_technical_indicators(hist)
-
     return hist
 
 
-# ---------- Model factory (extended) ----------
+# ---------- Model factory ----------
 
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
-    """
-    task: 'reg' for regression on returns, 'clf' for direction classification.
-    """
     if task == "clf":
         if model_type == "xgb":
             return XGBClassifier(
@@ -230,7 +333,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
                 n_jobs=-1,
             )
 
-    # regression models
     if model_type == "gbrt":
         return GradientBoostingRegressor(
             n_estimators=300,
@@ -259,22 +361,17 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         )
 
 
-# ---------- Fundamentals fetch (now uses FMP when available) ----------
+# ---------- Fundamentals fetch ----------
 
 def get_fundamental_features(ticker: str) -> dict:
-    """
-    Fetch a few slow-moving fundamental metrics for the ticker.
-    Prefer FMP API via get_fmp_fundamentals; fall back to Yahoo.
-    """
     feats = {
         "fund_pe_trailing": np.nan,
         "fund_pb": np.nan,
         "fund_market_cap": np.nan,
     }
 
-    # 1) Try FMP (implemented in data_fetch.py)
     try:
-        fmp_data = get_fmp_fundamentals(ticker)  # should return a dict
+        fmp_data = get_fmp_fundamentals(ticker)
         if isinstance(fmp_data, dict):
             for k in feats.keys():
                 if k in fmp_data:
@@ -282,7 +379,6 @@ def get_fundamental_features(ticker: str) -> dict:
     except Exception:
         pass
 
-    # 2) Fallback to Yahoo if still missing
     if any(pd.isna(v) for v in feats.values()):
         try:
             t = yf.Ticker(ticker)
@@ -303,18 +399,16 @@ def get_fundamental_features(ticker: str) -> dict:
     return feats
 
 
-# ---------- Build features & target (regression) ----------
+# ---------- Build features & target ----------
 
 def build_features_and_target(
     ticker="^GSPC",
     period="5y",
     horizon=1,
     use_vol_scaled_target: bool = False,
+    use_mc_features: bool = False,
+    mc_kwargs: dict | None = None,
 ):
-    """
-    Build feature matrix X, target vector y, and last-row info.
-    If use_vol_scaled_target=True, predict return / vol_20d.
-    """
     fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
     if period in fallback_periods:
         periods_to_try = [period] + [p for p in fallback_periods if p != period]
@@ -346,11 +440,26 @@ def build_features_and_target(
                 hist[f"target_ret_{horizon}d_ahead"] = raw_target
 
             df = hist.dropna().copy()
-
             if df.empty or len(df) < min_rows:
                 raise ValueError(
                     f"Only {len(df)} usable rows for {ticker} with period={per}"
                 )
+
+            if use_mc_features:
+                mc_kwargs = mc_kwargs or {}
+                mc_results = []
+                for _, row in df.iterrows():
+                    mc_dict = run_option_mc_for_row(
+                        row, ticker=ticker, horizon=horizon, **mc_kwargs
+                    )
+                    mc_results.append(mc_dict)
+                mc_df = pd.DataFrame(mc_results, index=df.index)
+                for col in MC_FEATURE_COLUMNS:
+                    if col in mc_df.columns:
+                        df[col] = mc_df[col]
+                    else:
+                        df[col] = np.nan
+                df[MC_FEATURE_COLUMNS] = df[MC_FEATURE_COLUMNS].fillna(0.0)
 
             feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             X = df[feat_cols].values
@@ -373,21 +482,20 @@ def build_features_and_target(
     )
 
 
-# ---------- Classification target builder ----------
-
 def build_features_and_direction_target(
     ticker="^GSPC",
     period="5y",
     horizon=1,
+    use_mc_features: bool = False,
+    mc_kwargs: dict | None = None,
 ):
-    """
-    Build X and a direction target: y = 1 if future return > 0, 0 otherwise.
-    """
     X, y_reg, last_feats, last_close, last_vol_20d = build_features_and_target(
         ticker=ticker,
         period=period,
         horizon=horizon,
         use_vol_scaled_target=False,
+        use_mc_features=use_mc_features,
+        mc_kwargs=mc_kwargs,
     )
     y_dir = (y_reg > 0).astype(int)
     return X, y_dir, last_feats, last_close, last_vol_20d
@@ -420,9 +528,16 @@ def predict_next_for_ticker(
     model_type="rf",
     horizon=1,
     use_vol_scaled_target: bool = False,
+    use_mc_features: bool = False,
+    mc_kwargs: dict | None = None,
 ):
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
-        ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
+        ticker,
+        period=period,
+        horizon=horizon,
+        use_vol_scaled_target=use_vol_scaled_target,
+        use_mc_features=use_mc_features,
+        mc_kwargs=mc_kwargs,
     )
 
     n = len(X)
@@ -462,6 +577,18 @@ def predict_next_for_ticker(
     else:
         top_features_str = "N/A"
 
+    # MC stats for the last trade parameters (using same mc_kwargs)
+    mc_dict_last = {}
+    if use_mc_features:
+        # row-like object with Close and vol_20d for last point
+        row_like = pd.Series({"Close": last_close, "vol_20d": last_vol_20d})
+        mc_dict_last = run_option_mc_for_row(
+            row_like,
+            ticker=ticker,
+            horizon=horizon,
+            **(mc_kwargs or {}),
+        )
+
     return {
         "ticker": ticker,
         "model_type": model_type,
@@ -473,345 +600,25 @@ def predict_next_for_ticker(
         "pred_next_price": pred_price,
         "num_features": len(feat_cols),
         "top_features": top_features_str,
+        "mc_pop_gt0": mc_dict_last.get("mc_pop_gt0"),
+        "mc_pop_gt_thresh": mc_dict_last.get("mc_pop_gt_thresh"),
+        "mc_ev": mc_dict_last.get("mc_ev"),
+        "mc_pnl_p05": mc_dict_last.get("mc_pnl_p05"),
+        "mc_pnl_p50": mc_dict_last.get("mc_pnl_p50"),
+        "mc_pnl_p95": mc_dict_last.get("mc_pnl_p95"),
     }
 
 
-# ---------- Backtests (regression + walk-forward) ----------
-# Your existing track_predictions, backtest_one_ticker,
-# backtest_compare_one_ticker, and walk_forward_backtest
-# can stay mostly the same; you can add a flag
-# use_vol_scaled_target to call build_features_and_target
-# with that option and then trade on the scaled/unscaled
-# return exactly as before.
-
-
-# ---------- Tracking & backtests ----------
-
-def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
-    """
-    Compare model predictions to actual multi-day returns over the past period.
-    """
-    try:
-        hist = get_history(ticker, period=period, interval="1d")
-
-        if hist.empty or len(hist) < 50:
-            print(f"Insufficient data for {ticker}: only {len(hist)} rows")
-            return pd.DataFrame(), 0.0
-
-        hist = add_price_features(hist)
-        macro_df = get_macro_df(symbol="^GSPC", period=period)
-        hist = hist.join(macro_df, how="left")
-        fund_feats = get_fundamental_features(ticker)
-        for k, v in fund_feats.items():
-            hist[k] = v
-
-        hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
-            -horizon
-        )
-
-        df = hist.dropna().copy()
-
-        print(f"After dropna for {ticker}: {len(df)} rows")
-
-        if len(df) < 50:
-            print(f"Not enough data after feature engineering for {ticker}")
-            return pd.DataFrame(), 0.0
-
-        # Use more flexible split - test on last 60 days or 30% of data, whichever is smaller
-        test_size = min(60, int(len(df) * 0.3))
-
-        if test_size < 5:
-            print(f"Test size too small: {test_size}")
-            return pd.DataFrame(), 0.0
-
-        train_df = df.iloc[:-test_size]
-        test_df = df.iloc[-test_size:]
-
-        print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
-
-        feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-        X_train = train_df[feat_cols].values
-        y_train = train_df[f"target_ret_{horizon}d_ahead"].values
-
-        model = make_model(model_type=model_type, random_state=42)
-        model.fit(X_train, y_train)
-
-        # Make predictions for test period
-        X_test = test_df[feat_cols].values
-        y_test = test_df[f"target_ret_{horizon}d_ahead"].values
-        y_pred = model.predict(X_test)
-
-        results = pd.DataFrame(
-            {
-                "date": test_df.index,
-                "actual_close": test_df["Close"],
-                "predicted_return": y_pred,
-                "actual_return": y_test,
-                "pred_direction": np.sign(y_pred),
-                "actual_direction": np.sign(y_test),
-                "correct_direction": np.sign(y_pred) == np.sign(y_test),
-            }
-        )
-
-        results["predicted_price"] = results["actual_close"] * (
-            1 + results["predicted_return"]
-        )
-
-        accuracy = results["correct_direction"].mean()
-
-        print(
-            f"Success! Generated {len(results)} test predictions with {accuracy*100:.1f}% accuracy"
-        )
-
-        return results, accuracy
-
-    except Exception as e:
-        print(f"Error in track_predictions for {ticker}: {e}")
-        import traceback
-
-        traceback.print_exc()
-        return pd.DataFrame(), 0.0
-
-
-def backtest_one_ticker(
-    ticker="AAPL",
-    period="10y",
-    test_years=1,
-    threshold=0.002,
-    model_type="rf",
-    horizon=1,
-):
-    """
-    Backtest a single model type ('rf', 'gbrt', or 'xgb') on one ticker with multi-day predictions.
-    """
-    hist = get_history(ticker, period=period, interval="1d")
-    hist = add_price_features(hist)
-    macro_df = get_macro_df(symbol="^GSPC", period=period)
-    hist = hist.join(macro_df, how="left")
-    fund_feats = get_fundamental_features(ticker)
-    for k, v in fund_feats.items():
-        hist[k] = v
-
-    hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
-        -horizon
-    )
-
-    df = hist.dropna().copy()
-
-    cutoff_date = df.index.max() - pd.Timedelta(days=252 * test_years)
-    train_mask = df.index <= cutoff_date
-    test_mask = df.index > cutoff_date
-
-    train_df = df.loc[train_mask].copy()
-    test_df = df.loc[test_mask].copy()
-
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-    X_train = train_df[feat_cols].values
-    y_train = train_df[f"target_ret_{horizon}d_ahead"].values
-
-    X_test = test_df[feat_cols].values
-    y_test = test_df[f"target_ret_{horizon}d_ahead"].values
-
-    model = make_model(model_type=model_type, random_state=42)
-    model.fit(X_train, y_train)
-
-    # predict multi-day returns over test window
-    y_pred = model.predict(X_test)
-
-    # trading rule: long / short / flat
-    positions = np.where(
-        y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
-    )
-
-    # P&L with simple transaction cost
-    cost_per_trade = 0.0005  # 5 bps per change in position (example)
-    pnl = []
-    prev_pos = 0
-    for pos, ret in zip(positions, y_test):
-        trade = abs(pos - prev_pos)
-        pnl_t = pos * ret - cost_per_trade * trade
-        pnl.append(pnl_t)
-        prev_pos = pos
-    pnl = np.array(pnl)
-
-    # summary stats
-    cum_ret = (1 + pnl).prod() - 1
-    hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
-    avg_daily = pnl.mean()
-    std_daily = pnl.std(ddof=1)
-    sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
-
-    return {
-        "ticker": ticker,
-        "model_type": model_type,
-        "horizon": horizon,
-        "test_days": len(pnl),
-        "total_return": cum_ret,
-        "hit_rate": hit_rate,
-        "sharpe": sharpe,
-    }
-
-
-def backtest_compare_one_ticker(
-    ticker="AAPL",
-    period="10y",
-    test_years=1,
-    threshold=0.002,
-    horizon=1,
-):
-    """
-    Run backtests for RF, GBRT, and XGBoost on the same ticker with multi-day predictions.
-    """
-    rf_res = backtest_one_ticker(
-        ticker=ticker,
-        period=period,
-        test_years=test_years,
-        threshold=threshold,
-        model_type="rf",
-        horizon=horizon,
-    )
-    gbrt_res = backtest_one_ticker(
-        ticker=ticker,
-        period=period,
-        test_years=test_years,
-        threshold=threshold,
-        model_type="gbrt",
-        horizon=horizon,
-    )
-    xgb_res = backtest_one_ticker(
-        ticker=ticker,
-        period=period,
-        test_years=test_years,
-        threshold=threshold,
-        model_type="xgb",
-        horizon=horizon,
-    )
-    return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
-
-
-def walk_forward_backtest(
-    ticker="AAPL",
-    period="10y",
-    horizon=1,
-    model_type="rf",
-    train_years=4,
-    test_years=1,
-    threshold=0.002,
-    cost_per_trade=0.0005,
-):
-    """
-    Walk-forward backtest:
-      - Train on rolling train_years
-      - Test on following test_years
-      - Repeat across the history.
-    Returns a list of dicts with Sharpe, hit_rate, trades per fold.
-    """
-    hist = get_history(ticker, period=period, interval="1d")
-    if hist is None or hist.empty:
-        return []
-
-    hist = add_price_features(hist)
-
-    # macro + fundamentals
-    macro_df = get_macro_df(symbol="^GSPC", period=period)
-    hist = hist.join(macro_df, how="left")
-    fund_feats = get_fundamental_features(ticker)
-    for k, v in fund_feats.items():
-        hist[k] = v
-
-    # target
-    target_col = f"target_ret_{horizon}d_ahead"
-    hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
-
-    df = hist.dropna().copy()
-    if df.empty:
-        return []
-
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-
-    fold_metrics = []
-    train_days = int(252 * train_years)
-    test_days = int(252 * test_years)
-
-    start = 0
-    while True:
-        train_start = start
-        train_end = train_start + train_days
-        test_end = train_end + test_days
-        if test_end > len(df):
-            break
-
-        train_df = df.iloc[train_start:train_end]
-        test_df = df.iloc[train_end:test_end]
-        if len(train_df) < 50 or len(test_df) < 20:
-            break
-
-        X_train = train_df[feat_cols].values
-        y_train = train_df[target_col].values
-        X_test = test_df[feat_cols].values
-        y_test = test_df[target_col].values
-
-        model = make_model(model_type=model_type, random_state=42)
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-
-        # trading rule with transaction cost
-        positions = np.where(
-            y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
-        )
-
-        pnl = []
-        prev_pos = 0
-        for pos, ret in zip(positions, y_test):
-            trade = abs(pos - prev_pos)
-            pnl_t = pos * ret - cost_per_trade * trade
-            pnl.append(pnl_t)
-            prev_pos = pos
-        pnl = np.array(pnl)
-
-        hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
-        avg_daily = pnl.mean()
-        std_daily = pnl.std(ddof=1)
-        sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
-        num_trades = int(
-            np.count_nonzero(
-                np.diff(np.concatenate([[0], positions])) != 0
-            )
-        )
-
-        fold_metrics.append(
-            {
-                "train_start": train_df.index[0],
-                "train_end": train_df.index[-1],
-                "test_start": test_df.index[0],
-                "test_end": test_df.index[-1],
-                "test_days": len(pnl),
-                "hit_rate": hit_rate,
-                "sharpe": sharpe,
-                "num_trades": num_trades,
-            }
-        )
-
-        # move window forward
-        start += test_days
-
-    return fold_metrics
-
+# ---------- Hyperparameter tuning ----------
 
 def tune_xgb_hyperparams(X, y, random_state=42):
-    """
-    Simple XGBoost hyperparameter tuning with time-series CV.
-    Use offline to find good defaults, not inside the live app loop.
-    """
     tscv = TimeSeriesSplit(n_splits=3)
-
     base_model = XGBRegressor(
         objective="reg:squarederror",
         tree_method="hist",
         random_state=random_state,
         verbosity=0,
     )
-
     param_distributions = {
         "learning_rate": [0.01, 0.03, 0.05, 0.1],
         "n_estimators": [200, 400, 600],
@@ -821,7 +628,6 @@ def tune_xgb_hyperparams(X, y, random_state=42):
         "colsample_bytree": [0.7, 0.9, 1.0],
         "reg_lambda": [0.0, 1.0, 5.0],
     }
-
     search = RandomizedSearchCV(
         estimator=base_model,
         param_distributions=param_distributions,
@@ -832,55 +638,20 @@ def tune_xgb_hyperparams(X, y, random_state=42):
         n_jobs=-1,
         verbose=1,
     )
-
     search.fit(X, y)
     print("Best XGB params:", search.best_params_)
     print("Best CV score (neg MSE):", search.best_score_)
-
     return search.best_estimator_
 
 
 if __name__ == "__main__":
-    # Example: compare all three models on ^GSPC with different horizons
-    print("=" * 60)
-    print("Testing 1-Day Predictions - All Models")
-    print("=" * 60)
-    X, y, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=1)
-    best_xgb = tune_xgb_hyperparams(X, y)
-
+    # Simple smoke test with MC features turned on
+    X, y, _, _, _ = build_features_and_target(
+        "^GSPC",
+        period="10y",
+        horizon=1,
+        use_mc_features=True,
+        mc_kwargs={"n_paths": 2000, "premium": 1.0, "moneyness": 1.0},
+    )
     rf_model, rf_r2, rf_rmse = train_model(X, y, model_type="rf")
-    print("Random Forest (1-day)")
-    print(f"  Samples: {len(X)}")
-    print(f"  Features: {len(FEATURE_COLUMNS) + len(MACRO_COLUMNS)}")
-    print(f"  Test R^2:  {rf_r2:.4f}")
-    print(f"  Test RMSE: {rf_rmse:.6f}")
-
-    gbrt_model, gbrt_r2, gbrt_rmse = train_model(X, y, model_type="gbrt")
-    print("\nGradient Boosting (1-day)")
-    print(f"  Test R^2:  {gbrt_r2:.4f}")
-    print(f"  Test RMSE: {gbrt_rmse:.6f}")
-
-    xgb_model, xgb_r2, xgb_rmse = train_model(X, y, model_type="xgb")
-    print("\nXGBoost (1-day)")
-    print(f"  Test R^2:  {xgb_r2:.4f}")
-    print(f"  Test RMSE: {xgb_rmse:.6f}")
-
-    print("\n" + "=" * 60)
-    print("Testing 2-Day Predictions")
-    print("=" * 60)
-    X2, y2, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=2)
-    rf_model2, rf_r2_2d, rf_rmse_2d = train_model(X2, y2, model_type="rf")
-
-    print("Random Forest (2-day)")
-    print(f"  Test R^2:  {rf_r2_2d:.4f}")
-    print(f"  Test RMSE: {rf_rmse_2d:.6f}")
-
-    print("\n" + "=" * 60)
-    print("Testing 3-Day Predictions")
-    print("=" * 60)
-    X3, y3, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=3)
-    rf_model3, rf_r2_3d, rf_rmse_3d = train_model(X3, y3, model_type="rf")
-
-    print("Random Forest (3-day)")
-    print(f"  Test R^2:  {rf_r2_3d:.4f}")
-    print(f"  Test RMSE: {rf_rmse_3d:.6f}")
+    print("RF 1-day R^2:", rf_r2, "RMSE:", rf_rmse)

@@ -31,10 +31,8 @@ def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
     for art in articles:
         title = (art.get("title") or "").lower()
         sent = art.get("sentiment")
-        # keyword hit
         if any(k in title for k in keywords):
             return True
-        # extreme sentiment score if available
         if isinstance(sent, (int, float)) and abs(sent) >= sent_thresh:
             return True
 
@@ -48,18 +46,16 @@ def suggest_model_for_ticker(ticker: str, horizon: int = 1) -> str:
     """
     tk = ticker.upper()
     if horizon == 1:
-        # 1-day suggestions based on your 2-year Sharpe numbers
         if tk in ["AAPL", "GOOGL"]:
-            return "xgb"    # XGBoost had the best Sharpe
+            return "xgb"
         if tk in ["NVDA"]:
-            return "gbrt"   # GBRT was best on NVDA 1-day
+            return "gbrt"
         if tk in ["MSFT"]:
-            return "rf"     # RF looked strongest overall
+            return "rf"
         if tk in ["AMZN"]:
-            return "rf"     # all bad; RF as “least bad” baseline
-        return "rf"         # default for unknown tickers
+            return "rf"
+        return "rf"
     else:
-        # For multi-day, RF/GBRT tended to be safer than XGB
         return "rf"
 
 
@@ -83,11 +79,9 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
     """
     pred_pct = pred_ret * 100
 
-    # Adjust threshold based on horizon (2-day moves ~1.4x, 3-day ~1.7x)
     threshold_multiplier = {1: 1.0, 2: 1.4, 3: 1.7}.get(horizon, 1.0)
     adjusted_threshold = 1.0 * threshold_multiplier
 
-    # Strong directional prediction
     if abs(pred_pct) > adjusted_threshold:
         if pred_pct > 0:
             if put_call_ratio and put_call_ratio > 1.2:
@@ -103,11 +97,9 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
             else:
                 return "🔻 BEARISH: Buy Puts or Bear Put Spread", "bearish"
 
-    # Moderate prediction with high IV = sell premium
     elif abs(pred_pct) < (0.5 * threshold_multiplier) and atm_iv and atm_iv > 0.35:
         return "⚖️ NEUTRAL: Sell Iron Condor or Straddle (high IV)", "neutral"
 
-    # Low conviction
     else:
         return "⏸️ NEUTRAL: Wait for clearer signal or diagonal spread", "neutral"
 
@@ -115,7 +107,6 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
 def run_app():
     st.title("Stock Predictor Dashboard")
 
-    # Initialize session state
     if "pred_df" not in st.session_state:
         st.session_state.pred_df = None
     if "model_type" not in st.session_state:
@@ -145,7 +136,6 @@ def run_app():
         ["Auto", "Random Forest", "Gradient Boosting", "XGBoost"],
     )
 
-    # Interpret "Auto" generically by horizon
     if model_label == "Auto":
         if prediction_horizon == 1:
             model_type = "xgb"
@@ -160,20 +150,19 @@ def run_app():
             "XGBoost": "xgb",
         }[model_label]
 
-    # Generic recommendation based on horizon
+    # Suggested model text
     if prediction_horizon == 1:
         recommended = "XGBoost"
         rec_detail = "Gradient boosting models often work well for very short-term moves."
     elif prediction_horizon == 2:
         recommended = "Random Forest"
         rec_detail = "Tree ensembles tend to be more stable for 2–3 day horizons."
-    else:  # 3-day
+    else:
         recommended = "Random Forest"
         rec_detail = "Longer horizons are noisier; a more conservative model is usually safer."
 
     st.sidebar.info(f"💡 Suggested for {horizon_label}: {recommended}\n\n{rec_detail}")
 
-    # Extra warning: XGBoost can be unstable on 2–3 day horizons
     if model_type == "xgb" and prediction_horizon > 1:
         st.sidebar.warning(
             "⚠️ XGBoost can be unstable on 2–3 day horizons. Consider Random Forest for multi-day trades."
@@ -183,7 +172,6 @@ def run_app():
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
 
-    # Limit tickers per run to reduce Yahoo rate limiting
     max_tickers = st.sidebar.slider(
         "Max tickers per run (to avoid rate limits)",
         1,
@@ -201,7 +189,56 @@ def run_app():
         """
     )
 
-    # Candidate filters (for recommendations at bottom)
+    # Monte Carlo parameter inputs (new)
+    st.sidebar.subheader("Monte Carlo Parameters")
+    use_mc = st.sidebar.checkbox(
+        "Enable Monte Carlo POP / EV features",
+        value=True,
+        help="Run a simple MC option pricing engine per ticker and feed POP/EV into the model.",
+    )
+    mc_strike_mode = st.sidebar.selectbox(
+        "Strike mode",
+        ["Use moneyness", "Use explicit strike"],
+        help="Choose whether to use a strike as a multiple of spot or a fixed strike.",
+    )
+    mc_moneyness = st.sidebar.number_input(
+        "Moneyness (K / S0)",
+        min_value=0.5,
+        max_value=1.5,
+        value=1.0,
+        step=0.05,
+        help="If using moneyness, strike = moneyness × last price.",
+    )
+    mc_strike_price = st.sidebar.number_input(
+        "Explicit strike price",
+        min_value=0.0,
+        value=0.0,
+        step=1.0,
+        help="Used only if 'Use explicit strike' is selected.",
+    )
+    mc_premium = st.sidebar.number_input(
+        "Option premium per contract",
+        min_value=0.0,
+        value=1.0,
+        step=0.25,
+    )
+    mc_dte = st.sidebar.number_input(
+        "Days to expiry (DTE)",
+        min_value=1,
+        max_value=365,
+        value=prediction_horizon,
+        step=1,
+        help="Time to option expiry; if different from prediction horizon, MC uses this.",
+    )
+    mc_n_paths = st.sidebar.number_input(
+        "Number of MC paths",
+        min_value=1000,
+        max_value=20000,
+        value=5000,
+        step=1000,
+    )
+
+    # Candidate filters
     st.sidebar.subheader("Candidate Filters")
     min_move = st.sidebar.slider(
         "Min |predicted return| (%) for candidates",
@@ -238,7 +275,6 @@ def run_app():
 
         st.dataframe(screener_df)
 
-        # ---- Flagged tickers ----
         if "flag" in screener_df.columns:
             flagged_df = screener_df[screener_df["flag"] == True]
         else:
@@ -253,7 +289,6 @@ def run_app():
             st.info("No tickers flagged by screener; using full watchlist.")
             flagged = tickers
 
-        # Hard-limit how many tickers we hit per run
         if len(flagged) > max_tickers:
             st.warning(
                 f"Limiting to first {max_tickers} tickers this run to avoid Yahoo Finance rate limits."
@@ -264,7 +299,6 @@ def run_app():
             f"{horizon_label} Predictions ({model_label}) + Options Snapshot"
         )
 
-        # Show progress bar
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -274,16 +308,36 @@ def run_app():
             progress_bar.progress(progress)
             status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
 
-            # More conservative delay between tickers
             if i > 0:
                 time.sleep(5)
 
             try:
+                # Build mc_kwargs from UI
+                mc_kwargs = None
+                if use_mc:
+                    if mc_strike_mode == "Use moneyness":
+                        mc_kwargs = {
+                            "moneyness": mc_moneyness,
+                            "premium": mc_premium,
+                            "dte": mc_dte,
+                            "n_paths": mc_n_paths,
+                        }
+                    else:
+                        mc_kwargs = {
+                            "strike_price": mc_strike_price,
+                            "premium": mc_premium,
+                            "dte": mc_dte,
+                            "n_paths": mc_n_paths,
+                        }
+
                 out = predict_next_for_ticker(
                     tk,
                     period="5y",
                     model_type=model_type,
                     horizon=prediction_horizon,
+                    use_vol_scaled_target=False,
+                    use_mc_features=use_mc,
+                    mc_kwargs=mc_kwargs,
                 )
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
@@ -325,42 +379,46 @@ def run_app():
         display_horizon = st.session_state.get("prediction_horizon", 1)
         display_horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day"}[display_horizon]
 
-        display = pred_df[
-            [
-                "ticker",
-                "model_type",
-                "horizon",
-                "last_close",
-                "vol_20d",
-                "pe_ratio",
-                "num_features",
-                "atm_iv",
-                "put_call_oi_ratio",
-                "pred_next_ret_pct",
-                "pred_next_price",
-                "opt_exp",
-                "signal_alignment",
-            ]
-        ].copy()
+        # Include MC columns if present
+        cols_to_show = [
+            "ticker",
+            "model_type",
+            "horizon",
+            "last_close",
+            "vol_20d",
+            "pe_ratio",
+            "num_features",
+            "atm_iv",
+            "put_call_oi_ratio",
+            "pred_next_ret_pct",
+            "pred_next_price",
+            "opt_exp",
+            "signal_alignment",
+        ]
+        for mc_col in ["mc_ev", "mc_pop_gt0"]:
+            if mc_col in pred_df.columns:
+                cols_to_show.append(mc_col)
 
-        display.rename(
-            columns={
-                "ticker": "Ticker",
-                "model_type": "Model",
-                "horizon": "Days Ahead",
-                "last_close": "Last Close",
-                "vol_20d": "Vol 20D",
-                "pe_ratio": "P/E",
-                "num_features": "# Features",
-                "atm_iv": "ATM IV",
-                "put_call_oi_ratio": "Put/Call OI Ratio",
-                "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
-                "pred_next_price": "Predicted Price",
-                "opt_exp": "Opt Expiry",
-                "signal_alignment": "Signal",
-            },
-            inplace=True,
-        )
+        display = pred_df[cols_to_show].copy()
+
+        rename_map = {
+            "ticker": "Ticker",
+            "model_type": "Model",
+            "horizon": "Days Ahead",
+            "last_close": "Last Close",
+            "vol_20d": "Vol 20D",
+            "pe_ratio": "P/E",
+            "num_features": "# Features",
+            "atm_iv": "ATM IV",
+            "put_call_oi_ratio": "Put/Call OI Ratio",
+            "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
+            "pred_next_price": "Predicted Price",
+            "opt_exp": "Opt Expiry",
+            "signal_alignment": "Signal",
+            "mc_ev": "MC EV (P/L)",
+            "mc_pop_gt0": "MC POP (>0)",
+        }
+        display.rename(columns=rename_map, inplace=True)
 
         st.dataframe(display)
 
@@ -393,7 +451,6 @@ def run_app():
                 ].rename(columns={"ticker": "Ticker"})
             )
 
-            # Dropdown for recommended tickers
             tickers_list = cand_df["ticker"].tolist()
             selected_ticker = st.selectbox(
                 "Recommended tickers to watch (based on your filters)",
@@ -459,12 +516,10 @@ def run_app():
                 title += " ⚠️"
 
             with st.expander(title):
-                # Warnings
                 if warnings:
                     for warning in warnings:
                         st.warning(warning)
 
-                # Core metrics
                 st.write(f"**{display_horizon_label} Prediction:** {row['pred_next_ret']*100:.2f}%")
                 st.write(
                     f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}"
@@ -478,7 +533,6 @@ def run_app():
                 )
                 st.write(f"**Strategy:** {strategy}")
 
-                # Expected move + target strikes
                 if row.get("atm_iv"):
                     expected_move = row["last_close"] * row["atm_iv"] * np.sqrt(
                         display_horizon / 252
@@ -491,7 +545,6 @@ def run_app():
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
 
-                # --- ATM Greeks block ---
                 try:
                     greeks_info = get_atm_greeks(row["ticker"])
                 except YFRateLimitError:
@@ -510,7 +563,6 @@ def run_app():
                         f"Vega: {pg['vega']:.2f}, Θ: {pg['theta']:.2f}"
                     )
 
-                    # Black-Scholes mispricing vs market mids
                     cm = greeks_info.get("call_mispricing")
                     pm = greeks_info.get("put_mispricing")
 
@@ -533,7 +585,6 @@ def run_app():
                 else:
                     st.write("ATM Greeks: N/A (no option data or rate-limited).")
 
-                # Key headlines directly below
                 news = get_news_for_ticker(row["ticker"], limit=3)
                 has_big_news = detect_big_news(news)
                 if has_big_news:
@@ -581,10 +632,7 @@ def run_app():
                             f"{accuracy*100:.1f}%",
                         )
 
-                        # --- Simple long-only Sharpe ratio with confidence threshold ---
-                        # Only trade when |predicted_return| > 1%
-                        conf_thresh = 0.01  # 1% in decimal
-
+                        conf_thresh = 0.01
                         strat = results_test.copy()
                         strat["position"] = np.where(
                             strat["predicted_return"] > conf_thresh,
@@ -592,7 +640,6 @@ def run_app():
                             0.0,
                         )
                         strat["strategy_ret"] = strat["actual_return"] * strat["position"]
-
                         strategy_returns = strat["strategy_ret"].dropna()
 
                         sharpe_value = None
@@ -643,7 +690,6 @@ def run_app():
                             },
                             index=results_test["date"],
                         )
-
                         st.line_chart(chart_df)
                     else:
                         st.warning("Not enough data to test accuracy.")
@@ -672,7 +718,7 @@ def run_app():
         else:
             st.warning(f"No recent price data for {chosen}.")
 
-        # Multi-horizon (1, 2, 3 day) predictions for the chosen ticker
+        # Multi-horizon predictions for chosen ticker
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
 
         multi_rows = []
@@ -683,12 +729,28 @@ def run_app():
                     period="5y",
                     model_type=model_type,
                     horizon=h,
+                    use_mc_features=use_mc,
+                    mc_kwargs={
+                        "moneyness": mc_moneyness,
+                        "premium": mc_premium,
+                        "dte": mc_dte,
+                        "n_paths": mc_n_paths,
+                    }
+                    if mc_strike_mode == "Use moneyness"
+                    else {
+                        "strike_price": mc_strike_price,
+                        "premium": mc_premium,
+                        "dte": mc_dte,
+                        "n_paths": mc_n_paths,
+                    },
                 )
                 multi_rows.append(
                     {
                         "Horizon (days)": h,
                         "Predicted Return (%)": out_h["pred_next_ret"] * 100,
                         "Predicted Price": out_h["pred_next_price"],
+                        "MC EV (P/L)": out_h.get("mc_ev"),
+                        "MC POP (>0)": out_h.get("mc_pop_gt0"),
                     }
                 )
             except YFRateLimitError:
@@ -703,6 +765,8 @@ def run_app():
                         "Horizon (days)": h,
                         "Predicted Return (%)": None,
                         "Predicted Price": None,
+                        "MC EV (P/L)": None,
+                        "MC POP (>0)": None,
                     }
                 )
 
