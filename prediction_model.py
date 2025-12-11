@@ -552,8 +552,16 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
             print(f"Not enough data after feature engineering for {ticker}")
             return pd.DataFrame(), 0.0
 
-        # Use more flexible split - test on last 60 days or 30% of data, whichever is smaller
-        test_size = min(60, int(len(df) * 0.3))
+        # Flexible split:
+        # - aim for ~20% of data in the test set
+        # - but keep it between 60 and 252 rows (about 3 months to 1 year)
+        n_rows = len(df)
+        min_test = 60        # minimum test length
+        max_test = 252       # maximum test length (~1 trading year)
+        proposed_test = int(n_rows * 0.2)
+
+        test_size = max(min_test, proposed_test)
+        test_size = min(test_size, max_test, n_rows - 1)  # leave at least 1 row for train
 
         if test_size < 5:
             print(f"Test size too small: {test_size}")
