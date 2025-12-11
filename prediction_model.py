@@ -602,7 +602,7 @@ def predict_next_for_ticker(
 
 # ---------- Tracking & backtests (accuracy test) ----------
 
-def track_predictions(ticker, period="3y", model_type="rf", horizon=1):
+def track_predictions(ticker, period="5y", model_type="rf", horizon=1):
     """
     Compare model predictions to actual multi-day returns over the past period.
     Original behavior preserved (no MC features used here).
