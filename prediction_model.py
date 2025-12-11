@@ -878,6 +878,55 @@ def analyze_feature_significance(
     sig_df = pd.DataFrame(rows).sort_values("p_value")
     return ols_model, sig_df
 
+def analyze_feature_significance(
+    ticker="^GSPC",
+    period="5y",
+    horizon=1,
+    use_vol_scaled_target: bool = False,
+    alpha: float = 0.05,
+):
+    """
+    Fit an OLS linear model on the same features and return:
+      - ols_model: full statsmodels result (for .summary())
+      - sig_df: DataFrame with feature, coef, p_value, significant flag, sorted by p_value.
+
+    Use this offline / from the app to inspect which indicators are statistically significant
+    for a given ticker and horizon.
+    """
+    # Reuse your existing feature builder
+    X, y, _, _, _ = build_features_and_target(
+        ticker=ticker,
+        period=period,
+        horizon=horizon,
+        use_vol_scaled_target=use_vol_scaled_target,
+    )
+
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    X_df = pd.DataFrame(X, columns=feat_cols)
+
+    # Add intercept and fit OLS
+    X_df = sm.add_constant(X_df)
+    ols_model = sm.OLS(y, X_df).fit()
+
+    # Collect coefficients and p-values
+    rows = []
+    ordered_names = ["const"] + feat_cols
+    for name in ordered_names:
+        if name in ols_model.params.index:
+            p_val = float(ols_model.pvalues[name])
+            rows.append(
+                {
+                    "feature": name,
+                    "coef": float(ols_model.params[name]),
+                    "p_value": p_val,
+                    "significant": bool(p_val < alpha),
+                }
+            )
+
+    sig_df = pd.DataFrame(rows).sort_values("p_value")
+    return ols_model, sig_df
+
+
 
 def tune_xgb_hyperparams(X, y, random_state=42):
     """
