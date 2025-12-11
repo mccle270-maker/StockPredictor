@@ -659,7 +659,7 @@ def run_app():
                 try:
                     results_test, accuracy = track_predictions(
                         test_ticker,
-                        period="1y",
+                        period="5y",
                         model_type=model_type,
                         horizon=display_horizon,
                     )
