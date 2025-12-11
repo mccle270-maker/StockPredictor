@@ -682,6 +682,245 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         traceback.print_exc()
         return pd.DataFrame(), 0.0
 
+# ---------- Backtests (regression + walk-forward) ----------
+
+def backtest_one_ticker(
+    ticker="AAPL",
+    period="10y",
+    test_years=1,
+    threshold=0.002,
+    model_type="rf",
+    horizon=1,
+    cost_per_trade: float = 0.0005,
+):
+    """
+    Backtest a single model type ('rf', 'gbrt', or 'xgb') on one ticker with multi-day predictions.
+    Computes hit_rate and Sharpe from a simple long/short/flat strategy.
+    """
+    hist = get_history(ticker, period=period, interval="1d")
+    if hist is None or hist.empty:
+        return {
+            "ticker": ticker,
+            "model_type": model_type,
+            "horizon": horizon,
+            "test_days": 0,
+            "total_return": 0.0,
+            "hit_rate": 0.0,
+            "sharpe": 0.0,
+        }
+
+    hist = add_price_features(hist)
+    macro_df = get_macro_df(symbol="^GSPC", period=period)
+    hist = hist.join(macro_df, how="left")
+    fund_feats = get_fundamental_features(ticker)
+    for k, v in fund_feats.items():
+        hist[k] = v
+
+    hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
+        -horizon
+    )
+
+    df = hist.dropna().copy()
+    if df.empty:
+        return {
+            "ticker": ticker,
+            "model_type": model_type,
+            "horizon": horizon,
+            "test_days": 0,
+            "total_return": 0.0,
+            "hit_rate": 0.0,
+            "sharpe": 0.0,
+        }
+
+    cutoff_date = df.index.max() - pd.Timedelta(days=252 * test_years)
+    train_mask = df.index <= cutoff_date
+    test_mask = df.index > cutoff_date
+
+    train_df = df.loc[train_mask].copy()
+    test_df = df.loc[test_mask].copy()
+
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    X_train = train_df[feat_cols].values
+    y_train = train_df[f"target_ret_{horizon}d_ahead"].values
+    X_test = test_df[feat_cols].values
+    y_test = test_df[f"target_ret_{horizon}d_ahead"].values
+
+    model = make_model(model_type=model_type, random_state=42)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    # trading rule: long / short / flat
+    positions = np.where(
+        y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
+    )
+
+    pnl = []
+    prev_pos = 0
+    for pos, ret in zip(positions, y_test):
+        trade = abs(pos - prev_pos)
+        pnl_t = pos * ret - cost_per_trade * trade
+        pnl.append(pnl_t)
+        prev_pos = pos
+    pnl = np.array(pnl)
+
+    cum_ret = (1 + pnl).prod() - 1
+    hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
+    avg_daily = pnl.mean()
+    std_daily = pnl.std(ddof=1)
+    sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
+
+    return {
+        "ticker": ticker,
+        "model_type": model_type,
+        "horizon": horizon,
+        "test_days": len(pnl),
+        "total_return": cum_ret,
+        "hit_rate": hit_rate,
+        "sharpe": sharpe,
+    }
+
+
+def backtest_compare_one_ticker(
+    ticker="AAPL",
+    period="10y",
+    test_years=1,
+    threshold=0.002,
+    horizon=1,
+):
+    """
+    Run backtests for RF, GBRT, and XGBoost on the same ticker with multi-day predictions.
+    Returns a dict of {model_name: metrics_dict}.
+    """
+    rf_res = backtest_one_ticker(
+        ticker=ticker,
+        period=period,
+        test_years=test_years,
+        threshold=threshold,
+        model_type="rf",
+        horizon=horizon,
+    )
+    gbrt_res = backtest_one_ticker(
+        ticker=ticker,
+        period=period,
+        test_years=test_years,
+        threshold=threshold,
+        model_type="gbrt",
+        horizon=horizon,
+    )
+    xgb_res = backtest_one_ticker(
+        ticker=ticker,
+        period=period,
+        test_years=test_years,
+        threshold=threshold,
+        model_type="xgb",
+        horizon=horizon,
+    )
+    return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
+
+
+def walk_forward_backtest(
+    ticker="AAPL",
+    period="10y",
+    horizon=1,
+    model_type="rf",
+    train_years=4,
+    test_years=1,
+    threshold=0.002,
+    cost_per_trade=0.0005,
+):
+    """
+    Walk-forward backtest:
+      - Train on rolling train_years
+      - Test on following test_years
+      - Repeat across the history.
+    Returns a list of dicts with Sharpe, hit_rate, trades per fold.
+    """
+    hist = get_history(ticker, period=period, interval="1d")
+    if hist is None or hist.empty:
+        return []
+
+    hist = add_price_features(hist)
+    macro_df = get_macro_df(symbol="^GSPC", period=period)
+    hist = hist.join(macro_df, how="left")
+    fund_feats = get_fundamental_features(ticker)
+    for k, v in fund_feats.items():
+        hist[k] = v
+
+    target_col = f"target_ret_{horizon}d_ahead"
+    hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
+
+    df = hist.dropna().copy()
+    if df.empty:
+        return []
+
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
+    fold_metrics = []
+    train_days = int(252 * train_years)
+    test_days = int(252 * test_years)
+
+    start = 0
+    while True:
+        train_start = start
+        train_end = train_start + train_days
+        test_end = train_end + test_days
+        if test_end > len(df):
+            break
+
+        train_df = df.iloc[train_start:train_end]
+        test_df = df.iloc[train_end:test_end]
+        if len(train_df) < 50 or len(test_df) < 20:
+            break
+
+        X_train = train_df[feat_cols].values
+        y_train = train_df[target_col].values
+        X_test = test_df[feat_cols].values
+        y_test = test_df[target_col].values
+
+        model = make_model(model_type=model_type, random_state=42)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        positions = np.where(
+            y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
+        )
+
+        pnl = []
+        prev_pos = 0
+        for pos, ret in zip(positions, y_test):
+            trade = abs(pos - prev_pos)
+            pnl_t = pos * ret - cost_per_trade * trade
+            pnl.append(pnl_t)
+            prev_pos = pos
+        pnl = np.array(pnl)
+
+        hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
+        avg_daily = pnl.mean()
+        std_daily = pnl.std(ddof=1)
+        sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
+        num_trades = int(
+            np.count_nonzero(
+                np.diff(np.concatenate([[0], positions])) != 0
+            )
+        )
+
+        fold_metrics.append(
+            {
+                "train_start": train_df.index[0],
+                "train_end": train_df.index[-1],
+                "test_start": test_df.index[0],
+                "test_end": test_df.index[-1],
+                "test_days": len(pnl),
+                "hit_rate": hit_rate,
+                "sharpe": sharpe,
+                "num_trades": num_trades,
+            }
+        )
+
+        start += test_days
+
+    return fold_metrics
+
 
 # ---------- Hyperparameter tuning ----------
 
