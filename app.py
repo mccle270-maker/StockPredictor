@@ -7,7 +7,7 @@ from stock_screener import screen_stocks
 from prediction_model import (
     predict_next_for_ticker,
     track_predictions,
-    analyze_feature_significance,  # NEW
+    analyze_feature_significance,
 )
 from data_fetch import (
     get_history_cached,
@@ -17,6 +17,48 @@ from data_fetch import (
 )
 from yfinance.exceptions import YFRateLimitError
 from monte_carlo_pricer import option_mc_ev
+from scipy.stats import norm
+
+
+def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: float = 0.0):
+    """
+    Approximate Deflated Sharpe Ratio (DSR) for a series of daily returns.
+
+    daily_returns : pd.Series of daily strategy returns
+    n_trials      : approximate number of strategy variants you 'tried'
+                    (different models, thresholds, feature sets, etc.)
+    risk_free     : daily risk-free rate (usually ~0 for short horizons)
+
+    Returns a value in [0, 1]:
+      - close to 1   => Sharpe likely real even after multiple testing
+      - ~0.5 or less => could easily arise from data-snooping / luck
+    """
+    r = daily_returns.dropna()
+    if n_trials is None or n_trials <= 0 or len(r) < 5 or r.std() == 0:
+        return None
+
+    excess = r - risk_free
+    mu = excess.mean()
+    sigma = excess.std()
+    T = len(r)
+
+    # daily Sharpe (not annualized)
+    sharpe_daily = mu / sigma
+
+    # Under a null of no edge, sharpe_daily * sqrt(T) behaves like a z-stat
+    z_strat = sharpe_daily * np.sqrt(T)
+
+    if n_trials == 1:
+        # No multiple-testing adjustment
+        return float(norm.cdf(z_strat))
+
+    # Expected max z among n_trials null strategies is around this quantile
+    z_alpha = norm.ppf(1.0 - 1.0 / n_trials)
+
+    # Deflate by how far above that max-null level we are
+    z_deflated = z_strat - z_alpha
+    return float(norm.cdf(z_deflated))
+
 
 def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per_year: int = 252):
     """
@@ -29,6 +71,7 @@ def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per
     mean_ret = daily_excess.mean()
     vol = daily_excess.std()
     return (mean_ret / vol) * np.sqrt(periods_per_year)
+
 
 def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
     """
@@ -223,6 +266,16 @@ def run_app():
         value=True,
     )
 
+    # Overfitting / DSR
+    st.sidebar.subheader("Overfitting / DSR")
+    n_trials = st.sidebar.slider(
+        "Approx. # of strategy variants you tried",
+        1,
+        100,
+        20,
+        help="Used for Deflated Sharpe (DSR); higher = stricter test against overfitting.",
+    )
+
     tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
 
     # ---------------- Main run button ----------------
@@ -363,8 +416,8 @@ def run_app():
             "put_call_oi_ratio",
             "pred_next_ret_pct",
             "pred_next_price",
-            "prob_up",        # NEW
-            "prob_down",      # NEW
+            "prob_up",
+            "prob_down",
             "opt_exp",
             "signal_alignment",
         ]
@@ -388,8 +441,8 @@ def run_app():
             "put_call_oi_ratio": "Put/Call OI Ratio",
             "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
             "pred_next_price": "Predicted Price",
-            "prob_up": "Prob Up",          # NEW
-            "prob_down": "Prob Down",      # NEW
+            "prob_up": "Prob Up",
+            "prob_down": "Prob Down",
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
             "mc_ev": "MC EV (P/L)",
@@ -424,7 +477,7 @@ def run_app():
                         "atm_iv",
                         "put_call_oi_ratio",
                         "signal_alignment",
-                        "prob_up",   # NEW
+                        "prob_up",
                     ]
                 ].rename(columns={"ticker": "Ticker"})
             )
@@ -500,7 +553,7 @@ def run_app():
 
                 st.write(f"**{display_horizon_label} Prediction:** {row['pred_next_ret']*100:.2f}%")
 
-                # NEW: show probability of up move if available
+                # Prob up move if available
                 prob_up = row.get("prob_up")
                 if prob_up is not None:
                     st.write(f"**Prob Up Move:** {prob_up*100:.1f}%")
@@ -641,8 +694,18 @@ def run_app():
                         )
 
                         sharpe_baseline = compute_sharpe(baseline_returns)
-                        sharpe_signal_no_cost = compute_sharpe(strat["strategy_ret_no_cost"].dropna())
-                        sharpe_signal_with_cost = compute_sharpe(strat["strategy_ret_with_cost"].dropna())
+                        sharpe_signal_no_cost = compute_sharpe(
+                            strat["strategy_ret_no_cost"].dropna()
+                        )
+                        sharpe_signal_with_cost = compute_sharpe(
+                            strat["strategy_ret_with_cost"].dropna()
+                        )
+
+                        # ----- Deflated Sharpe Ratios (DSR) -----
+                        dsr_baseline = deflated_sharpe_ratio(baseline_returns, n_trials)
+                        dsr_signal_with_cost = deflated_sharpe_ratio(
+                            strat["strategy_ret_with_cost"], n_trials
+                        )
 
                         col1, col2, col3 = st.columns(3)
                         col1.metric(
@@ -658,7 +721,18 @@ def run_app():
                             "N/A" if sharpe_signal_with_cost is None else f"{sharpe_signal_with_cost:.2f}",
                         )
 
-                        # ----- Keep your existing detailed table setup -----
+                        st.write(
+                            f"**DSR (Always Long, {display_horizon_label}):** "
+                            f"{'N/A' if dsr_baseline is None else f'{dsr_baseline:.2f}'} "
+                            f"(using ~{n_trials} trials)"
+                        )
+                        st.write(
+                            f"**DSR (Signal, with cost, {display_horizon_label}):** "
+                            f"{'N/A' if dsr_signal_with_cost is None else f'{dsr_signal_with_cost:.2f}'} "
+                            f"(using ~{n_trials} trials)"
+                        )
+
+                        # Detailed table + chart
                         display_results = results_test[
                             [
                                 "date",
