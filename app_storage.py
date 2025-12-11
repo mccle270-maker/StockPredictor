@@ -4,11 +4,7 @@ import time
 import numpy as np
 
 from stock_screener import screen_stocks
-from prediction_model import (
-    predict_next_for_ticker,
-    track_predictions,
-    analyze_feature_significance,  # NEW
-)
+from prediction_model import predict_next_for_ticker, track_predictions
 from data_fetch import (
     get_history_cached,
     get_option_snapshot_features,
@@ -175,7 +171,6 @@ def run_app():
         )
 
     # Screener thresholds
-    st.sidebar.subheader("Screener Filters")
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
 
@@ -352,8 +347,6 @@ def run_app():
             "put_call_oi_ratio",
             "pred_next_ret_pct",
             "pred_next_price",
-            "prob_up",        # NEW
-            "prob_down",      # NEW
             "opt_exp",
             "signal_alignment",
         ]
@@ -377,8 +370,6 @@ def run_app():
             "put_call_oi_ratio": "Put/Call OI Ratio",
             "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
             "pred_next_price": "Predicted Price",
-            "prob_up": "Prob Up",          # NEW
-            "prob_down": "Prob Down",      # NEW
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
             "mc_ev": "MC EV (P/L)",
@@ -413,7 +404,6 @@ def run_app():
                         "atm_iv",
                         "put_call_oi_ratio",
                         "signal_alignment",
-                        "prob_up",   # NEW
                     ]
                 ].rename(columns={"ticker": "Ticker"})
             )
@@ -488,14 +478,6 @@ def run_app():
                         st.warning(warning)
 
                 st.write(f"**{display_horizon_label} Prediction:** {row['pred_next_ret']*100:.2f}%")
-
-                # NEW: show probability of up move if available
-                prob_up = row.get("prob_up")
-                if prob_up is not None:
-                    st.write(f"**Prob Up Move:** {prob_up*100:.1f}%")
-                else:
-                    st.write("**Prob Up Move:** N/A")
-
                 st.write(
                     f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}"
                     if row.get("put_call_oi_ratio")
@@ -670,27 +652,6 @@ def run_app():
                         st.warning("Not enough data to test accuracy.")
                 except Exception as e:
                     st.error(f"Error testing accuracy: {e}")
-
-        # NEW: feature significance / p-values
-        st.subheader("Feature Significance (OLS, p-values)")
-        fs_ticker = st.selectbox(
-            "Run feature significance for:",
-            display["Ticker"],
-            key="fs_ticker_select",
-        )
-        if st.button("Analyze Feature Significance"):
-            with st.spinner(f"Running OLS feature significance for {fs_ticker} ({display_horizon_label})..."):
-                try:
-                    ols_model, sig_df = analyze_feature_significance(
-                        ticker=fs_ticker,
-                        period="5y",
-                        horizon=display_horizon,
-                        use_vol_scaled_target=False,
-                    )
-                    st.write("Top features by lowest p-value (most significant first):")
-                    st.dataframe(sig_df.head(25))
-                except Exception as e:
-                    st.error(f"Error computing feature significance: {e}")
 
         # Line chart for one ticker
         chosen = st.selectbox(

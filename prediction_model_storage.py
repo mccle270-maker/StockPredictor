@@ -6,9 +6,6 @@ import yfinance as yf
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
-from sklearn.linear_model import LinearRegression
-
-import statsmodels.api as sm
 
 from xgboost import XGBRegressor, XGBClassifier
 
@@ -16,7 +13,6 @@ from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 
 
 # ---------- Technical indicator helpers ----------
-
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
@@ -75,7 +71,6 @@ def add_technical_indicators(df):
 
 # ---------- Fundamentals & macro ----------
 
-
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
@@ -100,7 +95,6 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
 
 
 # ---------- Feature columns ----------
-
 
 FEATURE_COLUMNS = [
     "ret_1d",
@@ -144,7 +138,6 @@ FEATURE_COLUMNS = [
 
 
 # ---------- Price feature engineering ----------
-
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
@@ -211,7 +204,6 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model factory ----------
 
-
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     """
     task: 'reg' for regression on returns, 'clf' for direction classification.
@@ -238,9 +230,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
             )
 
     # regression models
-    if model_type == "linreg":
-        # simple linear regression baseline
-        return LinearRegression()
     if model_type == "gbrt":
         return GradientBoostingRegressor(
             n_estimators=300,
@@ -270,7 +259,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
 
 
 # ---------- Fundamentals fetch ----------
-
 
 def get_fundamental_features(ticker: str) -> dict:
     """
@@ -315,7 +303,6 @@ def get_fundamental_features(ticker: str) -> dict:
 
 
 # ---------- Build features & target (regression) ----------
-
 
 def build_features_and_target(
     ticker="^GSPC",
@@ -387,7 +374,6 @@ def build_features_and_target(
 
 # ---------- Classification target builder ----------
 
-
 def build_features_and_direction_target(
     ticker="^GSPC",
     period="5y",
@@ -407,7 +393,6 @@ def build_features_and_direction_target(
 
 
 # ---------- Train & predict helpers ----------
-
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg"):
     n = len(X)
@@ -437,7 +422,6 @@ def predict_next_for_ticker(
 ):
     """
     Train on historical data and return a point forecast for price and return.
-    Also trains a direction classifier on the same features to return prob_up / prob_down.
     """
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
         ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
@@ -448,7 +432,6 @@ def predict_next_for_ticker(
     X_train, X_test = X[:split_idx], X[split_idx:]
     y_train, y_test = y[:split_idx], y[split_idx:]
 
-    # regression model for returns
     model = make_model(model_type=model_type, random_state=42, task="reg")
     model.fit(X_train, y_train)
 
@@ -456,36 +439,6 @@ def predict_next_for_ticker(
     if use_vol_scaled_target:
         pred_ret = pred_ret * float(last_vol_20d)
     pred_price = float(last_close * (1 + pred_ret))
-
-    # direction-probability model using same features
-    prob_up = None
-    prob_down = None
-    try:
-        y_dir = (y > 0).astype(int)
-        y_dir_train = y_dir[:split_idx]
-
-        clf = make_model(model_type=model_type, random_state=42, task="clf")
-        clf.fit(X_train, y_dir_train)
-
-        if hasattr(clf, "predict_proba"):
-            proba = clf.predict_proba(x_last.reshape(1, -1))[0]
-            # robustly find index for 'up' class = 1
-            if hasattr(clf, "classes_") and 1 in clf.classes_:
-                idx_up = list(clf.classes_).index(1)
-                prob_up = float(proba[idx_up])
-                prob_down = float(1.0 - prob_up)
-            else:
-                # fallback: take max prob as "up"
-                prob_up = float(proba.max())
-                prob_down = float(1.0 - prob_up)
-        else:
-            # fallback to hard prediction if no probabilities
-            pred_dir = int(clf.predict(x_last.reshape(1, -1))[0])
-            prob_up = 1.0 if pred_dir == 1 else 0.0
-            prob_down = 1.0 - prob_up
-    except Exception:
-        prob_up = None
-        prob_down = None
 
     # reuse fundamental PE instead of extra Yahoo call
     fund_feats = get_fundamental_features(ticker)
@@ -512,15 +465,12 @@ def predict_next_for_ticker(
         "pe_ratio": pe_ratio,
         "pred_next_ret": pred_ret,
         "pred_next_price": pred_price,
-        "prob_up": prob_up,
-        "prob_down": prob_down,
         "num_features": len(feat_cols),
         "top_features": top_features_str,
     }
 
 
 # ---------- Tracking & backtests ----------
-
 
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
     """
@@ -617,7 +567,7 @@ def backtest_one_ticker(
     horizon=1,
 ):
     """
-    Backtest a single model type ('rf', 'gbrt', 'xgb', or 'linreg') on one ticker with multi-day predictions.
+    Backtest a single model type ('rf', 'gbrt', or 'xgb') on one ticker with multi-day predictions.
     """
     hist = get_history(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
@@ -831,52 +781,6 @@ def walk_forward_backtest(
         start += test_days
 
     return fold_metrics
-
-
-# ---------- Linear baseline & p-value analysis ----------
-
-
-def analyze_feature_significance(
-    ticker="^GSPC",
-    period="5y",
-    horizon=1,
-    use_vol_scaled_target: bool = False,
-    alpha: float = 0.05,
-):
-    """
-    Fit an OLS linear model on the same features and return:
-      - ols_model: full statsmodels result (for .summary())
-      - sig_df: DataFrame with feature, coef, p_value, significant flag, sorted by p_value.
-    Use offline to inspect which indicators are most statistically significant.
-    """
-    X, y, _, _, _ = build_features_and_target(
-        ticker=ticker,
-        period=period,
-        horizon=horizon,
-        use_vol_scaled_target=use_vol_scaled_target,
-    )
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-    X_df = pd.DataFrame(X, columns=feat_cols)
-
-    X_df = sm.add_constant(X_df)
-    ols_model = sm.OLS(y, X_df).fit()
-
-    rows = []
-    ordered_names = ["const"] + feat_cols
-    for name in ordered_names:
-        if name in ols_model.params.index:
-            p_val = float(ols_model.pvalues[name])
-            rows.append(
-                {
-                    "feature": name,
-                    "coef": float(ols_model.params[name]),
-                    "p_value": p_val,
-                    "significant": bool(p_val < alpha),
-                }
-            )
-
-    sig_df = pd.DataFrame(rows).sort_values("p_value")
-    return ols_model, sig_df
 
 
 def tune_xgb_hyperparams(X, y, random_state=42):
