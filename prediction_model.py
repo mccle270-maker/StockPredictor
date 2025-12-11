@@ -1,4 +1,3 @@
-# prediction_model.py
 import numpy as np
 import pandas as pd
 import yfinance as yf
@@ -13,6 +12,7 @@ from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 
 
 # ---------- Technical indicator helpers ----------
+
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
@@ -62,6 +62,7 @@ def add_technical_indicators(df):
 
 # ---------- Fundamentals & macro ----------
 
+
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
@@ -86,6 +87,7 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
 
 # ---------- Monte Carlo helpers (flexible) ----------
 
+
 MC_FEATURE_COLUMNS = [
     "mc_pop_gt0",          # P(P/L > 0)
     "mc_pop_gt_thresh",    # P(P/L > profit_thresh)
@@ -96,13 +98,15 @@ MC_FEATURE_COLUMNS = [
 ]
 
 
-def simulate_gbm_paths(S0: float,
-                       mu: float,
-                       sigma: float,
-                       T_years: float,
-                       steps: int,
-                       n_paths: int,
-                       random_state: int | None = None) -> np.ndarray:
+def simulate_gbm_paths(
+    S0: float,
+    mu: float,
+    sigma: float,
+    T_years: float,
+    steps: int,
+    n_paths: int,
+    random_state: int | None = None
+) -> np.ndarray:
     """
     GBM simulation: returns array (steps+1, n_paths) of prices.
     """
@@ -115,16 +119,18 @@ def simulate_gbm_paths(S0: float,
     return paths
 
 
-def run_option_mc_for_row(row: pd.Series,
-                          ticker: str,
-                          horizon: int,
-                          profit_thresh: float = 0.0,
-                          n_paths: int = 5000,
-                          steps_per_year: int = 252,
-                          annual_mu: float = 0.0,
-                          annual_rf: float = 0.0,
-                          iv_col: str | None = None,
-                          **mc_kwargs) -> dict:
+def run_option_mc_for_row(
+    row: pd.Series,
+    ticker: str,
+    horizon: int,
+    profit_thresh: float = 0.0,
+    n_paths: int = 5000,
+    steps_per_year: int = 252,
+    annual_mu: float = 0.0,
+    annual_rf: float = 0.0,
+    iv_col: str | None = None,
+    **mc_kwargs,
+) -> dict:
     """
     Flexible Monte Carlo for a *long European call* on the underlying.
 
@@ -198,6 +204,7 @@ def run_option_mc_for_row(row: pd.Series,
 
 # ---------- Feature columns ----------
 
+
 FEATURE_COLUMNS = [
     "ret_1d",
     "ret_5d",
@@ -240,6 +247,7 @@ FEATURE_COLUMNS = [
 
 
 # ---------- Price feature engineering ----------
+
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
@@ -304,6 +312,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model factory ----------
 
+
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     if task == "clf":
         if model_type == "xgb":
@@ -356,6 +365,7 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
 
 # ---------- Fundamentals fetch ----------
 
+
 def get_fundamental_features(ticker: str) -> dict:
     feats = {
         "fund_pe_trailing": np.nan,
@@ -393,6 +403,7 @@ def get_fundamental_features(ticker: str) -> dict:
 
 
 # ---------- Build features & target ----------
+
 
 def build_features_and_target(
     ticker="^GSPC",
@@ -495,6 +506,7 @@ def build_features_and_direction_target(
 
 
 # ---------- Train & predict helpers ----------
+
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg"):
     n = len(X)
@@ -602,16 +614,19 @@ def predict_next_for_ticker(
 
 # ---------- Tracking & backtests (accuracy test) ----------
 
+
 def track_predictions(ticker, period="5y", model_type="rf", horizon=1):
     """
     Compare model predictions to actual multi-day returns over the past period.
-    Original behavior preserved (no MC features used here).
+    Original behavior preserved (no MC features used here), but with more
+    forgiving data-size checks so you actually get accuracy outputs more often.
     """
     try:
         hist = get_history(ticker, period=period, interval="1d")
 
-        if hist.empty or len(hist) < 50:
-            print(f"Insufficient data for {ticker}: only {len(hist)} rows")
+        MIN_RAW_ROWS = 80
+        if hist.empty or len(hist) < MIN_RAW_ROWS:
+            print(f"Insufficient raw data for {ticker}: only {len(hist)} rows")
             return pd.DataFrame(), 0.0
 
         hist = add_price_features(hist)
@@ -628,13 +643,18 @@ def track_predictions(ticker, period="5y", model_type="rf", horizon=1):
         df = hist.dropna().copy()
         print(f"After dropna for {ticker}: {len(df)} rows")
 
-        if len(df) < 50:
+        MIN_USABLE_ROWS = 40
+        if len(df) < MIN_USABLE_ROWS:
             print(f"Not enough data after feature engineering for {ticker}")
             return pd.DataFrame(), 0.0
 
-        test_size = min(60, int(len(df) * 0.3))
-        if test_size < 5:
-            print(f"Test size too small: {test_size}")
+        # Use around 25% for test, at least 10 points, cap at 60
+        raw_test_size = int(len(df) * 0.25)
+        test_size = max(10, min(60, raw_test_size))
+
+        # Ensure at least 10 train points remain
+        if len(df) <= test_size + 10:
+            print(f"Not enough rows to form a meaningful train/test split for {ticker}")
             return pd.DataFrame(), 0.0
 
         train_df = df.iloc[:-test_size]
@@ -679,10 +699,13 @@ def track_predictions(ticker, period="5y", model_type="rf", horizon=1):
     except Exception as e:
         print(f"Error in track_predictions for {ticker}: {e}")
         import traceback
+
         traceback.print_exc()
         return pd.DataFrame(), 0.0
 
+
 # ---------- Backtests (regression + walk-forward) ----------
+
 
 def backtest_one_ticker(
     ticker="AAPL",
@@ -923,6 +946,7 @@ def walk_forward_backtest(
 
 
 # ---------- Hyperparameter tuning ----------
+
 
 def tune_xgb_hyperparams(X, y, random_state=42):
     tscv = TimeSeriesSplit(n_splits=3)
