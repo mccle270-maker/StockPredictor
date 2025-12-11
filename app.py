@@ -12,6 +12,7 @@ from data_fetch import (
     get_atm_greeks,
 )
 from yfinance.exceptions import YFRateLimitError
+from monte_carlo_pricer import option_mc_ev
 
 
 def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
@@ -271,8 +272,31 @@ def run_app():
                     horizon=prediction_horizon,
                     use_vol_scaled_target=False,
                 )
+
+                # Options snapshot
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
+
+                # Monte Carlo add-on: requires last_close and atm_iv
+                atm_iv = out.get("atm_iv")
+                last_close = out.get("last_close")
+                if atm_iv is not None and last_close is not None:
+                    try:
+                        mc_res = option_mc_ev(
+                            s0=float(last_close),
+                            mu=float(out["pred_next_ret"]),   # model’s horizon return
+                            sigma=float(atm_iv),             # use IV as sigma
+                            days=int(prediction_horizon),
+                            premium=1.0,                     # placeholder; swap in real option price if available
+                            strike=float(last_close),        # ATM
+                            n_paths=5000,
+                            is_call=True,
+                        )
+                        out.update(mc_res)
+                    except Exception as mc_e:
+                        # Fail open: if MC errors, just skip its fields
+                        print(f"MC error for {tk}: {mc_e}")
+
                 out["signal_alignment"] = classify_alignment(
                     out["pred_next_ret"],
                     out.get("put_call_oi_ratio"),
@@ -327,6 +351,11 @@ def run_app():
             "signal_alignment",
         ]
 
+        # include MC columns if present
+        for mc_col in ["mc_ev", "mc_pop_gt0"]:
+            if mc_col in pred_df.columns:
+                cols_to_show.append(mc_col)
+
         display = pred_df[cols_to_show].copy()
 
         rename_map = {
@@ -343,6 +372,8 @@ def run_app():
             "pred_next_price": "Predicted Price",
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
+            "mc_ev": "MC EV (P/L)",
+            "mc_pop_gt0": "MC POP (>0)",
         }
         display.rename(columns=rename_map, inplace=True)
 
@@ -644,7 +675,7 @@ def run_app():
         else:
             st.warning(f"No recent price data for {chosen}.")
 
-        # ----- Multi-horizon predictions (1–3 days) without Monte Carlo -----
+        # ----- Multi-horizon predictions (1–3 days) with Monte Carlo summary -----
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
 
         multi_rows = []
@@ -657,11 +688,33 @@ def run_app():
                     horizon=h,
                     use_vol_scaled_target=False,
                 )
+
+                mc_res = {}
+                atm_iv_h = out_h.get("atm_iv")
+                last_close_h = out_h.get("last_close")
+                if atm_iv_h is not None and last_close_h is not None:
+                    try:
+                        mc_res = option_mc_ev(
+                            s0=float(last_close_h),
+                            mu=float(out_h["pred_next_ret"]),
+                            sigma=float(atm_iv_h),
+                            days=int(h),
+                            premium=1.0,
+                            strike=float(last_close_h),
+                            n_paths=5000,
+                            is_call=True,
+                        )
+                    except Exception as mc_e:
+                        print(f"MC error (multi) for {chosen}, h={h}: {mc_e}")
+                        mc_res = {}
+
                 multi_rows.append(
                     {
                         "Horizon (days)": h,
                         "Predicted Return (%)": out_h["pred_next_ret"] * 100,
                         "Predicted Price": out_h["pred_next_price"],
+                        "MC EV (P/L)": mc_res.get("mc_ev"),
+                        "MC POP (>0)": mc_res.get("mc_pop_gt0"),
                     }
                 )
             except YFRateLimitError:
@@ -670,12 +723,14 @@ def run_app():
                     "Try again later or use fewer tickers."
                 )
                 break
-            except Exception:
+            except Exception as e:
                 multi_rows.append(
                     {
                         "Horizon (days)": h,
                         "Predicted Return (%)": None,
                         "Predicted Price": None,
+                        "MC EV (P/L)": None,
+                        "MC POP (>0)": None,
                     }
                 )
 
