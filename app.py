@@ -112,6 +112,7 @@ def run_app():
     if "model_type" not in st.session_state:
         st.session_state.model_type = "rf"
 
+    # ----- Sidebar controls -----
     st.sidebar.header("Settings")
     default_watchlist = "AAPL, NVDA"
     watchlist_text = st.sidebar.text_input(
@@ -189,55 +190,6 @@ def run_app():
         """
     )
 
-    # Monte Carlo parameter inputs (new)
-    st.sidebar.subheader("Monte Carlo Parameters")
-    use_mc = st.sidebar.checkbox(
-        "Enable Monte Carlo POP / EV features",
-        value=True,
-        help="Run a simple MC option pricing engine per ticker and feed POP/EV into the model.",
-    )
-    mc_strike_mode = st.sidebar.selectbox(
-        "Strike mode",
-        ["Use moneyness", "Use explicit strike"],
-        help="Choose whether to use a strike as a multiple of spot or a fixed strike.",
-    )
-    mc_moneyness = st.sidebar.number_input(
-        "Moneyness (K / S0)",
-        min_value=0.5,
-        max_value=1.5,
-        value=1.0,
-        step=0.05,
-        help="If using moneyness, strike = moneyness × last price.",
-    )
-    mc_strike_price = st.sidebar.number_input(
-        "Explicit strike price",
-        min_value=0.0,
-        value=0.0,
-        step=1.0,
-        help="Used only if 'Use explicit strike' is selected.",
-    )
-    mc_premium = st.sidebar.number_input(
-        "Option premium per contract",
-        min_value=0.0,
-        value=1.0,
-        step=0.25,
-    )
-    mc_dte = st.sidebar.number_input(
-        "Days to expiry (DTE)",
-        min_value=1,
-        max_value=365,
-        value=prediction_horizon,
-        step=1,
-        help="Time to option expiry; if different from prediction horizon, MC uses this.",
-    )
-    mc_n_paths = st.sidebar.number_input(
-        "Number of MC paths",
-        min_value=1000,
-        max_value=20000,
-        value=5000,
-        step=1000,
-    )
-
     # Candidate filters
     st.sidebar.subheader("Candidate Filters")
     min_move = st.sidebar.slider(
@@ -255,6 +207,83 @@ def run_app():
     )
 
     tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
+
+    # ----- Main Monte Carlo controls for this run (under main header) -----
+    st.subheader(f"{horizon_label} Monte Carlo settings (for screener run)")
+    mc_mode_main = st.selectbox(
+        "Monte Carlo mode for this run",
+        ["Off", "Basic (default)", "Custom"],
+        index=0,
+        help="Controls whether the model uses Monte Carlo features.",
+    )
+    use_mc_main = mc_mode_main != "Off"
+
+    mc_kwargs_main = {}
+    mc_strike_mode_main = "Use moneyness"
+    if mc_mode_main == "Basic (default)":
+        mc_kwargs_main = {
+            "moneyness": 1.0,
+            "premium": 1.0,
+            "dte": prediction_horizon,
+            "n_paths": 2000,
+        }
+        mc_strike_mode_main = "Use moneyness"
+    elif mc_mode_main == "Custom":
+        col_mc1, col_mc2, col_mc3, col_mc4 = st.columns(4)
+        with col_mc1:
+            mc_strike_mode_main = st.selectbox(
+                "Strike mode",
+                ["Use moneyness", "Use fixed strike"],
+                index=0,
+            )
+        with col_mc2:
+            mc_premium_main = st.number_input(
+                "Premium",
+                value=1.0,
+                min_value=0.0,
+                step=0.1,
+            )
+        with col_mc3:
+            mc_dte_main = st.number_input(
+                "DTE (days)",
+                value=prediction_horizon,
+                min_value=1,
+                step=1,
+            )
+        with col_mc4:
+            mc_n_paths_main = st.number_input(
+                "MC paths",
+                value=2000,
+                min_value=500,
+                max_value=20000,
+                step=500,
+            )
+
+        if mc_strike_mode_main == "Use moneyness":
+            mc_moneyness_main = st.number_input(
+                "Moneyness (K/S0)",
+                value=1.0,
+                step=0.05,
+            )
+            mc_kwargs_main = {
+                "moneyness": float(mc_moneyness_main),
+                "premium": float(mc_premium_main),
+                "dte": int(mc_dte_main),
+                "n_paths": int(mc_n_paths_main),
+            }
+        else:
+            mc_strike_price_main = st.number_input(
+                "Fixed strike price",
+                value=100.0,
+                min_value=0.0,
+                step=1.0,
+            )
+            mc_kwargs_main = {
+                "strike_price": float(mc_strike_price_main),
+                "premium": float(mc_premium_main),
+                "dte": int(mc_dte_main),
+                "n_paths": int(mc_n_paths_main),
+            }
 
     # ---------------- Main run button ----------------
     if st.sidebar.button("Run Screener + Model"):
@@ -312,32 +341,14 @@ def run_app():
                 time.sleep(5)
 
             try:
-                # Build mc_kwargs from UI
-                mc_kwargs = None
-                if use_mc:
-                    if mc_strike_mode == "Use moneyness":
-                        mc_kwargs = {
-                            "moneyness": mc_moneyness,
-                            "premium": mc_premium,
-                            "dte": mc_dte,
-                            "n_paths": mc_n_paths,
-                        }
-                    else:
-                        mc_kwargs = {
-                            "strike_price": mc_strike_price,
-                            "premium": mc_premium,
-                            "dte": mc_dte,
-                            "n_paths": mc_n_paths,
-                        }
-
                 out = predict_next_for_ticker(
                     tk,
                     period="5y",
                     model_type=model_type,
                     horizon=prediction_horizon,
                     use_vol_scaled_target=False,
-                    use_mc_features=use_mc,
-                    mc_kwargs=mc_kwargs,
+                    use_mc_features=use_mc_main,
+                    mc_kwargs=mc_kwargs_main if use_mc_main else None,
                 )
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
@@ -718,9 +729,82 @@ def run_app():
         else:
             st.warning(f"No recent price data for {chosen}.")
 
-        # Multi-horizon predictions for chosen ticker
+        # ----- Multi-horizon MC controls just above the table -----
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
 
+        mc_mode_multi = st.selectbox(
+            "Monte Carlo mode for 1–3 day horizons",
+            ["Off", "Basic (match main)", "Custom"],
+            index=1,
+            help="Controls MC used in the 1–3 day horizon table below.",
+        )
+        use_mc_multi = mc_mode_multi != "Off"
+
+        # default: reuse main settings
+        mc_kwargs_multi = mc_kwargs_main
+        mc_strike_mode_multi = mc_strike_mode_main
+
+        if mc_mode_multi == "Basic (match main)":
+            mc_kwargs_multi = mc_kwargs_main
+            mc_strike_mode_multi = mc_strike_mode_main
+        elif mc_mode_multi == "Custom":
+            col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+            with col_m1:
+                mc_strike_mode_multi = st.selectbox(
+                    "Strike mode (multi)",
+                    ["Use moneyness", "Use fixed strike"],
+                    index=0,
+                )
+            with col_m2:
+                mc_premium_multi = st.number_input(
+                    "Premium (multi)",
+                    value=1.0,
+                    min_value=0.0,
+                    step=0.1,
+                )
+            with col_m3:
+                mc_dte_multi = st.number_input(
+                    "DTE (days, multi)",
+                    value=3,
+                    min_value=1,
+                    step=1,
+                )
+            with col_m4:
+                mc_n_paths_multi = st.number_input(
+                    "MC paths (multi)",
+                    value=2000,
+                    min_value=500,
+                    max_value=20000,
+                    step=500,
+                )
+
+            if mc_strike_mode_multi == "Use moneyness":
+                mc_moneyness_multi = st.number_input(
+                    "Moneyness (K/S0, multi)",
+                    value=1.0,
+                    step=0.05,
+                )
+                mc_kwargs_multi = {
+                    "moneyness": float(mc_moneyness_multi),
+                    "premium": float(mc_premium_multi),
+                    "dte": int(mc_dte_multi),
+                    "n_paths": int(mc_n_paths_multi),
+                }
+            else:
+                mc_strike_price_multi = st.number_input(
+                    "Fixed strike price (multi)",
+                    value=100.0,
+                    min_value=0.0,
+                    step=1.0,
+                )
+                mc_kwargs_multi = {
+                    "strike_price": float(mc_strike_price_multi),
+                    "premium": float(mc_premium_multi),
+                    "dte": int(mc_dte_multi),
+                    "n_paths": int(mc_n_paths_multi),
+                }
+
+        # Multi-horizon predictions for chosen ticker
         multi_rows = []
         for h in [1, 2, 3]:
             try:
@@ -729,20 +813,8 @@ def run_app():
                     period="5y",
                     model_type=model_type,
                     horizon=h,
-                    use_mc_features=use_mc,
-                    mc_kwargs={
-                        "moneyness": mc_moneyness,
-                        "premium": mc_premium,
-                        "dte": mc_dte,
-                        "n_paths": mc_n_paths,
-                    }
-                    if mc_strike_mode == "Use moneyness"
-                    else {
-                        "strike_price": mc_strike_price,
-                        "premium": mc_premium,
-                        "dte": mc_dte,
-                        "n_paths": mc_n_paths,
-                    },
+                    use_mc_features=use_mc_multi,
+                    mc_kwargs=mc_kwargs_multi if use_mc_multi else None,
                 )
                 multi_rows.append(
                     {
