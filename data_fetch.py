@@ -11,6 +11,44 @@ import yfinance as yf
 from scipy.stats import norm
 from yfinance.exceptions import YFRateLimitError
 
+import os
+import requests
+
+FMP_API_KEY = os.getenv("FMP_API_KEY", "")
+
+def get_fmp_fundamentals(ticker: str) -> dict:
+    """
+    Fetch a few key fundamentals from Financial Modeling Prep.
+    Map them into the fields expected by prediction_model.FUNDAMENTAL_COLUMNS.
+    """
+    if not FMP_API_KEY:
+        return {}
+
+    base_url = "https://financialmodelingprep.com/stable"
+    params = {"symbol": ticker, "apikey": FMP_API_KEY}
+
+    out = {}
+
+    try:
+        # Example: key metrics / ratios endpoints (adjust to what plan you have)
+        ratios = requests.get(f"{base_url}/ratios", params=params, timeout=5).json()
+        key_metrics = requests.get(f"{base_url}/key-metrics", params=params, timeout=5).json()
+
+        if isinstance(ratios, list) and ratios:
+            r0 = ratios[0]
+            # Approximate mapping
+            out["fund_pe_trailing"] = r0.get("priceEarningsRatio", None)
+            out["fund_pb"] = r0.get("priceToBookRatio", None)
+
+        if isinstance(key_metrics, list) and key_metrics:
+            k0 = key_metrics[0]
+            out["fund_market_cap"] = k0.get("marketCap", None)
+
+    except Exception:
+        return {}
+
+    return out
+
 
 # -------- News API keys (Marketaux + Alpha Vantage) --------
 
