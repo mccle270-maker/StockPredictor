@@ -18,6 +18,17 @@ from data_fetch import (
 from yfinance.exceptions import YFRateLimitError
 from monte_carlo_pricer import option_mc_ev
 
+def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per_year: int = 252):
+    """
+    Compute annualized Sharpe from a series of daily returns.
+    risk_free is per-period (daily) risk-free rate.
+    """
+    daily_excess = daily_returns - risk_free
+    if len(daily_excess) < 2 or daily_excess.std() == 0:
+        return None
+    mean_ret = daily_excess.mean()
+    vol = daily_excess.std()
+    return (mean_ret / vol) * np.sqrt(periods_per_year)
 
 def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
     """
@@ -607,6 +618,11 @@ def run_app():
                             f"{accuracy*100:.1f}%",
                         )
 
+                        # ----- Multiple Sharpe ratios -----
+                        # 1) Baseline: always long the stock
+                        baseline_returns = results_test["actual_return"].dropna()
+
+                        # 2) Signal strategy without costs: long when predicted_return > 1%
                         conf_thresh = 0.01
                         strat = results_test.copy()
                         strat["position"] = np.where(
@@ -614,23 +630,35 @@ def run_app():
                             1.0,
                             0.0,
                         )
-                        strat["strategy_ret"] = strat["actual_return"] * strat["position"]
-                        strategy_returns = strat["strategy_ret"].dropna()
+                        strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
 
-                        sharpe_value = None
-                        if len(strategy_returns) > 1 and strategy_returns.std() > 0:
-                            daily_mean = strategy_returns.mean()
-                            daily_std = strategy_returns.std()
-                            sharpe_value = (daily_mean / daily_std) * np.sqrt(252)
+                        # 3) Same signal, with simple transaction cost/slippage
+                        cost_per_trade = 0.001  # 10 bps per position change, tune this
+                        strat["position_change"] = strat["position"].diff().abs().fillna(0.0)
+                        strat["strategy_ret_with_cost"] = (
+                            strat["actual_return"] * strat["position"]
+                            - cost_per_trade * strat["position_change"]
+                        )
 
-                        if sharpe_value is not None:
-                            st.metric(
-                                f"Sharpe Ratio (Long-on-Positive >1%, {display_horizon_label})",
-                                f"{sharpe_value:.2f}",
-                            )
-                        else:
-                            st.write("Sharpe Ratio: N/A (insufficient variation in returns).")
+                        sharpe_baseline = compute_sharpe(baseline_returns)
+                        sharpe_signal_no_cost = compute_sharpe(strat["strategy_ret_no_cost"].dropna())
+                        sharpe_signal_with_cost = compute_sharpe(strat["strategy_ret_with_cost"].dropna())
 
+                        col1, col2, col3 = st.columns(3)
+                        col1.metric(
+                            f"Sharpe (Always Long, {display_horizon_label})",
+                            "N/A" if sharpe_baseline is None else f"{sharpe_baseline:.2f}",
+                        )
+                        col2.metric(
+                            f"Sharpe (Signal, no cost, {display_horizon_label})",
+                            "N/A" if sharpe_signal_no_cost is None else f"{sharpe_signal_no_cost:.2f}",
+                        )
+                        col3.metric(
+                            f"Sharpe (Signal, with cost, {display_horizon_label})",
+                            "N/A" if sharpe_signal_with_cost is None else f"{sharpe_signal_with_cost:.2f}",
+                        )
+
+                        # ----- Keep your existing detailed table setup -----
                         display_results = results_test[
                             [
                                 "date",
