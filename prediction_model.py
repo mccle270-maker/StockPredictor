@@ -133,20 +133,13 @@ def run_option_mc_for_row(row: pd.Series,
       - premium: entry debit/credit per contract (float)
       - dte: days to expiry (int); if not given, horizon is used
       - moneyness: if no strike, K = moneyness * S0
-
-    Volatility:
-      - If iv_col is given and present in row, use that as annualized sigma.
-      - Else use 20d realized vol and annualize.
-
-    Returns POP, EV, and P/L percentiles as MC features.
     """
-    # 1) Underlying price
     try:
         S0 = float(row.get("Close"))
     except Exception:
         return {k: np.nan for k in MC_FEATURE_COLUMNS}
 
-    # 2) Volatility (annual sigma)
+    # Volatility (annual sigma)
     if iv_col is not None and iv_col in row and pd.notna(row[iv_col]):
         sigma = float(row[iv_col])
     else:
@@ -155,12 +148,12 @@ def run_option_mc_for_row(row: pd.Series,
             return {k: np.nan for k in MC_FEATURE_COLUMNS}
         sigma = float(vol_20d) * np.sqrt(252.0)
 
-    # 3) Time to expiry
-    dte = mc_kwargs.get("dte", horizon)  # days to expiry
+    # Time to expiry
+    dte = mc_kwargs.get("dte", horizon)
     T_years = max(int(dte), 1) / 252.0
     steps = max(int(T_years * steps_per_year), 1)
 
-    # 4) Strike and premium
+    # Strike and premium
     strike = mc_kwargs.get("strike_price", row.get("strike_price", None))
     if strike is None:
         moneyness = mc_kwargs.get("moneyness", 1.0)
@@ -171,7 +164,7 @@ def run_option_mc_for_row(row: pd.Series,
     premium = mc_kwargs.get("premium", row.get("premium", 1.0))
     premium = float(premium)
 
-    # 5) Simulate paths and payoff
+    # Simulate paths and payoff
     paths = simulate_gbm_paths(
         S0=S0,
         mu=annual_mu,
@@ -577,10 +570,8 @@ def predict_next_for_ticker(
     else:
         top_features_str = "N/A"
 
-    # MC stats for the last trade parameters (using same mc_kwargs)
     mc_dict_last = {}
     if use_mc_features:
-        # row-like object with Close and vol_20d for last point
         row_like = pd.Series({"Close": last_close, "vol_20d": last_vol_20d})
         mc_dict_last = run_option_mc_for_row(
             row_like,
@@ -607,6 +598,89 @@ def predict_next_for_ticker(
         "mc_pnl_p50": mc_dict_last.get("mc_pnl_p50"),
         "mc_pnl_p95": mc_dict_last.get("mc_pnl_p95"),
     }
+
+
+# ---------- Tracking & backtests (accuracy test) ----------
+
+def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
+    """
+    Compare model predictions to actual multi-day returns over the past period.
+    Original behavior preserved (no MC features used here).
+    """
+    try:
+        hist = get_history(ticker, period=period, interval="1d")
+
+        if hist.empty or len(hist) < 50:
+            print(f"Insufficient data for {ticker}: only {len(hist)} rows")
+            return pd.DataFrame(), 0.0
+
+        hist = add_price_features(hist)
+        macro_df = get_macro_df(symbol="^GSPC", period=period)
+        hist = hist.join(macro_df, how="left")
+        fund_feats = get_fundamental_features(ticker)
+        for k, v in fund_feats.items():
+            hist[k] = v
+
+        hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
+            -horizon
+        )
+
+        df = hist.dropna().copy()
+        print(f"After dropna for {ticker}: {len(df)} rows")
+
+        if len(df) < 50:
+            print(f"Not enough data after feature engineering for {ticker}")
+            return pd.DataFrame(), 0.0
+
+        test_size = min(60, int(len(df) * 0.3))
+        if test_size < 5:
+            print(f"Test size too small: {test_size}")
+            return pd.DataFrame(), 0.0
+
+        train_df = df.iloc[:-test_size]
+        test_df = df.iloc[-test_size:]
+
+        print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
+
+        feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+        X_train = train_df[feat_cols].values
+        y_train = train_df[f"target_ret_{horizon}d_ahead"].values
+
+        model = make_model(model_type=model_type, random_state=42)
+        model.fit(X_train, y_train)
+
+        X_test = test_df[feat_cols].values
+        y_test = test_df[f"target_ret_{horizon}d_ahead"].values
+        y_pred = model.predict(X_test)
+
+        results = pd.DataFrame(
+            {
+                "date": test_df.index,
+                "actual_close": test_df["Close"],
+                "predicted_return": y_pred,
+                "actual_return": y_test,
+                "pred_direction": np.sign(y_pred),
+                "actual_direction": np.sign(y_test),
+                "correct_direction": np.sign(y_pred) == np.sign(y_test),
+            }
+        )
+
+        results["predicted_price"] = results["actual_close"] * (
+            1 + results["predicted_return"]
+        )
+
+        accuracy = results["correct_direction"].mean()
+        print(
+            f"Success! Generated {len(results)} test predictions with {accuracy*100:.1f}% accuracy"
+        )
+
+        return results, accuracy
+
+    except Exception as e:
+        print(f"Error in track_predictions for {ticker}: {e}")
+        import traceback
+        traceback.print_exc()
+        return pd.DataFrame(), 0.0
 
 
 # ---------- Hyperparameter tuning ----------
@@ -645,7 +719,6 @@ def tune_xgb_hyperparams(X, y, random_state=42):
 
 
 if __name__ == "__main__":
-    # Simple smoke test with MC features turned on
     X, y, _, _, _ = build_features_and_target(
         "^GSPC",
         period="10y",
