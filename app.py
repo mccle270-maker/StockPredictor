@@ -8,6 +8,7 @@ from prediction_model import (
     predict_next_for_ticker,
     track_predictions,
     analyze_feature_significance,
+    make_gaf_image_from_returns,  # NEW: GAF helper
 )
 from data_fetch import (
     get_history_cached,
@@ -18,6 +19,12 @@ from data_fetch import (
 from yfinance.exceptions import YFRateLimitError
 from monte_carlo_pricer import option_mc_ev
 from scipy.stats import norm
+
+# OPTIONAL: SquareQuant integration (only used if installed)
+try:
+    import squarequant as sq  # adjust if their docs use a different name
+except ImportError:
+    sq = None
 
 
 def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: float = 0.0):
@@ -363,7 +370,6 @@ def run_app():
                         )
                         out.update(mc_res)
                     except Exception as mc_e:
-                        # Fail open: if MC errors, just skip its fields
                         print(f"MC error for {tk}: {mc_e}")
 
                 out["signal_alignment"] = classify_alignment(
@@ -732,6 +738,22 @@ def run_app():
                             f"(using ~{n_trials} trials)"
                         )
 
+                        # OPTIONAL: SquareQuant performance report (if available)
+                        if sq is not None:
+                            try:
+                                # Example placeholder; adjust based on SquareQuant's actual API.
+                                # Replace `performance_summary` with the correct function name.
+                                sq_report = sq.performance_summary(
+                                    strat["strategy_ret_with_cost"].dropna(),
+                                    benchmark=baseline_returns.loc[
+                                        strat["strategy_ret_with_cost"].dropna().index
+                                    ],
+                                )
+                                st.subheader("SquareQuant Performance Summary")
+                                st.dataframe(sq_report)
+                            except Exception as e:
+                                st.write(f"SquareQuant analysis error: {e}")
+
                         # Detailed table + chart
                         display_results = results_test[
                             [
@@ -815,6 +837,16 @@ def run_app():
             st.line_chart(future)
         else:
             st.warning(f"No recent price data for {chosen}.")
+
+        # NEW: Gramian Angular Field (GAF) heatmap
+        if not hist.empty:
+            rets = hist["Close"].pct_change()
+            fig_gaf, ax_gaf = make_gaf_image_from_returns(rets, window=60, image_size=60)
+            st.subheader(f"{chosen} Gramian Angular Field (GAF) Heatmap")
+            if fig_gaf is not None:
+                st.pyplot(fig_gaf)
+            else:
+                st.write("Not enough data to build GAF image.")
 
         # ----- Multi-horizon predictions (1–3 days) with Monte Carlo summary -----
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")

@@ -14,9 +14,12 @@ from xgboost import XGBRegressor, XGBClassifier
 
 from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 
+# NEW: for Gramian Angular Field (GAF) images
+from pyts.image import GramianAngularField  # pip install pyts
+import matplotlib.pyplot as plt              # used to render GAF heatmaps
+# [web:358][web:363][web:366]
 
 # ---------- Technical indicator helpers ----------
-
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
@@ -72,9 +75,7 @@ def add_technical_indicators(df):
     df = add_mfi(df, window=14)
     return df
 
-
 # ---------- Fundamentals & macro ----------
-
 
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
@@ -84,7 +85,6 @@ FUNDAMENTAL_COLUMNS = [
 
 MACRO_COLUMNS = ["mkt_ret_1d"]
 _macro_cache = {}
-
 
 def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     key = (symbol, period)
@@ -98,9 +98,7 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     _macro_cache[key] = df
     return df
 
-
 # ---------- Feature columns ----------
-
 
 FEATURE_COLUMNS = [
     "ret_1d",
@@ -142,9 +140,7 @@ FEATURE_COLUMNS = [
     "mfi_14",
 ]
 
-
 # ---------- Price feature engineering ----------
-
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
@@ -208,9 +204,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
     return hist
 
-
 # ---------- Model factory ----------
-
 
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     """
@@ -239,7 +233,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
 
     # regression models
     if model_type == "linreg":
-        # simple linear regression baseline
         return LinearRegression()
     if model_type == "gbrt":
         return GradientBoostingRegressor(
@@ -268,9 +261,7 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
             n_jobs=-1,
         )
 
-
 # ---------- Fundamentals fetch ----------
-
 
 def get_fundamental_features(ticker: str) -> dict:
     """
@@ -285,7 +276,7 @@ def get_fundamental_features(ticker: str) -> dict:
 
     # 1) Try FMP
     try:
-        fmp_data = get_fmp_fundamentals(ticker)  # should return a dict
+        fmp_data = get_fmp_fundamentals(ticker)
         if isinstance(fmp_data, dict):
             for k in feats.keys():
                 if k in fmp_data:
@@ -313,9 +304,7 @@ def get_fundamental_features(ticker: str) -> dict:
 
     return feats
 
-
 # ---------- Build features & target (regression) ----------
-
 
 def build_features_and_target(
     ticker="^GSPC",
@@ -384,9 +373,7 @@ def build_features_and_target(
         f"Last error: {last_error}"
     )
 
-
 # ---------- Classification target builder ----------
-
 
 def build_features_and_direction_target(
     ticker="^GSPC",
@@ -405,9 +392,7 @@ def build_features_and_direction_target(
     y_dir = (y_reg > 0).astype(int)
     return X, y_dir, last_feats, last_close, last_vol_20d
 
-
 # ---------- Train & predict helpers ----------
-
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg"):
     n = len(X)
@@ -426,7 +411,6 @@ def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg
     else:
         acc = accuracy_score(y_test, y_pred)
         return model, acc, None
-
 
 def predict_next_for_ticker(
     ticker="^GSPC",
@@ -469,17 +453,14 @@ def predict_next_for_ticker(
 
         if hasattr(clf, "predict_proba"):
             proba = clf.predict_proba(x_last.reshape(1, -1))[0]
-            # robustly find index for 'up' class = 1
             if hasattr(clf, "classes_") and 1 in clf.classes_:
                 idx_up = list(clf.classes_).index(1)
                 prob_up = float(proba[idx_up])
                 prob_down = float(1.0 - prob_up)
             else:
-                # fallback: take max prob as "up"
                 prob_up = float(proba.max())
                 prob_down = float(1.0 - prob_up)
         else:
-            # fallback to hard prediction if no probabilities
             pred_dir = int(clf.predict(x_last.reshape(1, -1))[0])
             prob_up = 1.0 if pred_dir == 1 else 0.0
             prob_down = 1.0 - prob_up
@@ -487,7 +468,6 @@ def predict_next_for_ticker(
         prob_up = None
         prob_down = None
 
-    # reuse fundamental PE instead of extra Yahoo call
     fund_feats = get_fundamental_features(ticker)
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
@@ -518,9 +498,7 @@ def predict_next_for_ticker(
         "top_features": top_features_str,
     }
 
-
 # ---------- Tracking & backtests ----------
-
 
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
     """
@@ -556,12 +534,12 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         # - aim for ~20% of data in the test set
         # - but keep it between 60 and 252 rows (about 3 months to 1 year)
         n_rows = len(df)
-        min_test = 60        # minimum test length
-        max_test = 252       # maximum test length (~1 trading year)
+        min_test = 60
+        max_test = 252
         proposed_test = int(n_rows * 0.2)
 
         test_size = max(min_test, proposed_test)
-        test_size = min(test_size, max_test, n_rows - 1)  # leave at least 1 row for train
+        test_size = min(test_size, max_test, n_rows - 1)
 
         if test_size < 5:
             print(f"Test size too small: {test_size}")
@@ -579,7 +557,6 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         model = make_model(model_type=model_type, random_state=42)
         model.fit(X_train, y_train)
 
-        # Make predictions for test period
         X_test = test_df[feat_cols].values
         y_test = test_df[f"target_ret_{horizon}d_ahead"].values
         y_pred = model.predict(X_test)
@@ -614,7 +591,6 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
 
         traceback.print_exc()
         return pd.DataFrame(), 0.0
-
 
 def backtest_one_ticker(
     ticker="AAPL",
@@ -658,16 +634,13 @@ def backtest_one_ticker(
     model = make_model(model_type=model_type, random_state=42)
     model.fit(X_train, y_train)
 
-    # predict multi-day returns over test window
     y_pred = model.predict(X_test)
 
-    # trading rule: long / short / flat
     positions = np.where(
         y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
     )
 
-    # P&L with simple transaction cost
-    cost_per_trade = 0.0005  # 5 bps per change in position (example)
+    cost_per_trade = 0.0005
     pnl = []
     prev_pos = 0
     for pos, ret in zip(positions, y_test):
@@ -677,7 +650,6 @@ def backtest_one_ticker(
         prev_pos = pos
     pnl = np.array(pnl)
 
-    # summary stats
     cum_ret = (1 + pnl).prod() - 1
     hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
     avg_daily = pnl.mean()
@@ -693,7 +665,6 @@ def backtest_one_ticker(
         "hit_rate": hit_rate,
         "sharpe": sharpe,
     }
-
 
 def backtest_compare_one_ticker(
     ticker="AAPL",
@@ -731,7 +702,6 @@ def backtest_compare_one_ticker(
     )
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
-
 def walk_forward_backtest(
     ticker="AAPL",
     period="10y",
@@ -755,14 +725,12 @@ def walk_forward_backtest(
 
     hist = add_price_features(hist)
 
-    # macro + fundamentals
     macro_df = get_macro_df(symbol="^GSPC", period=period)
     hist = hist.join(macro_df, how="left")
     fund_feats = get_fundamental_features(ticker)
     for k, v in fund_feats.items():
         hist[k] = v
 
-    # target
     target_col = f"target_ret_{horizon}d_ahead"
     hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
 
@@ -798,7 +766,6 @@ def walk_forward_backtest(
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
-        # trading rule with transaction cost
         positions = np.where(
             y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
         )
@@ -835,56 +802,11 @@ def walk_forward_backtest(
             }
         )
 
-        # move window forward
         start += test_days
 
     return fold_metrics
 
-
 # ---------- Linear baseline & p-value analysis ----------
-
-
-def analyze_feature_significance(
-    ticker="^GSPC",
-    period="5y",
-    horizon=1,
-    use_vol_scaled_target: bool = False,
-    alpha: float = 0.05,
-):
-    """
-    Fit an OLS linear model on the same features and return:
-      - ols_model: full statsmodels result (for .summary())
-      - sig_df: DataFrame with feature, coef, p_value, significant flag, sorted by p_value.
-    Use offline to inspect which indicators are most statistically significant.
-    """
-    X, y, _, _, _ = build_features_and_target(
-        ticker=ticker,
-        period=period,
-        horizon=horizon,
-        use_vol_scaled_target=use_vol_scaled_target,
-    )
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-    X_df = pd.DataFrame(X, columns=feat_cols)
-
-    X_df = sm.add_constant(X_df)
-    ols_model = sm.OLS(y, X_df).fit()
-
-    rows = []
-    ordered_names = ["const"] + feat_cols
-    for name in ordered_names:
-        if name in ols_model.params.index:
-            p_val = float(ols_model.pvalues[name])
-            rows.append(
-                {
-                    "feature": name,
-                    "coef": float(ols_model.params[name]),
-                    "p_value": p_val,
-                    "significant": bool(p_val < alpha),
-                }
-            )
-
-    sig_df = pd.DataFrame(rows).sort_values("p_value")
-    return ols_model, sig_df
 
 def analyze_feature_significance(
     ticker="^GSPC",
@@ -901,7 +823,6 @@ def analyze_feature_significance(
     Use this offline / from the app to inspect which indicators are statistically significant
     for a given ticker and horizon.
     """
-    # Reuse your existing feature builder
     X, y, _, _, _ = build_features_and_target(
         ticker=ticker,
         period=period,
@@ -912,11 +833,9 @@ def analyze_feature_significance(
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     X_df = pd.DataFrame(X, columns=feat_cols)
 
-    # Add intercept and fit OLS
     X_df = sm.add_constant(X_df)
     ols_model = sm.OLS(y, X_df).fit()
 
-    # Collect coefficients and p-values
     rows = []
     ordered_names = ["const"] + feat_cols
     for name in ordered_names:
@@ -934,7 +853,49 @@ def analyze_feature_significance(
     sig_df = pd.DataFrame(rows).sort_values("p_value")
     return ols_model, sig_df
 
+# ---------- Gramian Angular Field helper (NEW) ----------
 
+def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 60):
+    """
+    Build a Gramian Angular Field (GAF) image from the last `window` returns.
+
+    Parameters
+    ----------
+    returns : pd.Series
+        Series of returns (e.g., daily pct_change of Close).
+    window : int
+        Number of most recent points to use.
+    image_size : int
+        Size of the output GAF image (image_size x image_size).
+
+    Returns
+    -------
+    fig, ax : matplotlib Figure and Axes, or (None, None) if not enough data.
+
+    This uses the pyts.GramianAngularField transformer to encode the time series
+    as a 2D image suitable for visualization or CNN-based models. [web:358][web:363][web:366]
+    """
+    r = returns.dropna().values
+    if len(r) < window:
+        return None, None
+
+    window_vals = r[-window:]
+    X = window_vals.reshape(1, -1)
+
+    gaf = GramianAngularField(image_size=image_size, method="summation")
+    X_gaf = gaf.fit_transform(X)
+    img = X_gaf[0]
+
+    fig, ax = plt.subplots(figsize=(3, 3))
+    cax = ax.imshow(img, cmap="rainbow", origin="lower", aspect="equal")
+    ax.set_title(f"GAF (last {window} returns)")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
+
+    return fig, ax
+
+# ---------- XGB hyperparameter tuning ----------
 
 def tune_xgb_hyperparams(X, y, random_state=42):
     """
@@ -976,7 +937,6 @@ def tune_xgb_hyperparams(X, y, random_state=42):
     print("Best CV score (neg MSE):", search.best_score_)
 
     return search.best_estimator_
-
 
 if __name__ == "__main__":
     # Example: compare all three models on ^GSPC with different horizons
