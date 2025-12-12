@@ -110,5 +110,5 @@ if __name__ == "__main__":
     print("Saved model to gaf_cnn_updown.keras")
 
 
-model.save("gaf_cnn_updown.keras")
+
 
