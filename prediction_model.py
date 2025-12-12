@@ -17,7 +17,24 @@ from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 # NEW: for Gramian Angular Field (GAF) images
 from pyts.image import GramianAngularField  # pip install pyts
 import matplotlib.pyplot as plt              # used to render GAF heatmaps
-# [web:358][web:363][web:366]
+
+# ---------- Optional GAF-CNN model (TensorFlow) ----------
+
+gaf_cnn = None
+
+try:
+    from tensorflow import keras  # requires a TF-capable environment
+    GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
+
+    if os.path.exists(GAF_CNN_MODEL_PATH):
+        print(f"[GAF-CNN] Loading model from {GAF_CNN_MODEL_PATH}...")
+        gaf_cnn = keras.models.load_model(GAF_CNN_MODEL_PATH)
+        print("[GAF-CNN] Loaded successfully.")
+    else:
+        print(f"[GAF-CNN] Model file not found at {GAF_CNN_MODEL_PATH}; prob_up_gaf will be None.")
+except Exception as e:
+    print(f"[GAF-CNN] TensorFlow/Keras not available or failed to load model: {e}. prob_up_gaf will be None.")
+    gaf_cnn = None
 
 # ---------- Technical indicator helpers ----------
 
@@ -35,7 +52,6 @@ def add_rsi(df, window: int = 14, price_col: str = "Close"):
     df[f"rsi_{window}"] = rsi
     return df
 
-
 def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signal: int = 9):
     ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
     ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
@@ -48,7 +64,6 @@ def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signa
     df["macd_signal"] = macd_signal
     df["macd_hist"] = macd_hist
     return df
-
 
 def add_mfi(df, window: int = 14):
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
@@ -66,7 +81,6 @@ def add_mfi(df, window: int = 14):
 
     df[f"mfi_{window}"] = mfi
     return df
-
 
 def add_technical_indicators(df):
     df = df.copy()
@@ -468,6 +482,14 @@ def predict_next_for_ticker(
         prob_up = None
         prob_down = None
 
+    # GAF-CNN probability (optional; requires TensorFlow and trained model)
+    prob_up_gaf = None
+    try:
+        prob_up_gaf = predict_up_gaf_cnn(ticker)
+    except Exception as e:
+        print(f"[GAF-CNN] Failed to compute prob_up_gaf for {ticker}: {e}")
+        prob_up_gaf = None
+
     fund_feats = get_fundamental_features(ticker)
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
@@ -494,6 +516,7 @@ def predict_next_for_ticker(
         "pred_next_price": pred_price,
         "prob_up": prob_up,
         "prob_down": prob_down,
+        "prob_up_gaf": prob_up_gaf,   # NEW: CNN-based probability
         "num_features": len(feat_cols),
         "top_features": top_features_str,
     }
@@ -858,22 +881,6 @@ def analyze_feature_significance(
 def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 30):
     """
     Build a Gramian Angular Field (GAF) image from the last `window` returns.
-
-    Parameters
-    ----------
-    returns : pd.Series
-        Series of returns (e.g., daily pct_change of Close).
-    window : int
-        Number of most recent points to use.
-    image_size : int
-        Size of the output GAF image (image_size x image_size).
-
-    Returns
-    -------
-    fig, ax : matplotlib Figure and Axes, or (None, None) if not enough data.
-
-    This uses the pyts.GramianAngularField transformer to encode the time series
-    as a 2D image suitable for visualization or CNN-based models. [web:358][web:363][web:366]
     """
     r = returns.dropna().values
     if len(r) < window:
@@ -894,6 +901,50 @@ def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size
     fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
 
     return fig, ax
+
+# ---------- GAF-CNN inference helper (NEW) ----------
+
+def predict_up_gaf_cnn(
+    ticker: str,
+    window: int = 30,
+    image_size: int = 30,
+    period: str = "3y",
+) -> float | None:
+    """
+    Use the trained GAF-CNN to estimate P(up) for the next day for a single ticker.
+
+    Returns
+    -------
+    float or None
+        Probability of an up move according to the CNN, or None if unavailable.
+    """
+    if gaf_cnn is None:
+        return None
+
+    hist = get_history_cached(ticker, period=period, interval="1d")
+    if hist is None or hist.empty or len(hist) < window + 1:
+        return None
+
+    closes = hist["Close"].astype(float).values
+    rets = pd.Series(closes).pct_change().dropna()
+
+    if len(rets) < window:
+        return None
+
+    window_vals = rets.values[-window:]
+    X = window_vals.reshape(1, -1)
+
+    gaf = GramianAngularField(image_size=image_size, method="summation")
+    X_gaf = gaf.fit_transform(X)
+    X_input = X_gaf[..., np.newaxis]  # (1, H, W, 1)
+
+    try:
+        proba = gaf_cnn.predict(X_input, verbose=0)[0]
+        prob_up = float(proba[0])
+        return prob_up
+    except Exception as e:
+        print(f"[GAF-CNN] Error during predict for {ticker}: {e}")
+        return None
 
 # ---------- XGB hyperparameter tuning ----------
 

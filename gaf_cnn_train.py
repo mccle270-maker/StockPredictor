@@ -7,6 +7,9 @@ from tensorflow.keras import layers
 from data_fetch import get_history_cached  # reuse your code
 import time
 
+from tensorflow import keras
+gaf_cnn = keras.models.load_model("gaf_cnn_updown.keras")
+
 # Config
 tickers = ["AAPL"]          # keep small for now
 window = 30
