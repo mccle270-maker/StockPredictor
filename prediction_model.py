@@ -855,7 +855,7 @@ def analyze_feature_significance(
 
 # ---------- Gramian Angular Field helper (NEW) ----------
 
-def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 60):
+def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 30):
     """
     Build a Gramian Angular Field (GAF) image from the last `window` returns.
 

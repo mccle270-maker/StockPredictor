@@ -841,7 +841,7 @@ def run_app():
         # NEW: Gramian Angular Field (GAF) heatmap
         if not hist.empty:
             rets = hist["Close"].pct_change()
-            fig_gaf, ax_gaf = make_gaf_image_from_returns(rets, window=60, image_size=60)
+            fig_gaf, ax_gaf = make_gaf_image_from_returns(rets, window=60, image_size=30)
             st.subheader(f"{chosen} Gramian Angular Field (GAF) Heatmap")
             if fig_gaf is not None:
                 st.pyplot(fig_gaf)
