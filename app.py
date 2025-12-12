@@ -844,15 +844,16 @@ def run_app():
         else:
             st.warning(f"No recent price data for {chosen}.")
 
-        # NEW: Gramian Angular Field (GAF) heatmap
+        # NEW: Gramian Angular Field (GAF) heatmap (optional, in expander)
         if not hist.empty:
             rets = hist["Close"].pct_change()
             fig_gaf, ax_gaf = make_gaf_image_from_returns(rets, window=60, image_size=30)
-            st.subheader(f"{chosen} Gramian Angular Field (GAF) Heatmap")
-            if fig_gaf is not None:
-                st.pyplot(fig_gaf)
-            else:
-                st.write("Not enough data to build GAF image.")
+
+            with st.expander(f"{chosen} Gramian Angular Field (GAF) Heatmap", expanded=False):
+                if fig_gaf is not None:
+                    st.pyplot(fig_gaf)
+                else:
+                    st.write("Not enough data to build GAF image.")
 
         # ----- Multi-horizon predictions (1–3 days) with Monte Carlo summary -----
         st.subheader(f"{chosen} multi-horizon predictions (1–3 days)")
