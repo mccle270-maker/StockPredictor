@@ -886,7 +886,7 @@ def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size
     X_gaf = gaf.fit_transform(X)
     img = X_gaf[0]
 
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=(2, 2))
     cax = ax.imshow(img, cmap="rainbow", origin="lower", aspect="equal")
     ax.set_title(f"GAF (last {window} returns)")
     ax.set_xticks([])
