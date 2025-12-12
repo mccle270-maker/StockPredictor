@@ -30,15 +30,6 @@ except ImportError:
 def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: float = 0.0):
     """
     Approximate Deflated Sharpe Ratio (DSR) for a series of daily returns.
-
-    daily_returns : pd.Series of daily strategy returns
-    n_trials      : approximate number of strategy variants you 'tried'
-                    (different models, thresholds, feature sets, etc.)
-    risk_free     : daily risk-free rate (usually ~0 for short horizons)
-
-    Returns a value in [0, 1]:
-      - close to 1   => Sharpe likely real even after multiple testing
-      - ~0.5 or less => could easily arise from data-snooping / luck
     """
     r = daily_returns.dropna()
     if n_trials is None or n_trials <= 0 or len(r) < 5 or r.std() == 0:
@@ -424,6 +415,7 @@ def run_app():
             "pred_next_price",
             "prob_up",
             "prob_down",
+            "prob_up_gaf",      # NEW: CNN probability column
             "opt_exp",
             "signal_alignment",
         ]
@@ -449,6 +441,7 @@ def run_app():
             "pred_next_price": "Predicted Price",
             "prob_up": "Prob Up",
             "prob_down": "Prob Down",
+            "prob_up_gaf": "GAF-CNN Prob Up",   # NEW
             "opt_exp": "Opt Expiry",
             "signal_alignment": "Signal",
             "mc_ev": "MC EV (P/L)",
@@ -484,8 +477,15 @@ def run_app():
                         "put_call_oi_ratio",
                         "signal_alignment",
                         "prob_up",
+                        "prob_up_gaf",    # NEW: show CNN probability in candidates
                     ]
-                ].rename(columns={"ticker": "Ticker"})
+                ].rename(
+                    columns={
+                        "ticker": "Ticker",
+                        "prob_up": "Prob Up",
+                        "prob_up_gaf": "GAF-CNN Prob Up",
+                    }
+                )
             )
 
             tickers_list = cand_df["ticker"].tolist()
@@ -559,12 +559,19 @@ def run_app():
 
                 st.write(f"**{display_horizon_label} Prediction:** {row['pred_next_ret']*100:.2f}%")
 
-                # Prob up move if available
+                # Prob up move (tree model)
                 prob_up = row.get("prob_up")
                 if prob_up is not None:
-                    st.write(f"**Prob Up Move:** {prob_up*100:.1f}%")
+                    st.write(f"**Prob Up Move (RF/XGB):** {prob_up*100:.1f}%")
                 else:
-                    st.write("**Prob Up Move:** N/A")
+                    st.write("**Prob Up Move (RF/XGB):** N/A")
+
+                # NEW: GAF-CNN prob up
+                prob_up_gaf = row.get("prob_up_gaf")
+                if prob_up_gaf is not None:
+                    st.write(f"**Prob Up Move (GAF-CNN):** {prob_up_gaf*100:.1f}%")
+                else:
+                    st.write("**Prob Up Move (GAF-CNN):** N/A")
 
                 st.write(
                     f"**Put/Call Ratio:** {row.get('put_call_oi_ratio', 'N/A'):.3f}"
@@ -590,6 +597,7 @@ def run_app():
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
 
+                # Greeks block – unchanged
                 try:
                     greeks_info = get_atm_greeks(row["ticker"])
                 except YFRateLimitError:
@@ -741,8 +749,6 @@ def run_app():
                         # OPTIONAL: SquareQuant performance report (if available)
                         if sq is not None:
                             try:
-                                # Example placeholder; adjust based on SquareQuant's actual API.
-                                # Replace `performance_summary` with the correct function name.
                                 sq_report = sq.performance_summary(
                                     strat["strategy_ret_with_cost"].dropna(),
                                     benchmark=baseline_returns.loc[
