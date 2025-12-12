@@ -5,13 +5,14 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 from data_fetch import get_history_cached  # reuse your code
+import time
 
 # Config
 tickers = ["AAPL"]          # keep small for now
 window = 30
 image_size = 30
 horizon = 1                 # 1‑day up/down
-max_samples = 500           # hard cap so it can't explode
+max_samples = 100           # hard cap so it can't explode
 
 gaf = GramianAngularField(image_size=image_size, method="summation")
 
@@ -32,7 +33,7 @@ model.compile(
     optimizer="adam",
     loss="binary_crossentropy",
     metrics=["accuracy"],
-)
+)  # [web:712][web:793]
 
 if __name__ == "__main__":
     print("Building GAF dataset...")
@@ -50,12 +51,12 @@ if __name__ == "__main__":
             if len(X_imgs) >= max_samples:
                 break
 
-            window_vals = rets[i-window:i]
+            window_vals = rets[i - window:i]
             future_ret = rets[i + horizon - 1]
             y = 1 if future_ret > 0 else 0
 
             X = window_vals.reshape(1, -1)
-            img = gaf.fit_transform(X)[0]
+            img = gaf.fit_transform(X)[0]  # (image_size, image_size) [web:394][web:783]
             X_imgs.append(img)
             y_labels.append(y)
 
@@ -69,18 +70,15 @@ if __name__ == "__main__":
     y_train, y_val = y[:split], y[split:]
 
     print("Starting training...")
+    t0 = time.time()
     history = model.fit(
         X_train, y_train,
         validation_data=(X_val, y_val),
-        epochs=2,          # short test run
-        batch_size=32,
-        verbose=2,         # one line per batch/epoch
+        epochs=1,        # just 1 epoch
+        batch_size=16,
+        verbose=2,       # one line per epoch
     )
+    print("Training time (s):", time.time() - t0)
 
     model.save("gaf_cnn_updown.keras")
     print("Saved model to gaf_cnn_updown.keras")
-
-
-
-
-
