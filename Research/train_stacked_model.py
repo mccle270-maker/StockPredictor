@@ -2,6 +2,22 @@ import os
 import pandas as pd
 import numpy as np
 
+import os
+import sys
+
+# Add project root (Stock Predictor) to Python path
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+
+from prediction_model import (
+    build_features_and_target,
+    predict_up_gaf_cnn,
+    FEATURE_COLUMNS,
+    MACRO_COLUMNS,
+)
+from data_fetch import get_history_cached
+
 from prediction_model import (
     build_features_and_target,
     predict_up_gaf_cnn,
