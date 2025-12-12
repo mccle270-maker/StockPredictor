@@ -6,8 +6,8 @@ from tensorflow.keras import layers
 
 from data_fetch import get_history_cached  # reuse your code
 
-tickers = ["AAPL", "MSFT", "NVDA", "AMZN"]  # start small
-window = 60
+tickers = ["AAPL"]  # start small
+window = 30
 image_size = 30
 horizon = 1     # 1-day up/down
 
@@ -63,8 +63,9 @@ model.compile(
 history = model.fit(
     X_train, y_train,
     validation_data=(X_val, y_val),
-    epochs=10,
+    epochs=2,
     batch_size=64,
+    verbose=2,
 )
 
 if __name__ == "__main__":
