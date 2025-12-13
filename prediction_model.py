@@ -294,9 +294,11 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         
         print(f"[DEBUG FRED] After reindex/ffill, NaN counts: t10y={macro['t10y'].isna().sum()}, vix={macro['vix'].isna().sum()}")
 
-        full = df.join(macro[["t10y", "term_spread", "vix"]], how="left")
-        _macro_cache[key] = full
-        return full
+        for col in ["t10y", "t3m", "term_spread", "vix"]:
+            df[col] = macro[col]
+        
+        _macro_cache[key] = df
+        return df
     except Exception as e:
         print(f"[get_macro_df] FRED fetch failed: {e}")
         _macro_cache[key] = df
