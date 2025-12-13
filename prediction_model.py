@@ -3,28 +3,121 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 from sklearn.linear_model import LinearRegression
 
+
 import statsmodels.api as sm
+
 
 from xgboost import XGBRegressor, XGBClassifier
 
+
 from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
+
+# NEW: option pricing engines (Black–Scholes + Heston)
+from option_pricing import (
+    OptionSpec,
+    HestonParams,
+    PricingModel,
+    price_option,
+)
+
+# NEW: simple placeholder Heston params; replace with real calibration later
+def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
+    params_by_ticker = {
+        # EXAMPLES ONLY – tune or remove once you calibrate.
+        "AAPL": HestonParams(v0=0.04, theta=0.04, kappa=1.5, sigma=0.3, rho=-0.6),
+        "NVDA": HestonParams(v0=0.06, theta=0.05, kappa=1.2, sigma=0.5, rho=-0.7),
+    }
+    return params_by_ticker.get(ticker.upper())
+
+
+# NEW: reusable helper to price an ATM call given a ticker & expiry
+def price_atm_call_for_ticker(
+    ticker: str,
+    expiry: pd.Timestamp | str,
+    spot: float,
+    atm_iv: float | None,
+    model: PricingModel = PricingModel.BLACK_SCHOLES,
+    risk_free: float = 0.05,
+    div_yield: float = 0.0,
+) -> float | None:
+    """
+    Convenience function to get a theoretical ATM call price for a ticker.
+
+    Parameters
+    ----------
+    ticker : str
+        Underlying ticker.
+    expiry : pd.Timestamp or ISO date string
+        Option expiry date.
+    spot : float
+        Current spot price.
+    atm_iv : float or None
+        ATM implied volatility (fallback to 0.2 if None).
+    model : PricingModel
+        BLACK_SCHOLES or HESTON.
+    risk_free : float
+        Constant risk-free rate.
+    div_yield : float
+        Continuous dividend yield.
+
+    Returns
+    -------
+    float or None
+        Theoretical ATM call price, or None on error.
+    """
+    try:
+        if isinstance(expiry, str):
+            expiry_date = pd.to_datetime(expiry).date()
+        else:
+            expiry_date = expiry.date()
+
+        val_date = pd.Timestamp.today().date()
+        vol = float(atm_iv) if atm_iv is not None else 0.2
+
+        opt_spec = OptionSpec(
+            spot=float(spot),
+            strike=float(spot),  # ATM
+            maturity_date=expiry_date,
+            valuation_date=val_date,
+            rate=float(risk_free),
+            div_yield=float(div_yield),
+            vol=vol,
+            is_call=True,
+        )
+
+        heston_params = None
+        if model == PricingModel.HESTON:
+            heston_params = get_heston_params_for_ticker(ticker)
+            if heston_params is None:
+                return None
+
+        return float(price_option(opt_spec, model=model, heston_params=heston_params))
+    except Exception as e:
+        print(f"[pricing] Error pricing ATM call for {ticker}: {e}")
+        return None
+
 
 # NEW: for Gramian Angular Field (GAF) images
 from pyts.image import GramianAngularField  # pip install pyts
 import matplotlib.pyplot as plt              # used to render GAF heatmaps
 
+
 # ---------- Optional GAF-CNN model (TensorFlow) ----------
 
+
 gaf_cnn = None
+
 
 try:
     from tensorflow import keras  # requires a TF-capable environment
     GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
+
 
     if os.path.exists(GAF_CNN_MODEL_PATH):
         print(f"[GAF-CNN] Loading model from {GAF_CNN_MODEL_PATH}...")
@@ -36,51 +129,65 @@ except Exception as e:
     print(f"[GAF-CNN] TensorFlow/Keras not available or failed to load model: {e}. prob_up_gaf will be None.")
     gaf_cnn = None
 
+
 # ---------- Technical indicator helpers ----------
+
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
 
+
     avg_gain = gain.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
+
 
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
 
+
     df[f"rsi_{window}"] = rsi
     return df
+
 
 def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signal: int = 9):
     ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
     ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
 
+
     macd = ema_fast - ema_slow
     macd_signal = macd.ewm(span=signal, adjust=False).mean()
     macd_hist = macd - macd_signal
+
 
     df["macd"] = macd
     df["macd_signal"] = macd_signal
     df["macd_hist"] = macd_hist
     return df
 
+
 def add_mfi(df, window: int = 14):
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
     rmf = tp * df["Volume"]
+
 
     tp_shift = tp.shift(1)
     pos_mf = rmf.where(tp > tp_shift, 0.0)
     neg_mf = rmf.where(tp < tp_shift, 0.0)
 
+
     pos_mf_sum = pos_mf.rolling(window=window, min_periods=window).sum()
     neg_mf_sum = neg_mf.rolling(window=window, min_periods=window).sum()
+
 
     money_flow_ratio = pos_mf_sum / neg_mf_sum.replace(0, np.nan)
     mfi = 100 - (100 / (1 + money_flow_ratio))
 
+
     df[f"mfi_{window}"] = mfi
     return df
+
 
 def add_technical_indicators(df):
     df = df.copy()
@@ -89,7 +196,9 @@ def add_technical_indicators(df):
     df = add_mfi(df, window=14)
     return df
 
+
 # ---------- Fundamentals & macro ----------
+
 
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
@@ -97,13 +206,16 @@ FUNDAMENTAL_COLUMNS = [
     "fund_market_cap",
 ]
 
+
 MACRO_COLUMNS = ["mkt_ret_1d"]
 _macro_cache = {}
+
 
 def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     key = (symbol, period)
     if key in _macro_cache:
         return _macro_cache[key]
+
 
     t = yf.Ticker(symbol)
     hist = t.history(period=period, interval="1d")
@@ -112,7 +224,9 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     _macro_cache[key] = df
     return df
 
+
 # ---------- Feature columns ----------
+
 
 FEATURE_COLUMNS = [
     "ret_1d",
@@ -120,19 +234,24 @@ FEATURE_COLUMNS = [
     "ret_20d",
     "vol_20d",
 
+
     "sma_ratio_10_50",
     "rsi_14",
     "price_to_ma50",
 
+
     "bb_width_20",
+
 
     "volume_price_corr",
     "volume_trend",
     "vol_ma_20",
     "vol_spike_20",
 
+
     "vol_rollmean_20",
     "vol_rollstd_20",
+
 
     "high_low_ratio",
     "daily_range",
@@ -140,13 +259,16 @@ FEATURE_COLUMNS = [
     "hl_range",
     "atr_14",
 
+
     "day_of_week",
     "month",
     "is_month_end",
 
+
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
+
 
     "macd",
     "macd_signal",
@@ -154,33 +276,41 @@ FEATURE_COLUMNS = [
     "mfi_14",
 ]
 
+
 # ---------- Price feature engineering ----------
+
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
+
 
     close = hist["Close"]
     high = hist["High"]
     low = hist["Low"]
     volume = hist["Volume"]
 
+
     hist["ret_1d"] = close.pct_change()
     hist["ret_5d"] = close.pct_change(5)
     hist["ret_20d"] = close.pct_change(20)
     hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
 
+
     hist["ret_1d_lag1"] = hist["ret_1d"].shift(1)
     hist["ret_1d_lag2"] = hist["ret_1d"].shift(2)
     hist["ret_1d_lag5"] = hist["ret_1d"].shift(5)
+
 
     hist["ret_1d_rollmean_5"] = hist["ret_1d"].rolling(5).mean()
     hist["ret_1d_rollstd_5"] = hist["ret_1d"].rolling(5).std()
     hist["ret_1d_rollmean_10"] = hist["ret_1d"].rolling(10).mean()
     hist["ret_1d_rollstd_10"] = hist["ret_1d"].rolling(10).std()
 
+
     sma_10 = close.rolling(10).mean()
     sma_50 = close.rolling(50).mean()
     hist["sma_ratio_10_50"] = sma_10 / (sma_50 + 1e-9)
+
 
     sma_20 = close.rolling(20).mean()
     std_20 = close.rolling(20).std()
@@ -188,37 +318,49 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     lower_20 = sma_20 - 2 * std_20
     hist["bb_width_20"] = (upper_20 - lower_20) / (sma_20 + 1e-9)
 
+
     hist["price_to_ma50"] = close / (sma_50 + 1e-9)
 
+
     hist["volume_price_corr"] = hist["ret_1d"].rolling(20).corr(volume.pct_change())
+
 
     vol_ma_10 = volume.rolling(10).mean()
     vol_ma_30 = volume.rolling(30).mean()
     hist["volume_trend"] = vol_ma_10 / (vol_ma_30 + 1e-9)
 
+
     hist["vol_ma_20"] = volume.rolling(20).mean()
     hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
     hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
 
+
     hist["vol_rollmean_20"] = volume.rolling(20).mean()
     hist["vol_rollstd_20"] = volume.rolling(20).std()
+
 
     hist["high_low_ratio"] = high / (low + 1e-9)
     hist["daily_range"] = (high - low) / (close + 1e-9)
     hist["close_position"] = (close - low) / (high - low + 1e-9)
 
+
     hist["hl_range"] = (high - low) / (close.shift(1) + 1e-9)
     hist["atr_14"] = hist["hl_range"].rolling(14).mean()
+
 
     hist["day_of_week"] = hist.index.dayofweek
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
+
     hist = add_technical_indicators(hist)
+
 
     return hist
 
+
 # ---------- Model factory ----------
+
 
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     """
@@ -244,6 +386,7 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
                 random_state=random_state,
                 n_jobs=-1,
             )
+
 
     # regression models
     if model_type == "linreg":
@@ -275,7 +418,10 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
             n_jobs=-1,
         )
 
+
 # ---------- Fundamentals fetch ----------
+
+# (everything from here down is unchanged)
 
 def get_fundamental_features(ticker: str) -> dict:
     """
@@ -287,6 +433,9 @@ def get_fundamental_features(ticker: str) -> dict:
         "fund_pb": np.nan,
         "fund_market_cap": np.nan,
     }
+
+    # ... REST OF YOUR FILE UNCHANGED ...
+
 
     # 1) Try FMP
     try:
