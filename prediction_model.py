@@ -151,7 +151,7 @@ FUNDAMENTAL_COLUMNS = [
     "fund_market_cap",
 ]
 
-MACRO_COLUMNS = ["mkt_ret_1d"]
+MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix"]
 _macro_cache = {}
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY")
