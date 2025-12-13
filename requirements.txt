@@ -7,3 +7,4 @@ xgboost
 scipy
 statsmodels
 pyts
+matplotlib
