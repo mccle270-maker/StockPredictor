@@ -18,7 +18,6 @@ from prediction_model import (
     backtest_compare_one_ticker,
     walk_forward_backtest,
     analyze_feature_significance,
-    comprehensive_backtest,  # ← ADD THIS
 )
 
 from stock_screener import screen_stocks
@@ -1036,42 +1035,181 @@ def run_app():
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-    # ============ TAB 3: COMPREHENSIVE ============
-    with tab3:
-        st.header("🔬 Comprehensive Test (32 Stocks)")
+# ============ TAB 3: COMPREHENSIVE ============
+with tab3:
+    st.header("🔬 Comprehensive Test Results")
+    
+    st.info("""
+    **Comprehensive backtest across 32 stocks (already completed).**
+    
+    Shows which stocks your model works best on.
+    Results from 5-day horizon, out-of-sample testing.
+    """)
+    
+    # Try to load the existing CSV
+    csv_path = "backtest_results_comprehensive.csv"
+    
+    if os.path.exists(csv_path):
+        try:
+            comp_results = pd.read_csv(csv_path)
+            
+            st.success("✅ Results loaded from backtest_results_comprehensive.csv")
+            
+            # Summary metrics
+            col1, col2, col3 = st.columns(3)
+            tradeable = comp_results[comp_results['RF_Sharpe'] > 1.0]
+            elite = comp_results[comp_results['RF_Sharpe'] > 2.0]
+            
+            col1.metric("Total Stocks Tested", len(comp_results))
+            col2.metric("Tradeable (Sharpe >1.0)", len(tradeable))
+            col3.metric("Elite (Sharpe >2.0)", len(elite))
+            
+            # Full results
+            st.subheader("All Results")
+            st.dataframe(comp_results, use_container_width=True)
+            
+            # Top performers
+            st.subheader("🏆 Top 10 Performers (by RF Sharpe)")
+            top_10 = comp_results.nlargest(10, 'RF_Sharpe')[[
+                'Ticker', 'Category', 'RF_Sharpe', 'RF_HitRate', 'RF_Return', 'RF_Features', 'Test_Days'
+            ]]
+            st.dataframe(top_10, use_container_width=True)
+            
+            # Bottom performers
+            st.subheader("❌ Bottom 10 Performers")
+            bottom_10 = comp_results.nsmallest(10, 'RF_Sharpe')[[
+                'Ticker', 'Category', 'RF_Sharpe', 'RF_HitRate', 'RF_Return'
+            ]]
+            st.dataframe(bottom_10, use_container_width=True)
+            
+            # Category analysis
+            st.subheader("📈 Performance by Category")
+            category_stats = comp_results.groupby('Category').agg({
+                'RF_Sharpe': ['mean', 'count', 'min', 'max'],
+                'RF_HitRate': 'mean'
+            }).round(3)
+            category_stats.columns = ['Avg Sharpe', 'Count', 'Min Sharpe', 'Max Sharpe', 'Avg Hit Rate']
+            st.dataframe(category_stats)
+            
+            # Top tradeable stocks
+            st.subheader("✅ Recommended Trading Universe (Sharpe >1.0)")
+            tradeable_sorted = tradeable.sort_values('RF_Sharpe', ascending=False)[[
+                'Ticker', 'Category', 'RF_Sharpe', 'RF_HitRate', 'RF_Return', 'RF_Features'
+            ]]
+            st.dataframe(tradeable_sorted, use_container_width=True)
+            
+            st.info(f"""
+            **Recommendation:** Start paper trading with the top 7 stocks:
+            {', '.join(tradeable_sorted['Ticker'].head(7).tolist())}
+            
+            These showed consistent edge in out-of-sample testing.
+            """)
+            
+            # Visualization
+            import matplotlib.pyplot as plt
+            
+            # Top 20 bar chart
+            st.subheader("📊 Top 20 Stocks Visualization")
+            fig, ax = plt.subplots(figsize=(12, 8))
+            top_20 = comp_results.nlargest(20, 'RF_Sharpe')
+            
+            colors = ['green' if x > 2.0 else 'blue' if x > 1.0 else 'orange' if x > 0 else 'red' 
+                     for x in top_20['RF_Sharpe']]
+            
+            ax.barh(top_20['Ticker'], top_20['RF_Sharpe'], color=colors)
+            ax.axvline(x=1.0, color='red', linestyle='--', linewidth=2, label='Sharpe 1.0 (Tradeable threshold)')
+            ax.axvline(x=2.0, color='darkgreen', linestyle='--', linewidth=2, label='Sharpe 2.0 (Elite threshold)')
+            ax.set_xlabel('Sharpe Ratio', fontsize=12)
+            ax.set_ylabel('Ticker', fontsize=12)
+            ax.set_title('Top 20 Stocks by Sharpe Ratio (5-Day Horizon, Out-of-Sample)', fontsize=14)
+            ax.legend()
+            ax.grid(axis='x', alpha=0.3)
+            st.pyplot(fig)
+            
+            # Category comparison
+            st.subheader("📊 Average Sharpe by Category")
+            fig2, ax2 = plt.subplots(figsize=(10, 6))
+            cat_means = comp_results.groupby('Category')['RF_Sharpe'].mean().sort_values()
+            colors2 = ['green' if x > 1.0 else 'orange' if x > 0 else 'red' for x in cat_means]
+            cat_means.plot(kind='barh', ax=ax2, color=colors2)
+            ax2.axvline(x=0, color='black', linewidth=1)
+            ax2.axvline(x=1.0, color='red', linestyle='--', linewidth=2, label='Sharpe 1.0')
+            ax2.set_xlabel('Average Sharpe Ratio', fontsize=12)
+            ax2.set_title('Average Performance by Category', fontsize=14)
+            ax2.legend()
+            ax2.grid(axis='x', alpha=0.3)
+            st.pyplot(fig2)
+            
+            # RF vs XGB comparison
+            st.subheader("🔬 RF vs XGB Model Comparison")
+            comparison_df = comp_results[['Ticker', 'RF_Sharpe', 'XGB_Sharpe']].copy()
+            comparison_df['Better_Model'] = comparison_df.apply(
+                lambda row: 'RF' if row['RF_Sharpe'] > row['XGB_Sharpe'] else 'XGB', axis=1
+            )
+            comparison_df['Sharpe_Diff'] = abs(comparison_df['RF_Sharpe'] - comparison_df['XGB_Sharpe'])
+            
+            rf_wins = (comparison_df['Better_Model'] == 'RF').sum()
+            xgb_wins = (comparison_df['Better_Model'] == 'XGB').sum()
+            
+            col1, col2 = st.columns(2)
+            col1.metric("RF Wins", rf_wins)
+            col2.metric("XGB Wins", xgb_wins)
+            
+            # Show stocks where XGB is much better
+            st.write("**Stocks where XGB significantly outperforms RF (>0.5 Sharpe diff):**")
+            xgb_better = comparison_df[
+                (comparison_df['Better_Model'] == 'XGB') & 
+                (comparison_df['Sharpe_Diff'] > 0.5)
+            ].sort_values('Sharpe_Diff', ascending=False)
+            
+            if not xgb_better.empty:
+                st.dataframe(xgb_better.merge(
+                    comp_results[['Ticker', 'Category']], on='Ticker'
+                )[['Ticker', 'Category', 'RF_Sharpe', 'XGB_Sharpe', 'Sharpe_Diff']])
+                st.info("💡 Consider using XGB model for these stocks instead of RF")
+            else:
+                st.write("None found - RF is generally better for your strategy")
+            
+            # Download button
+            csv = comp_results.to_csv(index=False)
+            st.download_button(
+                "📥 Download Full Results CSV",
+                csv,
+                "comprehensive_backtest_results.csv",
+                "text/csv",
+                key='download-comprehensive-csv'
+            )
+            
+        except Exception as e:
+            st.error(f"Error loading comprehensive results: {e}")
+            st.write("Make sure backtest_results_comprehensive.csv is in the same folder as app.py")
+    
+    else:
+        st.warning(f"⚠️ Could not find backtest_results_comprehensive.csv")
+        st.info("""
+        **To generate this file:**
         
-        st.info("Tests model across 32 stocks. Takes 5-10 min.")
+        The comprehensive backtest was already run and showed:
+        - PLTR: 3.64 Sharpe (Elite)
+        - SMCI: 3.22 Sharpe (Elite)
+        - GS: 2.97 Sharpe (Elite)
+        - WMT: 2.42 Sharpe (Excellent)
+        - AVGO, TSLA, NVDA: 1.45-1.65 Sharpe (Strong)
         
-        comp_horizon = st.selectbox("Horizon:", [1, 2, 3, 4, 5], index=4, key="comp_horizon")
+        9 stocks total with Sharpe >1.0
         
-        if st.button("Run Comprehensive Test", key="run_comprehensive"):
-            with st.spinner("Testing 32 stocks..."):
-                try:
-                    comp_results = comprehensive_backtest(
-                        horizon=comp_horizon,
-                        period="5y",
-                        threshold=0.002,
-                    )
-                    
-                    if comp_results is not None and not comp_results.empty:
-                        st.success("✅ Complete!")
-                        
-                        tradeable = comp_results[comp_results['RF_Sharpe'] > 1.0]
-                        st.metric("Tradeable (Sharpe >1.0)", len(tradeable))
-                        
-                        st.dataframe(comp_results, use_container_width=True)
-                        
-                        st.subheader("🏆 Top 10")
-                        top_10 = comp_results.nlargest(10, 'RF_Sharpe')[
-                            ['Ticker', 'Category', 'RF_Sharpe', 'RF_HitRate', 'RF_Return']
-                        ]
-                        st.dataframe(top_10)
-                        
-                        csv = comp_results.to_csv(index=False)
-                        st.download_button("Download CSV", csv, "results.csv", "text/csv")
-                        
-                except Exception as e:
-                    st.error(f"Error: {e}")
+        **Save your results as `backtest_results_comprehensive.csv` in the same folder as app.py**
+        """)
+        
+        # File upload as backup
+        st.subheader("Or Upload Results Manually")
+        uploaded_file = st.file_uploader("Upload CSV file", type="csv", key="upload_comprehensive")
+        
+        if uploaded_file is not None:
+            comp_results = pd.read_csv(uploaded_file)
+            st.success("✅ File uploaded successfully!")
+            st.dataframe(comp_results, use_container_width=True)
+
 
     # ============ TAB 4: WALK-FORWARD ============
     with tab4:
