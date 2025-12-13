@@ -284,11 +284,13 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         vix = _get_fred_series("VIXCLS", start_date, end_date)
         print(f"[DEBUG FRED] VIXCLS returned {len(vix)} points")
 
+                # Normalize stock index to date-only for alignment with FRED
+        df_dates = df.index.normalize()
+        
         macro = pd.DataFrame(index=df.index)
-        macro["t10y"] = s10.reindex(df.index).ffill().bfill()
-        macro["t3m"] = s3m.reindex(df.index).ffill().bfill()
-        macro["vix"] = vix.reindex(df.index).ffill().bfill()
-        macro["term_spread"] = macro["t10y"] - macro["t3m"]
+        macro["t10y"] = s10.reindex(df_dates).ffill().bfill().values
+        macro["t3m"] = s3m.reindex(df_dates).ffill().bfill().values
+        macro["vix"] = vix.reindex(df_dates).ffill().bfill().values
         
         print(f"[DEBUG FRED] After reindex/ffill, NaN counts: t10y={macro['t10y'].isna().sum()}, vix={macro['vix'].isna().sum()}")
 
