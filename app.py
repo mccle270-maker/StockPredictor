@@ -1,11 +1,22 @@
+import os
 import streamlit as st
 import pandas as pd
 import time
 import numpy as np
-import os
 
+# Make FRED_API_KEY available to prediction_model via environment variable
 if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
+
+from prediction_model import (
+    predict_next_for_ticker,
+    track_predictions,
+    backtest_one_ticker,
+    backtest_compare_one_ticker,
+    walk_forward_backtest,
+    analyze_feature_significance,
+)
+
 
 from stock_screener import screen_stocks
 from prediction_model import (
