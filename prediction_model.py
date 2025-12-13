@@ -168,9 +168,17 @@ def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
         f"&observation_start={start.isoformat()}"
         f"&observation_end={end.isoformat()}"
     )
+    
+    print(f"[DEBUG FRED] Fetching {series_id} from {start} to {end}")
+    
     resp = requests.get(url, timeout=10)
+    
+    print(f"[DEBUG FRED] Status {resp.status_code}: {resp.text[:200]}")  # NEW
+    
     resp.raise_for_status()
     data = resp.json().get("observations", [])
+    # ... rest unchanged
+
 
     dates = []
     values = []
