@@ -173,12 +173,12 @@ def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
     
     resp = requests.get(url, timeout=10)
     
-    print(f"[DEBUG FRED] Status {resp.status_code}: {resp.text[:200]}")  # NEW
+    print(f"[DEBUG FRED] Status {resp.status_code}: {resp.text[:200]}")
     
     resp.raise_for_status()
     data = resp.json().get("observations", [])
-    # ... rest unchanged
-
+    
+    print(f"[DEBUG FRED] {series_id}: {len(data)} raw observations from API")
 
     dates = []
     values = []
@@ -190,7 +190,13 @@ def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
         dates.append(pd.to_datetime(d))
         values.append(float(v))
 
-    return pd.Series(values, index=pd.DatetimeIndex(dates))
+    print(f"[DEBUG FRED] {series_id}: {len(values)} valid values after filtering '.'")
+    
+    series = pd.Series(values, index=pd.DatetimeIndex(dates))
+    if len(series) > 0:
+        print(f"[DEBUG FRED] {series_id}: date range {series.index.min()} to {series.index.max()}")
+    
+    return series
 
 def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
     try:
@@ -270,14 +276,21 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         end_date = df.index.max().date()
 
         s10 = _get_fred_series("DGS10", start_date, end_date)
+        print(f"[DEBUG FRED] DGS10 returned {len(s10)} points")
+        
         s3m = _get_fred_series("DGS3MO", start_date, end_date)
+        print(f"[DEBUG FRED] DGS3MO returned {len(s3m)} points")
+        
         vix = _get_fred_series("VIXCLS", start_date, end_date)
+        print(f"[DEBUG FRED] VIXCLS returned {len(vix)} points")
 
         macro = pd.DataFrame(index=df.index)
         macro["t10y"] = s10.reindex(df.index).ffill()
         macro["t3m"] = s3m.reindex(df.index).ffill()
         macro["vix"] = vix.reindex(df.index).ffill()
         macro["term_spread"] = macro["t10y"] - macro["t3m"]
+        
+        print(f"[DEBUG FRED] After reindex/ffill, NaN counts: t10y={macro['t10y'].isna().sum()}, vix={macro['vix'].isna().sum()}")
 
         full = df.join(macro[["t10y", "term_spread", "vix"]], how="left")
         _macro_cache[key] = full
@@ -514,7 +527,6 @@ def build_features_and_target(
             feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
 
-            # DEBUG: print what we have before dropna
             print(f"[DEBUG {ticker}] Before dropna: {len(hist)} rows")
             nan_counts = hist[cols_needed].isna().sum()
             print(f"[DEBUG {ticker}] NaNs per column:\n{nan_counts[nan_counts > 0]}")
