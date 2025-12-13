@@ -550,7 +550,7 @@ def run_app():
             "prob_down",
             "prob_up_gaf",      # NEW: CNN probability column
             "opt_exp",
-            "theo_atm_call_price"
+            "theo_atm_call_price",
             "signal_alignment",
         ]
 
