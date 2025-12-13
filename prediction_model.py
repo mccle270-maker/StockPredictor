@@ -367,6 +367,8 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     try:
         spx = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False)
         if not spx.empty:
+            hist_index_tznaive = hist.index.tz_localize(None)
+            spx.index = spx.index.tzlocalize(None)
             spx_ret_1d = spx['Close'].pct_change().reindex(hist.index, method='ffill')
             spx_ret_3d = spx['Close'].pct_change(3).reindex(hist.index, method='ffill')
             spx_ret_5d = spx['Close'].pct_change(5).reindex(hist.index, method='ffill')
