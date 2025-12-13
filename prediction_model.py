@@ -915,38 +915,171 @@ def backtest_one_ticker(
         "sharpe": sharpe,
     }
 
+
+# ⭐ NEW: Auto-optimized backtest with per-stock feature pruning
+def backtest_one_ticker_auto_optimized(
+    ticker="AAPL",
+    period="10y",
+    test_years=2,
+    threshold=0.002,
+    model_type="rf",
+    horizon=5,
+    importance_threshold=0.001,
+):
+    """
+    Backtest with automatic per-stock feature optimization.
+    Works for ANY ticker - learns which features matter during training.
+    """
+    
+    hist = get_price_history(ticker, period=period, interval="1d")
+    hist = add_price_features(hist)
+    macro_df = get_macro_df(symbol="^GSPC", period=period)
+    hist = hist.join(macro_df, how="left")
+    fund_feats = get_fundamental_features(ticker)
+    for k, v in fund_feats.items():
+        hist[k] = v
+
+    hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
+
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+    df = hist[cols_needed].dropna().copy()
+
+    # Split: train (60%) / validation (20%) / test (20%)
+    n = len(df)
+    train_end = int(n * 0.6)
+    val_end = int(n * 0.8)
+    
+    train_df = df.iloc[:train_end]
+    val_df = df.iloc[train_end:val_end]
+    test_df = df.iloc[val_end:]
+
+    # Step 1: Train initial model on training set
+    X_train = train_df[feat_cols].values
+    y_train = train_df[f"target_ret_{horizon}d_ahead"].values
+    
+    model_init = make_model(model_type=model_type, random_state=42)
+    model_init.fit(X_train, y_train)
+    
+    # Step 2: Identify important features
+    importance = model_init.feature_importances_
+    important_mask = importance > importance_threshold
+    important_features = [feat_cols[i] for i in range(len(feat_cols)) if important_mask[i]]
+    
+    dropped_count = len(feat_cols) - len(important_features)
+    print(f"[{ticker}] Kept {len(important_features)}/{len(feat_cols)} features (dropped {dropped_count} weak features)")
+    
+    # Step 3: Retrain on train+validation with pruned features
+    train_val_df = df.iloc[:val_end]
+    X_train_val = train_val_df[important_features].values
+    y_train_val = train_val_df[f"target_ret_{horizon}d_ahead"].values
+    
+    model_final = make_model(model_type=model_type, random_state=42)
+    model_final.fit(X_train_val, y_train_val)
+    
+    # Step 4: Evaluate on held-out test set
+    X_test = test_df[important_features].values
+    y_test = test_df[f"target_ret_{horizon}d_ahead"].values
+    y_pred = model_final.predict(X_test)
+
+    positions = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
+
+    cost_per_trade = 0.0005
+    pnl = []
+    prev_pos = 0
+    for pos, ret in zip(positions, y_test):
+        trade = abs(pos - prev_pos)
+        pnl_t = pos * ret - cost_per_trade * trade
+        pnl.append(pnl_t)
+        prev_pos = pos
+    pnl = np.array(pnl)
+
+    cum_ret = (1 + pnl).prod() - 1
+    hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
+    avg_daily = pnl.mean()
+    std_daily = pnl.std(ddof=1)
+    sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
+
+    return {
+        "ticker": ticker,
+        "model_type": model_type,
+        "horizon": horizon,
+        "num_features_original": len(feat_cols),
+        "num_features_used": len(important_features),
+        "features_dropped": dropped_count,
+        "test_days": len(pnl),
+        "total_return": cum_ret,
+        "hit_rate": hit_rate,
+        "sharpe": sharpe,
+    }
+
+
+# ⭐ UPDATED: backtest_compare with auto_optimize option
 def backtest_compare_one_ticker(
     ticker="AAPL",
     period="10y",
     test_years=1,
     threshold=0.002,
     horizon=1,
+    auto_optimize=True,  # NEW: Enable automatic feature pruning per stock
 ):
-    rf_res = backtest_one_ticker(
-        ticker=ticker,
-        period=period,
-        test_years=test_years,
-        threshold=threshold,
-        model_type="rf",
-        horizon=horizon,
-    )
-    gbrt_res = backtest_one_ticker(
-        ticker=ticker,
-        period=period,
-        test_years=test_years,
-        threshold=threshold,
-        model_type="gbrt",
-        horizon=horizon,
-    )
-    xgb_res = backtest_one_ticker(
-        ticker=ticker,
-        period=period,
-        test_years=test_years,
-        threshold=threshold,
-        model_type="xgb",
-        horizon=horizon,
-    )
+    """Compare RF, GBRT, XGB with optional auto-optimization"""
+    
+    if auto_optimize:
+        # Use auto-optimized version (prunes weak features per stock)
+        rf_res = backtest_one_ticker_auto_optimized(
+            ticker=ticker,
+            period=period,
+            test_years=test_years,
+            threshold=threshold,
+            model_type="rf",
+            horizon=horizon,
+        )
+        gbrt_res = backtest_one_ticker_auto_optimized(
+            ticker=ticker,
+            period=period,
+            test_years=test_years,
+            threshold=threshold,
+            model_type="gbrt",
+            horizon=horizon,
+        )
+        xgb_res = backtest_one_ticker_auto_optimized(
+            ticker=ticker,
+            period=period,
+            test_years=test_years,
+            threshold=threshold,
+            model_type="xgb",
+            horizon=horizon,
+        )
+    else:
+        # Use original version (all 58 features)
+        rf_res = backtest_one_ticker(
+            ticker=ticker,
+            period=period,
+            test_years=test_years,
+            threshold=threshold,
+            model_type="rf",
+            horizon=horizon,
+        )
+        gbrt_res = backtest_one_ticker(
+            ticker=ticker,
+            period=period,
+            test_years=test_years,
+            threshold=threshold,
+            model_type="gbrt",
+            horizon=horizon,
+        )
+        xgb_res = backtest_one_ticker(
+            ticker=ticker,
+            period=period,
+            test_years=test_years,
+            threshold=threshold,
+            model_type="xgb",
+            horizon=horizon,
+        )
+    
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
+
 
 def walk_forward_backtest(
     ticker="AAPL",
@@ -1046,6 +1179,7 @@ def walk_forward_backtest(
 
     return fold_metrics
 
+
 def analyze_feature_significance(
     ticker="^GSPC",
     period="5y",
@@ -1083,6 +1217,7 @@ def analyze_feature_significance(
     sig_df = pd.DataFrame(rows).sort_values("p_value")
     return ols_model, sig_df
 
+
 def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 30):
     r = returns.dropna().values
     if len(r) < window:
@@ -1103,6 +1238,7 @@ def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size
     fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
 
     return fig, ax
+
 
 def predict_up_gaf_cnn(
     ticker: str,
@@ -1137,6 +1273,7 @@ def predict_up_gaf_cnn(
     except Exception as e:
         print(f"[GAF-CNN] Error during predict for {ticker}: {e}")
         return None
+
 
 def tune_xgb_hyperparams(X, y, random_state=42):
     tscv = TimeSeriesSplit(n_splits=3)
@@ -1174,6 +1311,7 @@ def tune_xgb_hyperparams(X, y, random_state=42):
     print("Best CV score (neg MSE):", search.best_score_)
 
     return search.best_estimator_
+
 
 if __name__ == "__main__":
     print("=" * 60)
