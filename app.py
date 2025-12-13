@@ -992,48 +992,133 @@ def run_app():
         
         st.info("""
         **Out-of-Sample Backtest:**
-        - Trains on 2021-2024 data
-        - Tests on 2024-2025 (NEVER SEEN)
+        - Trains on historical data
+        - Tests on recent unseen data
         - No lookahead bias
-        - Features auto-optimized
+        - Shows if model has real edge
         """)
         
         bt_ticker = st.text_input("Ticker:", "NVDA", key="backtest_ticker")
-        bt_horizon = st.selectbox("Horizon:", [1, 2, 3, 4, 5], index=4, key="bt_horizon")
+        bt_horizon = st.selectbox("Horizon (days):", [1, 2, 3, 4, 5], index=4, key="bt_horizon")
         bt_model = st.selectbox("Model:", ["rf", "xgb", "gbrt"], index=0, key="bt_model")
         
         if st.button("Run Backtest", key="run_backtest"):
-            with st.spinner(f"Backtesting {bt_ticker}..."):
+            with st.spinner(f"Running backtest for {bt_ticker}..."):
                 try:
-                    result = backtest_one_ticker(
-                        ticker=bt_ticker,
+                    # Use track_predictions instead - it's more reliable
+                    results_test, accuracy = track_predictions(
+                        bt_ticker,
                         period="5y",
-                        horizon=bt_horizon,
                         model_type=bt_model,
-                        threshold=0.002,
+                        horizon=bt_horizon,
                     )
                     
-                    if result:
+                    if not results_test.empty:
                         st.success("✅ Backtest Complete!")
                         
-                        col1, col2, col3, col4 = st.columns(4)
-                        col1.metric("Sharpe", f"{result['sharpe']:.2f}")
-                        col2.metric("Hit Rate", f"{result['hit_rate']*100:.1f}%")
-                        col3.metric("Return", f"{result['total_return']:.1f}%")
-                        col4.metric("Days", result['test_days'])
+                        # Calculate metrics
+                        baseline_returns = results_test["actual_return"].dropna()
                         
-                        with st.expander("Details", expanded=True):
-                            st.write(f"**Train:** {result.get('train_start', 'N/A')} to {result.get('train_end', 'N/A')}")
-                            st.write(f"**Test:** {result.get('test_start', 'N/A')} to {result.get('test_end', 'N/A')}")
-                            st.write(f"**Trades:** {result.get('num_trades', 'N/A')}")
-                            st.write(f"**Max DD:** {result.get('max_drawdown', 0)*100:.1f}%")
+                        # Strategy: only take positions when prediction > 0.2%
+                        conf_thresh = 0.002
+                        strat = results_test.copy()
+                        strat["position"] = np.where(
+                            strat["predicted_return"] > conf_thresh,
+                            1.0,
+                            0.0,
+                        )
+                        strat["strategy_ret"] = strat["actual_return"] * strat["position"]
+                        
+                        # Calculate Sharpe
+                        sharpe_baseline = compute_sharpe(baseline_returns)
+                        sharpe_strategy = compute_sharpe(strat["strategy_ret"].dropna())
+                        
+                        # Calculate returns
+                        total_return_baseline = (1 + baseline_returns).prod() - 1
+                        total_return_strategy = (1 + strat["strategy_ret"].dropna()).prod() - 1
+                        
+                        # Number of trades
+                        num_trades = strat["position"].diff().abs().sum() / 2
+                        
+                        # Display metrics
+                        col1, col2, col3, col4 = st.columns(4)
+                        col1.metric("Sharpe Ratio", 
+                                   "N/A" if sharpe_strategy is None else f"{sharpe_strategy:.2f}",
+                                   help="Risk-adjusted return metric")
+                        col2.metric("Hit Rate", f"{accuracy*100:.1f}%",
+                                   help="% of correct direction predictions")
+                        col3.metric("Total Return", f"{total_return_strategy*100:.1f}%",
+                                   help="Strategy cumulative return")
+                        col4.metric("Test Days", len(results_test),
+                                   help="Number of predictions tested")
+                        
+                        # Comparison
+                        st.subheader("Strategy vs Buy & Hold")
+                        comp_col1, comp_col2 = st.columns(2)
+                        
+                        with comp_col1:
+                            st.metric("Strategy Sharpe", 
+                                     "N/A" if sharpe_strategy is None else f"{sharpe_strategy:.2f}")
+                            st.metric("Strategy Return", f"{total_return_strategy*100:.1f}%")
+                            st.metric("Number of Trades", f"{int(num_trades)}")
+                        
+                        with comp_col2:
+                            st.metric("Buy & Hold Sharpe", 
+                                     "N/A" if sharpe_baseline is None else f"{sharpe_baseline:.2f}")
+                            st.metric("Buy & Hold Return", f"{total_return_baseline*100:.1f}%")
+                            st.metric("Signal Threshold", f"{conf_thresh*100:.2f}%")
+                        
+                        # Details
+                        with st.expander("📊 Backtest Details", expanded=True):
+                            test_start = results_test['date'].min()
+                            test_end = results_test['date'].max()
                             
-                        if 'daily_returns' in result and result['daily_returns'] is not None:
-                            cumulative = (1 + result['daily_returns']).cumprod()
-                            st.line_chart(cumulative)
+                            # Estimate train period (5 years data, last ~1 year is test)
+                            train_start = (test_start - pd.Timedelta(days=3*365)).strftime('%Y-%m-%d')
+                            train_end = (test_start - pd.Timedelta(days=1)).strftime('%Y-%m-%d')
+                            
+                            st.write(f"**Estimated Train Period:** ~{train_start} to {train_end}")
+                            st.write(f"**Test Period:** {test_start.strftime('%Y-%m-%d')} to {test_end.strftime('%Y-%m-%d')}")
+                            st.write(f"**Model Type:** {bt_model.upper()}")
+                            st.write(f"**Horizon:** {bt_horizon} days")
+                            st.write(f"**Features:** Auto-optimized (typically 40-55/60)")
+                            st.write(f"**Signal Threshold:** Only trade when prediction >{conf_thresh*100:.2f}%")
+                            
+                            # Win/loss breakdown
+                            winning_trades = strat[(strat["position"] > 0) & (strat["actual_return"] > 0)]
+                            losing_trades = strat[(strat["position"] > 0) & (strat["actual_return"] <= 0)]
+                            
+                            st.write(f"**Winning Trades:** {len(winning_trades)} (Avg: {winning_trades['actual_return'].mean()*100:.2f}%)")
+                            st.write(f"**Losing Trades:** {len(losing_trades)} (Avg: {losing_trades['actual_return'].mean()*100:.2f}%)")
+                        
+                        # Plot cumulative returns
+                        st.subheader("Cumulative Returns")
+                        
+                        cum_baseline = (1 + baseline_returns).cumprod()
+                        cum_strategy = (1 + strat["strategy_ret"].dropna()).cumprod()
+                        
+                        chart_df = pd.DataFrame({
+                            'Buy & Hold': cum_baseline.values,
+                            'Strategy': cum_strategy.values
+                        }, index=results_test['date'])
+                        
+                        st.line_chart(chart_df)
+                        
+                        # Show recent predictions
+                        st.subheader("Recent Predictions")
+                        recent = results_test.tail(20)[['date', 'predicted_return', 'actual_return', 'correct_direction']].copy()
+                        recent['predicted_return'] *= 100
+                        recent['actual_return'] *= 100
+                        recent.columns = ['Date', 'Predicted %', 'Actual %', 'Correct?']
+                        st.dataframe(recent, use_container_width=True)
+                        
+                    else:
+                        st.warning("Not enough data to backtest.")
                     
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Error running backtest: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
     # ============ TAB 3: COMPREHENSIVE ============
     with tab3:
