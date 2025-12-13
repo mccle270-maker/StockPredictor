@@ -8,6 +8,13 @@ import numpy as np
 if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
 
+# Make FRED_API_KEY available to prediction_model via environment variable
+if "FRED_API_KEY" in st.secrets:
+    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
+    print(f"[DEBUG] FRED_API_KEY set: {os.environ['FRED_API_KEY'][:8]}...")  # print first 8 chars
+else:
+    print("[DEBUG] FRED_API_KEY NOT in secrets")
+
 from prediction_model import (
     predict_next_for_ticker,
     track_predictions,
