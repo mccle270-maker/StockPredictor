@@ -421,15 +421,58 @@ def run_app():
                     use_vol_scaled_target=False,
                 )
 
-
                 # Options snapshot
                 opt = get_option_snapshot_features(tk)
                 out.update(opt)
 
-
-                # Monte Carlo add-on: requires last_close and atm_iv
                 atm_iv = out.get("atm_iv")
                 last_close = out.get("last_close")
+
+                # NEW: IV minus realized vol (forward-looking vs backward-looking vol gap)
+                # This is often informative about future risk and option richness. [web:734]
+                if atm_iv is not None and out.get("vol_20d") is not None:
+                    try:
+                        out["iv_minus_realized"] = float(atm_iv) - float(out["vol_20d"])
+                    except Exception:
+                        out["iv_minus_realized"] = None
+                else:
+                    out["iv_minus_realized"] = None
+
+                # NEW: Theoretical ATM call price from selected pricing model
+                # Uses nearest options expiry (opt_exp) if available.
+                out["theo_atm_call_price"] = None
+                try:
+                    opt_exp = out.get("opt_exp")
+                    if last_close is not None and atm_iv is not None and opt_exp:
+                        opt_exp_date = pd.to_datetime(opt_exp).date()
+                        val_date = pd.Timestamp.today().date()
+                        opt_spec = OptionSpec(
+                            spot=float(last_close),
+                            strike=float(last_close),  # ATM
+                            maturity_date=opt_exp_date,
+                            valuation_date=val_date,
+                            rate=0.05,      # TODO: plug in your risk-free curve later
+                            div_yield=0.0,
+                            vol=float(atm_iv),
+                            is_call=True,
+                        )
+                        heston_params = None
+                        if pricing_model == PricingModel.HESTON:
+                            heston_params = get_heston_params_for_ticker(tk)
+                            # If no params, fall back to BS
+                            if heston_params is None:
+                                theo_price = price_option(opt_spec, model=PricingModel.BLACK_SCHOLES)
+                            else:
+                                theo_price = price_option(opt_spec, model=pricing_model, heston_params=heston_params)
+                        else:
+                            theo_price = price_option(opt_spec, model=pricing_model)
+
+                        out["theo_atm_call_price"] = float(theo_price)
+                except Exception as pe:
+                    print(f"Pricing error for {tk}: {pe}")
+                    out["theo_atm_call_price"] = None
+
+                # Monte Carlo add-on: requires last_close and atm_iv
                 if atm_iv is not None and last_close is not None:
                     try:
                         mc_res = option_mc_ev(
@@ -445,7 +488,6 @@ def run_app():
                         out.update(mc_res)
                     except Exception as mc_e:
                         print(f"MC error for {tk}: {mc_e}")
-
 
                 out["signal_alignment"] = classify_alignment(
                     out["pred_next_ret"],
@@ -500,6 +542,7 @@ def run_app():
             "pe_ratio",
             "num_features",
             "atm_iv",
+            "iv_minus_realized",
             "put_call_oi_ratio",
             "pred_next_ret_pct",
             "pred_next_price",
@@ -507,6 +550,7 @@ def run_app():
             "prob_down",
             "prob_up_gaf",      # NEW: CNN probability column
             "opt_exp",
+            "theo_atm_call_price"
             "signal_alignment",
         ]
 
@@ -529,6 +573,7 @@ def run_app():
             "pe_ratio": "P/E",
             "num_features": "# Features",
             "atm_iv": "ATM IV",
+            "iv_minus_realized": "IV - Realized Vol",
             "put_call_oi_ratio": "Put/Call OI Ratio",
             "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
             "pred_next_price": "Predicted Price",
@@ -536,6 +581,7 @@ def run_app():
             "prob_down": "Prob Down",
             "prob_up_gaf": "GAF-CNN Prob Up",   # NEW
             "opt_exp": "Opt Expiry",
+            "theo_atm_realized": "Theo ATM Call",
             "signal_alignment": "Signal",
             "mc_ev": "MC EV (P/L)",
             "mc_pop_gt0": "MC POP (>0)",
@@ -713,42 +759,23 @@ def run_app():
                         f"to ${row['last_close'] + expected_move:.2f}"
                     )
 
-                # NEW: theoretical ATM call price using selected pricing model
-                try:
-                    if row.get("last_close") and row.get("opt_exp"):
-                        opt_exp_date = pd.to_datetime(row["opt_exp"]).date()
-                        val_date = pd.Timestamp.today().date()
-                        opt_spec = OptionSpec(
-                            spot=float(row["last_close"]),
-                            strike=float(row["last_close"]),  # ATM
-                            maturity_date=opt_exp_date,
-                            valuation_date=val_date,
-                            rate=0.05,  # TODO: plug in your risk-free rate
-                            div_yield=0.0,
-                            vol=float(row.get("atm_iv") or 0.2),
-                            is_call=True,
-                        )
-                        heston_params = None
-                        if pricing_model == PricingModel.HESTON:
-                            heston_params = get_heston_params_for_ticker(row["ticker"])
-                            if heston_params is None:
-                                st.write(
-                                    "**Theoretical ATM call price (Heston):** "
-                                    "no calibrated params set for this ticker."
-                                )
+                          # Show theoretical ATM call price from selected pricing model
+                theo_price = row.get("theo_atm_call_price")
+                if theo_price is not None:
+                    st.write(
+                        f"**Theoretical ATM call price ({pricing_model_label}):** "
+                        f"${theo_price:.2f}"
+                    )
+                else:
+                    st.write(
+                        f"**Theoretical ATM call price ({pricing_model_label}):** N/A "
+                        f"(no IV/expiry/params)"
+                    )
 
-                        if pricing_model == PricingModel.BLACK_SCHOLES or heston_params is not None:
-                            theo_price = price_option(
-                                opt_spec,
-                                model=pricing_model,
-                                heston_params=heston_params,
-                            )
-                            st.write(
-                                f"**Theoretical ATM call price ({pricing_model_label}):** "
-                                f"${theo_price:.2f}"
-                            )
-                except Exception as e:
-                    st.write(f"Model pricing error: {e}")
+                # Show IV vs realized vol gap
+                iv_gap = row.get("iv_minus_realized")
+                if iv_gap is not None:
+                    st.write(f"**IV - 20D realized vol:** {iv_gap:.3f}")
 
 
                 # Greeks block – unchanged
