@@ -169,16 +169,9 @@ def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
         f"&observation_end={end.isoformat()}"
     )
     
-    print(f"[DEBUG FRED] Fetching {series_id} from {start} to {end}")
-    
     resp = requests.get(url, timeout=10)
-    
-    print(f"[DEBUG FRED] Status {resp.status_code}: {resp.text[:200]}")
-    
     resp.raise_for_status()
     data = resp.json().get("observations", [])
-    
-    print(f"[DEBUG FRED] {series_id}: {len(data)} raw observations from API")
 
     dates = []
     values = []
@@ -190,13 +183,7 @@ def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
         dates.append(pd.to_datetime(d))
         values.append(float(v))
 
-    print(f"[DEBUG FRED] {series_id}: {len(values)} valid values after filtering '.'")
-    
-    series = pd.Series(values, index=pd.DatetimeIndex(dates))
-    if len(series) > 0:
-        print(f"[DEBUG FRED] {series_id}: date range {series.index.min()} to {series.index.max()}")
-    
-    return series
+    return pd.Series(values, index=pd.DatetimeIndex(dates))
 
 def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
     try:
@@ -276,30 +263,16 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         end_date = df.index.max().date()
 
         s10 = _get_fred_series("DGS10", start_date, end_date)
-        print(f"[DEBUG FRED] DGS10 returned {len(s10)} points")
-        
         s3m = _get_fred_series("DGS3MO", start_date, end_date)
-        print(f"[DEBUG FRED] DGS3MO returned {len(s3m)} points")
-        
         vix = _get_fred_series("VIXCLS", start_date, end_date)
-        print(f"[DEBUG FRED] VIXCLS returned {len(vix)} points")
 
-                # Normalize stock index to date-only for alignment with FRED
+        # Normalize and remove timezone to match FRED's naive timestamps
         df_dates = df.index.normalize().tz_localize(None)
-
-        print(f"[DEBUG FRED] Stock date range: {df.index.min()} to {df.index.max()}")
-        print(f"[DEBUG FRED] Stock normalized: {df_dates.min()} to {df_dates.max()}")
-        print(f"[DEBUG FRED] FRED date range: {s10.index.min()} to {s10.index.max()}")
         
-        macro = pd.DataFrame(index=df.index)
-        macro["t10y"] = s10.reindex(df_dates).ffill().bfill().values
-        macro["t3m"] = s3m.reindex(df_dates).ffill().bfill().values
-        macro["vix"] = vix.reindex(df_dates).ffill().bfill().values
-        
-        print(f"[DEBUG FRED] After reindex/ffill, NaN counts: t10y={macro['t10y'].isna().sum()}, vix={macro['vix'].isna().sum()}")
-
-        for col in ["t10y", "t3m", "term_spread", "vix"]:
-            df[col] = macro[col]
+        df["t10y"] = s10.reindex(df_dates).ffill().bfill().values
+        df["t3m"] = s3m.reindex(df_dates).ffill().bfill().values
+        df["vix"] = vix.reindex(df_dates).ffill().bfill().values
+        df["term_spread"] = df["t10y"] - df["t3m"]
         
         _macro_cache[key] = df
         return df
@@ -535,13 +508,7 @@ def build_features_and_target(
             feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
 
-            print(f"[DEBUG {ticker}] Before dropna: {len(hist)} rows")
-            nan_counts = hist[cols_needed].isna().sum()
-            print(f"[DEBUG {ticker}] NaNs per column:\n{nan_counts[nan_counts > 0]}")
-
             df = hist[cols_needed].dropna().copy()
-
-            print(f"[DEBUG {ticker}] After dropna: {len(df)} rows")
 
             if df.empty or len(df) < min_rows:
                 raise ValueError(
