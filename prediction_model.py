@@ -3,20 +3,20 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+import datetime as dt           # NEW
+import requests                 # NEW
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
-from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
-from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
-from sklearn.linear_model import LinearRegression
-
-
-import statsmodels.api as sm
-
-
+...
 from xgboost import XGBRegressor, XGBClassifier
 
+# OLD:
+# from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
+# NEW: keep the original cached Yahoo history import under a different name
+from data_fetch import get_history as get_history_yahoo_raw, get_history_cached as get_history_yahoo, get_fmp_fundamentals
 
-from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
+# NEW: alternative data source
+from pandas_datareader import data as pdr  # pip install pandas-datareader
 
 # NEW: option pricing engines (Black–Scholes + Heston)
 from option_pricing import (

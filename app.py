@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import time
 import numpy as np
+import os
 
+if "FRED_API_KEY" in st.secrets:
+    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
 
 from stock_screener import screen_stocks
 from prediction_model import (

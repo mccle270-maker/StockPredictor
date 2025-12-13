@@ -1,8 +1,10 @@
 # prediction_model.py
 import os
+import datetime as dt  # NEW
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import requests  # NEW
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
@@ -10,10 +12,18 @@ from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
 
 from xgboost import XGBRegressor, XGBClassifier
 
-from data_fetch import get_history, get_history_cached, get_fmp_fundamentals  # NEW IMPORT
+# NEW: Stooq via pandas-datareader (alternative data source)
+from pandas_datareader import data as pdr  # pip install pandas-datareader
 
+# NEW: alias your existing data_fetch functions so we can wrap them
+from data_fetch import (
+    get_history as get_history_yahoo_raw,
+    get_history_cached as get_history_yahoo,
+    get_fmp_fundamentals,
+)
 
 # ---------- Technical indicator helpers (same as before) ----------
+
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
@@ -72,30 +82,167 @@ def add_technical_indicators(df):
 
 # ---------- Fundamentals & macro ----------
 
+
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
 ]
 
-MACRO_COLUMNS = ["mkt_ret_1d"]
+# UPDATED: macro feature names
+MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix"]
 _macro_cache = {}
+
+# NEW: FRED API key for macro data
+FRED_API_KEY = os.environ.get("FRED_API_KEY")  # set this in your shell/venv
+
+
+def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
+    """
+    Fetch a single daily FRED series between start and end (inclusive).
+    Returns a pandas Series indexed by date. [web:802][web:805]
+    """
+    if FRED_API_KEY is None:
+        raise RuntimeError("FRED_API_KEY not set in environment")
+
+    url = (
+        "https://api.stlouisfed.org/fred/series/observations"
+        f"?series_id={series_id}"
+        f"&api_key={FRED_API_KEY}"
+        "&file_type=json"
+        f"&observation_start={start.isoformat()}"
+        f"&observation_end={end.isoformat()}"
+    )
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    data = resp.json().get("observations", [])
+
+    dates = []
+    values = []
+    for obs in data:
+        d = obs.get("date")
+        v = obs.get("value")
+        if v in (".", None):
+            continue
+        dates.append(pd.to_datetime(d))
+        values.append(float(v))
+
+    return pd.Series(values, index=pd.DatetimeIndex(dates))
+
+
+# ---------- Multi-source price history (Yahoo + Stooq fallback) ----------
+
+
+def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
+    """
+    Unified price history loader.
+    1) Try your existing Yahoo cached history (data_fetch.get_history_cached).
+    2) If that fails or is empty, fall back to Stooq via pandas-datareader. [web:803][web:812]
+    3) Last resort: raw Yahoo getter.
+    """
+    # 1) Try existing Yahoo cached function
+    try:
+        df = get_history_yahoo(ticker, period=period, interval=interval)
+        if df is not None and not df.empty:
+            return df
+    except Exception as e:
+        print(f"[get_price_history] Yahoo cached failed for {ticker} ({period}): {e}")
+
+    # 2) Fallback: Stooq via pandas-datareader (daily only)
+    try:
+        raw = pdr.DataReader(ticker, "stooq")  # newest rows first
+        raw = raw.sort_index()                 # oldest → newest
+
+        # Map 'period' string to approx start date
+        years_map = {"10y": 10, "5y": 5, "3y": 3, "2y": 2, "1y": 1}
+        months_map = {"6mo": 0.5, "3mo": 0.25}
+        today = dt.date.today()
+
+        if period in years_map:
+            start_date = today - dt.timedelta(days=365 * years_map[period])
+        elif period in months_map:
+            start_date = today - dt.timedelta(days=int(365 * months_map[period]))
+        else:
+            start_date = raw.index.min().date()
+
+        df = raw[raw.index.date >= start_date].copy()
+
+        # Rename columns to match yfinance format if needed
+        rename_map = {
+            "Open": "Open",
+            "High": "High",
+            "Low": "Low",
+            "Close": "Close",
+            "Volume": "Volume",
+        }
+        df = df.rename(columns=rename_map)
+
+        print(f"[get_price_history] Using Stooq data for {ticker} ({period}), rows={len(df)}")
+        return df
+    except Exception as e:
+        print(f"[get_price_history] Stooq failed for {ticker}: {e}")
+
+    # 3) Last resort: try your original raw Yahoo getter (if it behaves differently)
+    try:
+        df = get_history_yahoo_raw(ticker, period=period, interval=interval)
+        if df is not None and not df.empty:
+            print(f"[get_price_history] Fallback to raw Yahoo for {ticker}")
+            return df
+    except Exception as e:
+        print(f"[get_price_history] Raw Yahoo fallback failed for {ticker}: {e}")
+
+    raise ValueError(f"No price history available for {ticker} with period={period}")
 
 
 def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
+    """
+    Build a macro panel aligned to your price history index:
+    - mkt_ret_1d: SPX 1-day return
+    - t10y: 10-year Treasury yield (DGS10)
+    - term_spread: 10y - 3m yield (DGS10 - DGS3MO)
+    - vix: CBOE VIX index level (VIXCLS) [web:802][web:805]
+    """
     key = (symbol, period)
     if key in _macro_cache:
         return _macro_cache[key]
 
-    t = yf.Ticker(symbol)
-    hist = t.history(period=period, interval="1d")
+    # Base index: use unified price history for SPX
+    hist = get_price_history(symbol, period=period, interval="1d")
     df = pd.DataFrame(index=hist.index)
     df["mkt_ret_1d"] = hist["Close"].pct_change()
-    _macro_cache[key] = df
-    return df
+
+    # If no FRED key, fall back to only market return
+    if FRED_API_KEY is None:
+        print("[get_macro_df] FRED_API_KEY not set; using only mkt_ret_1d")
+        _macro_cache[key] = df
+        return df
+
+    try:
+        start_date = df.index.min().date()
+        end_date = df.index.max().date()
+
+        # FRED series IDs
+        s10 = _get_fred_series("DGS10", start_date, end_date)    # 10y yield
+        s3m = _get_fred_series("DGS3MO", start_date, end_date)   # 3m yield
+        vix = _get_fred_series("VIXCLS", start_date, end_date)   # VIX index
+
+        macro = pd.DataFrame(index=df.index)
+        macro["t10y"] = s10.reindex(df.index).ffill()
+        macro["t3m"] = s3m.reindex(df.index).ffill()
+        macro["vix"] = vix.reindex(df.index).ffill()
+        macro["term_spread"] = macro["t10y"] - macro["t3m"]
+
+        full = df.join(macro[["t10y", "term_spread", "vix"]], how="left")
+        _macro_cache[key] = full
+        return full
+    except Exception as e:
+        print(f"[get_macro_df] FRED fetch failed: {e}")
+        _macro_cache[key] = df
+        return df
 
 
 # ---------- Feature columns ----------
+
 
 FEATURE_COLUMNS = [
     "ret_1d",
@@ -139,6 +286,7 @@ FEATURE_COLUMNS = [
 
 
 # ---------- Price feature engineering ----------
+
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
@@ -205,6 +353,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
 # ---------- Model factory (extended) ----------
 
+
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     """
     task: 'reg' for regression on returns, 'clf' for direction classification.
@@ -259,7 +408,8 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         )
 
 
-# ---------- Fundamentals fetch (now uses FMP when available) ----------
+# ---------- Fundamentals fetch (FMP + Yahoo fallback) ----------
+
 
 def get_fundamental_features(ticker: str) -> dict:
     """
@@ -272,9 +422,9 @@ def get_fundamental_features(ticker: str) -> dict:
         "fund_market_cap": np.nan,
     }
 
-    # 1) Try FMP (implemented in data_fetch.py)
+    # 1) Try FMP
     try:
-        fmp_data = get_fmp_fundamentals(ticker)  # should return a dict
+        fmp_data = get_fmp_fundamentals(ticker)
         if isinstance(fmp_data, dict):
             for k in feats.keys():
                 if k in fmp_data:
@@ -305,6 +455,7 @@ def get_fundamental_features(ticker: str) -> dict:
 
 # ---------- Build features & target (regression) ----------
 
+
 def build_features_and_target(
     ticker="^GSPC",
     period="5y",
@@ -326,7 +477,7 @@ def build_features_and_target(
 
     for per in periods_to_try:
         try:
-            hist = get_history_cached(ticker, period=per, interval="1d")
+            hist = get_price_history(ticker, period=per, interval="1d")
             if hist is None or hist.empty:
                 raise ValueError(f"No raw history for {ticker} with period={per}")
 
@@ -375,6 +526,7 @@ def build_features_and_target(
 
 # ---------- Classification target builder ----------
 
+
 def build_features_and_direction_target(
     ticker="^GSPC",
     period="5y",
@@ -394,6 +546,7 @@ def build_features_and_direction_target(
 
 
 # ---------- Train & predict helpers ----------
+
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg"):
     n = len(X)
@@ -476,23 +629,15 @@ def predict_next_for_ticker(
     }
 
 
-# ---------- Backtests (regression + walk-forward) ----------
-# Your existing track_predictions, backtest_one_ticker,
-# backtest_compare_one_ticker, and walk_forward_backtest
-# can stay mostly the same; you can add a flag
-# use_vol_scaled_target to call build_features_and_target
-# with that option and then trade on the scaled/unscaled
-# return exactly as before.
-
-
 # ---------- Tracking & backtests ----------
+
 
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
     """
     Compare model predictions to actual multi-day returns over the past period.
     """
     try:
-        hist = get_history(ticker, period=period, interval="1d")
+        hist = get_price_history(ticker, period=period, interval="1d")
 
         if hist.empty or len(hist) < 50:
             print(f"Insufficient data for {ticker}: only {len(hist)} rows")
@@ -517,7 +662,7 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
             print(f"Not enough data after feature engineering for {ticker}")
             return pd.DataFrame(), 0.0
 
-        # Use more flexible split - test on last 60 days or 30% of data, whichever is smaller
+        # Use flexible split - test on last 60 days or 30% of data, whichever is smaller
         test_size = min(60, int(len(df) * 0.3))
 
         if test_size < 5:
@@ -584,7 +729,7 @@ def backtest_one_ticker(
     """
     Backtest a single model type ('rf', 'gbrt', or 'xgb') on one ticker with multi-day predictions.
     """
-    hist = get_history(ticker, period=period, interval="1d")
+    hist = get_price_history(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
     macro_df = get_macro_df(symbol="^GSPC", period=period)
     hist = hist.join(macro_df, how="left")
@@ -615,16 +760,13 @@ def backtest_one_ticker(
     model = make_model(model_type=model_type, random_state=42)
     model.fit(X_train, y_train)
 
-    # predict multi-day returns over test window
     y_pred = model.predict(X_test)
 
-    # trading rule: long / short / flat
     positions = np.where(
         y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
     )
 
-    # P&L with simple transaction cost
-    cost_per_trade = 0.0005  # 5 bps per change in position (example)
+    cost_per_trade = 0.0005
     pnl = []
     prev_pos = 0
     for pos, ret in zip(positions, y_test):
@@ -634,7 +776,6 @@ def backtest_one_ticker(
         prev_pos = pos
     pnl = np.array(pnl)
 
-    # summary stats
     cum_ret = (1 + pnl).prod() - 1
     hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
     avg_daily = pnl.mean()
@@ -706,20 +847,18 @@ def walk_forward_backtest(
       - Repeat across the history.
     Returns a list of dicts with Sharpe, hit_rate, trades per fold.
     """
-    hist = get_history(ticker, period=period, interval="1d")
+    hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
         return []
 
     hist = add_price_features(hist)
 
-    # macro + fundamentals
     macro_df = get_macro_df(symbol="^GSPC", period=period)
     hist = hist.join(macro_df, how="left")
     fund_feats = get_fundamental_features(ticker)
     for k, v in fund_feats.items():
         hist[k] = v
 
-    # target
     target_col = f"target_ret_{horizon}d_ahead"
     hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
 
@@ -755,7 +894,6 @@ def walk_forward_backtest(
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
-        # trading rule with transaction cost
         positions = np.where(
             y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
         )
@@ -792,7 +930,6 @@ def walk_forward_backtest(
             }
         )
 
-        # move window forward
         start += test_days
 
     return fold_metrics
