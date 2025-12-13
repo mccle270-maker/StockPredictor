@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
-import datetime as dt           # NEW
-import requests                 # NEW
+import datetime as dt
+import requests
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
@@ -15,14 +15,12 @@ import statsmodels.api as sm
 
 from xgboost import XGBRegressor, XGBClassifier
 
-# NEW: keep the original cached Yahoo history import under a different name
 from data_fetch import (
     get_history as get_history_yahoo_raw,
     get_history_cached as get_history_yahoo,
     get_fmp_fundamentals,
 )
 
-# NEW: option pricing engines (Black–Scholes + Heston)
 from option_pricing import (
     OptionSpec,
     HestonParams,
@@ -30,17 +28,13 @@ from option_pricing import (
     price_option,
 )
 
-# NEW: simple placeholder Heston params; replace with real calibration later
 def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     params_by_ticker = {
-        # EXAMPLES ONLY – tune or remove once you calibrate.
         "AAPL": HestonParams(v0=0.04, theta=0.04, kappa=1.5, sigma=0.3, rho=-0.6),
         "NVDA": HestonParams(v0=0.06, theta=0.05, kappa=1.2, sigma=0.5, rho=-0.7),
     }
     return params_by_ticker.get(ticker.upper())
 
-
-# NEW: reusable helper to price an ATM call given a ticker & expiry
 def price_atm_call_for_ticker(
     ticker: str,
     expiry: pd.Timestamp | str,
@@ -50,9 +44,6 @@ def price_atm_call_for_ticker(
     risk_free: float = 0.05,
     div_yield: float = 0.0,
 ) -> float | None:
-    """
-    Convenience function to get a theoretical ATM call price for a ticker.
-    """
     try:
         if isinstance(expiry, str):
             expiry_date = pd.to_datetime(expiry).date()
@@ -64,7 +55,7 @@ def price_atm_call_for_ticker(
 
         opt_spec = OptionSpec(
             spot=float(spot),
-            strike=float(spot),  # ATM
+            strike=float(spot),
             maturity_date=expiry_date,
             valuation_date=val_date,
             rate=float(risk_free),
@@ -84,17 +75,13 @@ def price_atm_call_for_ticker(
         print(f"[pricing] Error pricing ATM call for {ticker}: {e}")
         return None
 
-
-# NEW: for Gramian Angular Field (GAF) images
-from pyts.image import GramianAngularField  # pip install pyts
-import matplotlib.pyplot as plt              # used to render GAF heatmaps
-
-# ---------- Optional GAF-CNN model (TensorFlow) ----------
+from pyts.image import GramianAngularField
+import matplotlib.pyplot as plt
 
 gaf_cnn = None
 
 try:
-    from tensorflow import keras  # requires a TF-capable environment
+    from tensorflow import keras
     GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
 
     if os.path.exists(GAF_CNN_MODEL_PATH):
@@ -106,9 +93,6 @@ try:
 except Exception as e:
     print(f"[GAF-CNN] TensorFlow/Keras not available or failed to load model: {e}. prob_up_gaf will be None.")
     gaf_cnn = None
-
-
-# ---------- Technical indicator helpers ----------
 
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
@@ -124,7 +108,6 @@ def add_rsi(df, window: int = 14, price_col: str = "Close"):
     df[f"rsi_{window}"] = rsi
     return df
 
-
 def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signal: int = 9):
     ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
     ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
@@ -137,7 +120,6 @@ def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signa
     df["macd_signal"] = macd_signal
     df["macd_hist"] = macd_hist
     return df
-
 
 def add_mfi(df, window: int = 14):
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
@@ -156,7 +138,6 @@ def add_mfi(df, window: int = 14):
     df[f"mfi_{window}"] = mfi
     return df
 
-
 def add_technical_indicators(df):
     df = df.copy()
     df = add_rsi(df, window=14, price_col="Close")
@@ -164,27 +145,18 @@ def add_technical_indicators(df):
     df = add_mfi(df, window=14)
     return df
 
-
-# ---------- Fundamentals & macro ----------
-
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
 ]
 
-# UPDATED: macro feature names
 MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix"]
 _macro_cache = {}
 
-# NEW: FRED API key for macro data
-FRED_API_KEY = os.environ.get("FRED_API_KEY")  # set in env or via app.py
-
+FRED_API_KEY = os.environ.get("FRED_API_KEY")
 
 def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
-    """
-    Fetch a single daily FRED series between start and end (inclusive). [web:802][web:837]
-    """
     if FRED_API_KEY is None:
         raise RuntimeError("FRED_API_KEY not set in environment")
 
@@ -212,17 +184,7 @@ def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
 
     return pd.Series(values, index=pd.DatetimeIndex(dates))
 
-
-# ---------- Multi-source price history (Yahoo + Stooq fallback) ----------
-
 def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
-    """
-    Unified price history loader.
-    1) Try your existing Yahoo cached history.
-    2) If that fails or is empty, fall back to Stooq via CSV. [web:803][web:831]
-    3) Last resort: raw Yahoo getter.
-    """
-    # 1) Try existing Yahoo cached function
     try:
         df = get_history_yahoo(ticker, period=period, interval=interval)
         if df is not None and not df.empty:
@@ -230,7 +192,6 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
     except Exception as e:
         print(f"[get_price_history] Yahoo cached failed for {ticker} ({period}): {e}")
 
-    # 2) Fallback: Stooq daily CSV
     try:
         if interval != "1d":
             raise ValueError("Stooq fallback only supports daily interval")
@@ -243,7 +204,7 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
             raise ValueError("Empty Stooq CSV")
 
         raw["Date"] = pd.to_datetime(raw["Date"])
-        raw = raw.set_index("Date").sort_index()  # oldest → newest
+        raw = raw.set_index("Date").sort_index()
 
         years_map = {"10y": 10, "5y": 5, "3y": 3, "2y": 2, "1y": 1}
         months_map = {"6mo": 0.5, "3mo": 0.25}
@@ -272,7 +233,6 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
     except Exception as e:
         print(f"[get_price_history] Stooq failed for {ticker}: {e}")
 
-    # 3) Last resort: raw Yahoo
     try:
         df = get_history_yahoo_raw(ticker, period=period, interval=interval)
         if df is not None and not df.empty:
@@ -283,15 +243,7 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
 
     raise ValueError(f"No price history available for {ticker} with period={period}")
 
-
 def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
-    """
-    Build a macro panel aligned to your price history index:
-    - mkt_ret_1d: SPX 1-day return
-    - t10y: 10-year Treasury yield (DGS10)
-    - term_spread: 10y - 3m yield (DGS10 - DGS3MO)
-    - vix: CBOE VIX index level (VIXCLS)
-    """
     key = (symbol, period)
     if key in _macro_cache:
         return _macro_cache[key]
@@ -326,9 +278,6 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         print(f"[get_macro_df] FRED fetch failed: {e}")
         _macro_cache[key] = df
         return df
-
-
-# ---------- Feature columns ----------
 
 FEATURE_COLUMNS = [
     "ret_1d",
@@ -369,9 +318,6 @@ FEATURE_COLUMNS = [
     "macd_hist",
     "mfi_14",
 ]
-
-
-# ---------- Price feature engineering ----------
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
@@ -435,13 +381,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
     return hist
 
-
-# ---------- Model factory ----------
-
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
-    """
-    task: 'reg' for regression on returns, 'clf' for direction classification.
-    """
     if task == "clf":
         if model_type == "xgb":
             return XGBClassifier(
@@ -463,7 +403,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
                 n_jobs=-1,
             )
 
-    # regression models
     if model_type == "linreg":
         return LinearRegression()
     if model_type == "gbrt":
@@ -493,21 +432,13 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
             n_jobs=-1,
         )
 
-
-# ---------- Fundamentals fetch ----------
-
 def get_fundamental_features(ticker: str) -> dict:
-    """
-    Fetch a few slow-moving fundamental metrics for the ticker.
-    Prefer FMP API via get_fmp_fundamentals; fall back to Yahoo.
-    """
     feats = {
         "fund_pe_trailing": np.nan,
         "fund_pb": np.nan,
         "fund_market_cap": np.nan,
     }
 
-    # 1) Try FMP
     try:
         fmp_data = get_fmp_fundamentals(ticker)
         if isinstance(fmp_data, dict):
@@ -517,7 +448,6 @@ def get_fundamental_features(ticker: str) -> dict:
     except Exception:
         pass
 
-    # 2) Fallback to Yahoo if still missing
     if any(pd.isna(v) for v in feats.values()):
         try:
             t = yf.Ticker(ticker)
@@ -537,19 +467,12 @@ def get_fundamental_features(ticker: str) -> dict:
 
     return feats
 
-
-# ---------- Build features & target (regression) ----------
-
 def build_features_and_target(
     ticker="^GSPC",
     period="5y",
     horizon=1,
     use_vol_scaled_target: bool = False,
 ):
-    """
-    Build feature matrix X, target vector y, and last-row info.
-    If use_vol_scaled_target=True, predict return / vol_20d.
-    """
     fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
     if period in fallback_periods:
         periods_to_try = [period] + [p for p in fallback_periods if p != period]
@@ -580,7 +503,7 @@ def build_features_and_target(
             else:
                 hist[f"target_ret_{horizon}d_ahead"] = raw_target
 
-            feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS 
+            feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
             df = hist[cols_needed].dropna().copy()
 
@@ -589,13 +512,12 @@ def build_features_and_target(
                     f"Only {len(df)} usable rows for {ticker} with period={per}"
                 )
 
-            feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             X = df[feat_cols].values
             y = df[f"target_ret_{horizon}d_ahead"].values
 
             last_row = df.iloc[-1]
             last_row_features = last_row[feat_cols].values
-            last_close = last_row["Close"]
+            last_close = hist.loc[df.index[-1], "Close"]
             last_vol_20d = last_row["vol_20d"]
 
             return X, y, last_row_features, last_close, last_vol_20d
@@ -609,17 +531,11 @@ def build_features_and_target(
         f"Last error: {last_error}"
     )
 
-
-# ---------- Classification target builder ----------
-
 def build_features_and_direction_target(
     ticker="^GSPC",
     period="5y",
     horizon=1,
 ):
-    """
-    Build X and a direction target: y = 1 if future return > 0, 0 otherwise.
-    """
     X, y_reg, last_feats, last_close, last_vol_20d = build_features_and_target(
         ticker=ticker,
         period=period,
@@ -628,9 +544,6 @@ def build_features_and_direction_target(
     )
     y_dir = (y_reg > 0).astype(int)
     return X, y_dir, last_feats, last_close, last_vol_20d
-
-
-# ---------- Train & predict helpers ----------
 
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg"):
     n = len(X)
@@ -650,7 +563,6 @@ def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg
         acc = accuracy_score(y_test, y_pred)
         return model, acc, None
 
-
 def predict_next_for_ticker(
     ticker="^GSPC",
     period="5y",
@@ -658,10 +570,6 @@ def predict_next_for_ticker(
     horizon=1,
     use_vol_scaled_target: bool = False,
 ):
-    """
-    Train on historical data and return a point forecast for price and return.
-    Also trains a direction classifier on the same features to return prob_up / prob_down.
-    """
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
         ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
     )
@@ -671,7 +579,6 @@ def predict_next_for_ticker(
     X_train, X_test = X[:split_idx], X[split_idx:]
     y_train, y_test = y[:split_idx], y[split_idx:]
 
-    # regression model for returns
     model = make_model(model_type=model_type, random_state=42, task="reg")
     model.fit(X_train, y_train)
 
@@ -680,7 +587,6 @@ def predict_next_for_ticker(
         pred_ret = pred_ret * float(last_vol_20d)
     pred_price = float(last_close * (1 + pred_ret))
 
-    # direction-probability model using same features
     prob_up = None
     prob_down = None
     try:
@@ -707,7 +613,6 @@ def predict_next_for_ticker(
         prob_up = None
         prob_down = None
 
-    # GAF-CNN probability (optional; requires TensorFlow and trained model)
     prob_up_gaf = None
     try:
         prob_up_gaf = predict_up_gaf_cnn(ticker)
@@ -741,18 +646,12 @@ def predict_next_for_ticker(
         "pred_next_price": pred_price,
         "prob_up": prob_up,
         "prob_down": prob_down,
-        "prob_up_gaf": prob_up_gaf,   # CNN-based probability
+        "prob_up_gaf": prob_up_gaf,
         "num_features": len(feat_cols),
         "top_features": top_features_str,
     }
 
-
-# ---------- Tracking & backtests ----------
-
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
-    """
-    Compare model predictions to actual multi-day returns over the past period.
-    """
     try:
         hist = get_price_history(ticker, period=period, interval="1d")
 
@@ -771,7 +670,9 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
             -horizon
         )
 
-        df = hist.dropna().copy()
+        feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+        cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+        df = hist[cols_needed].dropna().copy()
 
         print(f"After dropna for {ticker}: {len(df)} rows")
 
@@ -779,7 +680,6 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
             print(f"Not enough data after feature engineering for {ticker}")
             return pd.DataFrame(), 0.0
 
-        # Flexible split: ~20% test, bounded
         n_rows = len(df)
         min_test = 60
         max_test = 252
@@ -797,7 +697,6 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
 
         print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
 
-        feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
         X_train = train_df[feat_cols].values
         y_train = train_df[f"target_ret_{horizon}d_ahead"].values
 
@@ -811,7 +710,7 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         results = pd.DataFrame(
             {
                 "date": test_df.index,
-                "actual_close": test_df["Close"],
+                "actual_close": hist.loc[test_df.index, "Close"],
                 "predicted_return": y_pred,
                 "actual_return": y_test,
                 "pred_direction": np.sign(y_pred),
@@ -839,7 +738,6 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         traceback.print_exc()
         return pd.DataFrame(), 0.0
 
-
 def backtest_one_ticker(
     ticker="AAPL",
     period="10y",
@@ -848,9 +746,6 @@ def backtest_one_ticker(
     model_type="rf",
     horizon=1,
 ):
-    """
-    Backtest a single model type ('rf', 'gbrt', 'xgb', or 'linreg') on one ticker with multi-day predictions.
-    """
     hist = get_price_history(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
     macro_df = get_macro_df(symbol="^GSPC", period=period)
@@ -863,7 +758,9 @@ def backtest_one_ticker(
         -horizon
     )
 
-    df = hist.dropna().copy()
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+    df = hist[cols_needed].dropna().copy()
 
     cutoff_date = df.index.max() - pd.Timedelta(days=252 * test_years)
     train_mask = df.index <= cutoff_date
@@ -872,7 +769,6 @@ def backtest_one_ticker(
     train_df = df.loc[train_mask].copy()
     test_df = df.loc[test_mask].copy()
 
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     X_train = train_df[feat_cols].values
     y_train = train_df[f"target_ret_{horizon}d_ahead"].values
 
@@ -914,7 +810,6 @@ def backtest_one_ticker(
         "sharpe": sharpe,
     }
 
-
 def backtest_compare_one_ticker(
     ticker="AAPL",
     period="10y",
@@ -922,9 +817,6 @@ def backtest_compare_one_ticker(
     threshold=0.002,
     horizon=1,
 ):
-    """
-    Run backtests for RF, GBRT, and XGBoost on the same ticker with multi-day predictions.
-    """
     rf_res = backtest_one_ticker(
         ticker=ticker,
         period=period,
@@ -951,7 +843,6 @@ def backtest_compare_one_ticker(
     )
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
-
 def walk_forward_backtest(
     ticker="AAPL",
     period="10y",
@@ -962,13 +853,6 @@ def walk_forward_backtest(
     threshold=0.002,
     cost_per_trade=0.0005,
 ):
-    """
-    Walk-forward backtest:
-      - Train on rolling train_years
-      - Test on following test_years
-      - Repeat across the history.
-    Returns a list of dicts with Sharpe, hit_rate, trades per fold.
-    """
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
         return []
@@ -984,11 +868,12 @@ def walk_forward_backtest(
     target_col = f"target_ret_{horizon}d_ahead"
     hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
 
-    df = hist.dropna().copy()
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    cols_needed = feat_cols + [target_col]
+    df = hist[cols_needed].dropna().copy()
+
     if df.empty:
         return []
-
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
 
     fold_metrics = []
     train_days = int(252 * train_years)
@@ -1056,9 +941,6 @@ def walk_forward_backtest(
 
     return fold_metrics
 
-
-# ---------- Linear baseline & p-value analysis ----------
-
 def analyze_feature_significance(
     ticker="^GSPC",
     period="5y",
@@ -1066,11 +948,6 @@ def analyze_feature_significance(
     use_vol_scaled_target: bool = False,
     alpha: float = 0.05,
 ):
-    """
-    Fit an OLS linear model on the same features and return:
-      - ols_model: full statsmodels result (for .summary())
-      - sig_df: DataFrame with feature, coef, p_value, significant flag, sorted by p_value.
-    """
     X, y, _, _, _ = build_features_and_target(
         ticker=ticker,
         period=period,
@@ -1101,13 +978,7 @@ def analyze_feature_significance(
     sig_df = pd.DataFrame(rows).sort_values("p_value")
     return ols_model, sig_df
 
-
-# ---------- Gramian Angular Field helper ----------
-
 def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 30):
-    """
-    Build a Gramian Angular Field (GAF) image from the last `window` returns.
-    """
     r = returns.dropna().values
     if len(r) < window:
         return None, None
@@ -1128,18 +999,12 @@ def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size
 
     return fig, ax
 
-
-# ---------- GAF-CNN inference helper ----------
-
 def predict_up_gaf_cnn(
     ticker: str,
     window: int = 30,
     image_size: int = 30,
     period: str = "3y",
 ) -> float | None:
-    """
-    Use the trained GAF-CNN to estimate P(up) for the next day for a single ticker.
-    """
     if gaf_cnn is None:
         return None
 
@@ -1158,7 +1023,7 @@ def predict_up_gaf_cnn(
 
     gaf = GramianAngularField(image_size=image_size, method="summation")
     X_gaf = gaf.fit_transform(X)
-    X_input = X_gaf[..., np.newaxis]  # (1, H, W, 1)
+    X_input = X_gaf[..., np.newaxis]
 
     try:
         proba = gaf_cnn.predict(X_input, verbose=0)[0]
@@ -1168,14 +1033,7 @@ def predict_up_gaf_cnn(
         print(f"[GAF-CNN] Error during predict for {ticker}: {e}")
         return None
 
-
-# ---------- XGB hyperparameter tuning ----------
-
 def tune_xgb_hyperparams(X, y, random_state=42):
-    """
-    Simple XGBoost hyperparameter tuning with time-series CV.
-    Use offline to find good defaults, not inside the live app loop.
-    """
     tscv = TimeSeriesSplit(n_splits=3)
 
     base_model = XGBRegressor(
@@ -1212,9 +1070,7 @@ def tune_xgb_hyperparams(X, y, random_state=42):
 
     return search.best_estimator_
 
-
 if __name__ == "__main__":
-    # Example: compare all three models on ^GSPC with different horizons
     print("=" * 60)
     print("Testing 1-Day Predictions - All Models")
     print("=" * 60)
