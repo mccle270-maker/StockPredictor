@@ -363,55 +363,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["vol_rollmean_20"] = volume.rolling(20).mean().shift(1)
     hist["vol_rollstd_20"] = volume.rolling(20).std().shift(1)
 
-    ## 10. Relative Strength (Stock - SPX)
-    try:
-        # Download SPX with auto_adjust to suppress warning
-        spx_raw = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False, auto_adjust=True)
-        
-        if not spx_raw.empty:
-            # Force both indices to be timezone-naive BEFORE any operations
-            hist = hist.copy()
-            if hasattr(hist.index, 'tz') and hist.index.tz is not None:
-                hist.index = hist.index.tz_localize(None)
-            
-            if hasattr(spx_raw.index, 'tz') and spx_raw.index.tz is not None:
-                spx_raw.index = spx_raw.index.tz_localize(None)
-            
-            # Now calculate SPX returns
-            spx_close = spx_raw['Close']
-            spx_ret_1d = spx_close.pct_change()
-            spx_ret_3d = spx_close.pct_change(3)
-            spx_ret_5d = spx_close.pct_change(5)
-            
-            # Reindex to match hist (forward fill missing dates)
-            spx_ret_1d_aligned = spx_ret_1d.reindex(hist.index, method='ffill').fillna(0)
-            spx_ret_3d_aligned = spx_ret_3d.reindex(hist.index, method='ffill').fillna(0)
-            spx_ret_5d_aligned = spx_ret_5d.reindex(hist.index, method='ffill').fillna(0)
-            
-            # Calculate stock returns (using hist's close which is now timezone-naive)
-            stock_ret_1d = hist['Close'].pct_change()
-            stock_ret_3d = hist['Close'].pct_change(3)
-            stock_ret_5d = hist['Close'].pct_change(5)
-            
-            # Relative strength = stock return - market return
-            hist['rel_strength_1d'] = (stock_ret_1d - spx_ret_1d_aligned).shift(1)
-            hist['rel_strength_3d'] = (stock_ret_3d - spx_ret_3d_aligned).shift(1)
-            hist['rel_momentum_5d'] = (stock_ret_5d - spx_ret_5d_aligned).shift(1)
-            
-            print(f"[add_price_features] SPX relative strength calculated successfully")
-        else:
-            hist['rel_strength_1d'] = 0.0
-            hist['rel_strength_3d'] = 0.0
-            hist['rel_momentum_5d'] = 0.0
-            print("[add_price_features] SPX data empty, setting relative strength to 0")
-            
-    except Exception as e:
-        print(f"[add_price_features] SPX fetch failed: {e}")
-        hist['rel_strength_1d'] = 0.0
-        hist['rel_strength_3d'] = 0.0
-        hist['rel_momentum_5d'] = 0.0
-
-    # ===== MOVING AVERAGES & BOLLINGER BANDS =====
+    # ===== MOVING AVERAGES & BOLLINGER BANDS (BEFORE SPX) =====
     ma_20 = close.rolling(20).mean()
     ma_50 = close.rolling(50).mean()
     sma_10 = close.rolling(10).mean()
@@ -427,7 +379,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist['bb_upper'] = (ma_20 + 2 * std_20).shift(1)
     hist['bb_lower'] = (ma_20 - 2 * std_20).shift(1)
     hist['bb_mid'] = ma_20.shift(1)
-    hist["bb_width_20"] = ((hist['bb_upper'] - hist['bb_lower']) / (ma_20 + 1e-9)).shift(1)
+    hist["bb_width_20"] = ((hist['bb_upper'] - hist['bb_lower']) / (hist['bb_mid'] + 1e-9))
     hist['bb_pct_b'] = ((close - hist['bb_lower']) / (hist['bb_upper'] - hist['bb_lower'] + 1e-9)).shift(1)
 
     # ===== RSI ENHANCEMENTS =====
@@ -437,6 +389,47 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist['rsi_overbought'] = (hist['rsi_14'] > 70).astype(int).shift(1)
     hist['rsi_oversold'] = (hist['rsi_14'] < 30).astype(int).shift(1)
     hist['rsi_14'] = hist['rsi_14'].shift(1)  # Lag RSI itself
+
+    # ===== RELATIVE STRENGTH (Stock - SPX) - FIXED =====
+    try:
+        spx_raw = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False, auto_adjust=True)
+        
+        if not spx_raw.empty:
+            # Remove timezone from SPX only
+            if hasattr(spx_raw.index, 'tz') and spx_raw.index.tz is not None:
+                spx_raw.index = spx_raw.index.tz_localize(None)
+            
+            # Match hist's timezone (add it back if hist has one)
+            if hasattr(hist.index, 'tz') and hist.index.tz is not None:
+                spx_raw.index = spx_raw.index.tz_localize(hist.index.tz)
+            
+            # Calculate SPX returns
+            spx_ret_1d = spx_raw['Close'].pct_change()
+            spx_ret_3d = spx_raw['Close'].pct_change(3)
+            spx_ret_5d = spx_raw['Close'].pct_change(5)
+            
+            # Reindex to match hist
+            spx_ret_1d = spx_ret_1d.reindex(hist.index, method='ffill').fillna(0)
+            spx_ret_3d = spx_ret_3d.reindex(hist.index, method='ffill').fillna(0)
+            spx_ret_5d = spx_ret_5d.reindex(hist.index, method='ffill').fillna(0)
+            
+            # Calculate relative strength (don't use 'close' variable, use hist['Close'])
+            hist['rel_strength_1d'] = (hist['Close'].pct_change() - spx_ret_1d).shift(1)
+            hist['rel_strength_3d'] = (hist['Close'].pct_change(3) - spx_ret_3d).shift(1)
+            hist['rel_momentum_5d'] = (hist['Close'].pct_change(5) - spx_ret_5d).shift(1)
+            
+            print(f"[add_price_features] SPX relative strength calculated successfully")
+        else:
+            hist['rel_strength_1d'] = 0.0
+            hist['rel_strength_3d'] = 0.0
+            hist['rel_momentum_5d'] = 0.0
+            print("[add_price_features] SPX data empty, setting relative strength to 0")
+            
+    except Exception as e:
+        print(f"[add_price_features] SPX fetch failed: {e}")
+        hist['rel_strength_1d'] = 0.0
+        hist['rel_strength_3d'] = 0.0
+        hist['rel_momentum_5d'] = 0.0
 
     # ===== INTRADAY STRUCTURE =====
     hist["high_low_ratio"] = (high / (low + 1e-9)).shift(1)
