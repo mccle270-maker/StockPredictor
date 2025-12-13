@@ -505,7 +505,15 @@ def build_features_and_target(
 
             feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
             cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+
+            # DEBUG: print what we have before dropna
+            print(f"[DEBUG {ticker}] Before dropna: {len(hist)} rows")
+            nan_counts = hist[cols_needed].isna().sum()
+            print(f"[DEBUG {ticker}] NaNs per column:\n{nan_counts[nan_counts > 0]}")
+
             df = hist[cols_needed].dropna().copy()
+
+            print(f"[DEBUG {ticker}] After dropna: {len(df)} rows")
 
             if df.empty or len(df) < min_rows:
                 raise ValueError(
