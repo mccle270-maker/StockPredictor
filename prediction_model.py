@@ -580,7 +580,9 @@ def build_features_and_target(
             else:
                 hist[f"target_ret_{horizon}d_ahead"] = raw_target
 
-            df = hist.dropna().copy()
+            feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS 
+            cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+            df = hist[cols_needed].dropna().copy()
 
             if df.empty or len(df) < min_rows:
                 raise ValueError(
