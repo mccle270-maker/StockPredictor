@@ -674,20 +674,55 @@ def predict_next_for_ticker(
     model_type="rf",
     horizon=1,
     use_vol_scaled_target: bool = False,
+    auto_optimize: bool = True,  # NEW: Enable auto feature pruning
 ):
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
         ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
     )
 
+    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     n = len(X)
-    split_idx = int(n * 0.8)
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
+    
+    if auto_optimize:
+        # Use validation set to prune features
+        train_end = int(n * 0.8)
+        val_end = int(n * 0.9)
+        
+        X_train = X[:train_end]
+        y_train = y[:train_end]
+        X_val = X[train_end:val_end]
+        y_val = y[train_end:val_end]
+        
+        # Train initial model to get feature importance
+        model_init = make_model(model_type=model_type, random_state=42, task="reg")
+        model_init.fit(X_train, y_train)
+        
+        # Prune weak features
+        importance = model_init.feature_importances_
+        important_mask = importance > 0.001  # Drop features <0.1% importance
+        important_features = [feat_cols[i] for i in range(len(feat_cols)) if important_mask[i]]
+        
+        print(f"[{ticker}] Using {len(important_features)}/{len(feat_cols)} features for prediction")
+        
+        # Retrain on full training data (80%) with pruned features
+        X_train_full = X[:train_end][:, important_mask]
+        y_train_full = y[:train_end]
+        x_last_pruned = x_last[important_mask]
+        
+        # Update feat_cols for feature importance display
+        feat_cols = important_features
+    else:
+        # Original behavior - use all features
+        split_idx = int(n * 0.8)
+        X_train_full = X[:split_idx]
+        y_train_full = y[:split_idx]
+        x_last_pruned = x_last
 
+    # Train final model
     model = make_model(model_type=model_type, random_state=42, task="reg")
-    model.fit(X_train, y_train)
+    model.fit(X_train_full, y_train_full)
 
-    pred_ret = float(model.predict(x_last.reshape(1, -1))[0])
+    pred_ret = float(model.predict(x_last_pruned.reshape(1, -1))[0])
     if use_vol_scaled_target:
         pred_ret = pred_ret * float(last_vol_20d)
     pred_price = float(last_close * (1 + pred_ret))
@@ -696,13 +731,13 @@ def predict_next_for_ticker(
     prob_down = None
     try:
         y_dir = (y > 0).astype(int)
-        y_dir_train = y_dir[:split_idx]
+        y_dir_train = y_dir[:len(X_train_full)]
 
         clf = make_model(model_type=model_type, random_state=42, task="clf")
-        clf.fit(X_train, y_dir_train)
+        clf.fit(X_train_full, y_dir_train)
 
         if hasattr(clf, "predict_proba"):
-            proba = clf.predict_proba(x_last.reshape(1, -1))[0]
+            proba = clf.predict_proba(x_last_pruned.reshape(1, -1))[0]
             if hasattr(clf, "classes_") and 1 in clf.classes_:
                 idx_up = list(clf.classes_).index(1)
                 prob_up = float(proba[idx_up])
@@ -711,7 +746,7 @@ def predict_next_for_ticker(
                 prob_up = float(proba.max())
                 prob_down = float(1.0 - prob_up)
         else:
-            pred_dir = int(clf.predict(x_last.reshape(1, -1))[0])
+            pred_dir = int(clf.predict(x_last_pruned.reshape(1, -1))[0])
             prob_up = 1.0 if pred_dir == 1 else 0.0
             prob_down = 1.0 - prob_up
     except Exception:
@@ -728,7 +763,6 @@ def predict_next_for_ticker(
     fund_feats = get_fundamental_features(ticker)
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     if hasattr(model, "feature_importances_"):
         feature_importance = dict(zip(feat_cols, model.feature_importances_))
         top_features = sorted(
