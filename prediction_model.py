@@ -1,3 +1,4 @@
+# prediction_model.py
 import os
 import numpy as np
 import pandas as pd
@@ -7,16 +8,19 @@ import datetime as dt           # NEW
 import requests                 # NEW
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
-...
+from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
+from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+from sklearn.linear_model import LinearRegression
+import statsmodels.api as sm
+
 from xgboost import XGBRegressor, XGBClassifier
 
-# OLD:
-# from data_fetch import get_history, get_history_cached, get_fmp_fundamentals
 # NEW: keep the original cached Yahoo history import under a different name
-from data_fetch import get_history as get_history_yahoo_raw, get_history_cached as get_history_yahoo, get_fmp_fundamentals
-
-# NEW: alternative data source
-from pandas_datareader import data as pdr  # pip install pandas-datareader
+from data_fetch import (
+    get_history as get_history_yahoo_raw,
+    get_history_cached as get_history_yahoo,
+    get_fmp_fundamentals,
+)
 
 # NEW: option pricing engines (Black–Scholes + Heston)
 from option_pricing import (
@@ -48,28 +52,6 @@ def price_atm_call_for_ticker(
 ) -> float | None:
     """
     Convenience function to get a theoretical ATM call price for a ticker.
-
-    Parameters
-    ----------
-    ticker : str
-        Underlying ticker.
-    expiry : pd.Timestamp or ISO date string
-        Option expiry date.
-    spot : float
-        Current spot price.
-    atm_iv : float or None
-        ATM implied volatility (fallback to 0.2 if None).
-    model : PricingModel
-        BLACK_SCHOLES or HESTON.
-    risk_free : float
-        Constant risk-free rate.
-    div_yield : float
-        Continuous dividend yield.
-
-    Returns
-    -------
-    float or None
-        Theoretical ATM call price, or None on error.
     """
     try:
         if isinstance(expiry, str):
@@ -107,17 +89,13 @@ def price_atm_call_for_ticker(
 from pyts.image import GramianAngularField  # pip install pyts
 import matplotlib.pyplot as plt              # used to render GAF heatmaps
 
-
 # ---------- Optional GAF-CNN model (TensorFlow) ----------
 
-
 gaf_cnn = None
-
 
 try:
     from tensorflow import keras  # requires a TF-capable environment
     GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
-
 
     if os.path.exists(GAF_CNN_MODEL_PATH):
         print(f"[GAF-CNN] Loading model from {GAF_CNN_MODEL_PATH}...")
@@ -132,20 +110,16 @@ except Exception as e:
 
 # ---------- Technical indicator helpers ----------
 
-
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
     delta = df[price_col].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
 
-
     avg_gain = gain.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
     avg_loss = loss.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
 
-
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
-
 
     df[f"rsi_{window}"] = rsi
     return df
@@ -155,11 +129,9 @@ def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signa
     ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
     ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
 
-
     macd = ema_fast - ema_slow
     macd_signal = macd.ewm(span=signal, adjust=False).mean()
     macd_hist = macd - macd_signal
-
 
     df["macd"] = macd
     df["macd_signal"] = macd_signal
@@ -171,19 +143,15 @@ def add_mfi(df, window: int = 14):
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
     rmf = tp * df["Volume"]
 
-
     tp_shift = tp.shift(1)
     pos_mf = rmf.where(tp > tp_shift, 0.0)
     neg_mf = rmf.where(tp < tp_shift, 0.0)
 
-
     pos_mf_sum = pos_mf.rolling(window=window, min_periods=window).sum()
     neg_mf_sum = neg_mf.rolling(window=window, min_periods=window).sum()
 
-
     money_flow_ratio = pos_mf_sum / neg_mf_sum.replace(0, np.nan)
     mfi = 100 - (100 / (1 + money_flow_ratio))
-
 
     df[f"mfi_{window}"] = mfi
     return df
@@ -199,34 +167,168 @@ def add_technical_indicators(df):
 
 # ---------- Fundamentals & macro ----------
 
-
 FUNDAMENTAL_COLUMNS = [
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
 ]
 
-
-MACRO_COLUMNS = ["mkt_ret_1d"]
+# UPDATED: macro feature names
+MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix"]
 _macro_cache = {}
+
+# NEW: FRED API key for macro data
+FRED_API_KEY = os.environ.get("FRED_API_KEY")  # set in env or via app.py
+
+
+def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
+    """
+    Fetch a single daily FRED series between start and end (inclusive). [web:802][web:837]
+    """
+    if FRED_API_KEY is None:
+        raise RuntimeError("FRED_API_KEY not set in environment")
+
+    url = (
+        "https://api.stlouisfed.org/fred/series/observations"
+        f"?series_id={series_id}"
+        f"&api_key={FRED_API_KEY}"
+        "&file_type=json"
+        f"&observation_start={start.isoformat()}"
+        f"&observation_end={end.isoformat()}"
+    )
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    data = resp.json().get("observations", [])
+
+    dates = []
+    values = []
+    for obs in data:
+        d = obs.get("date")
+        v = obs.get("value")
+        if v in (".", None):
+            continue
+        dates.append(pd.to_datetime(d))
+        values.append(float(v))
+
+    return pd.Series(values, index=pd.DatetimeIndex(dates))
+
+
+# ---------- Multi-source price history (Yahoo + Stooq fallback) ----------
+
+def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
+    """
+    Unified price history loader.
+    1) Try your existing Yahoo cached history.
+    2) If that fails or is empty, fall back to Stooq via CSV. [web:803][web:831]
+    3) Last resort: raw Yahoo getter.
+    """
+    # 1) Try existing Yahoo cached function
+    try:
+        df = get_history_yahoo(ticker, period=period, interval=interval)
+        if df is not None and not df.empty:
+            return df
+    except Exception as e:
+        print(f"[get_price_history] Yahoo cached failed for {ticker} ({period}): {e}")
+
+    # 2) Fallback: Stooq daily CSV
+    try:
+        if interval != "1d":
+            raise ValueError("Stooq fallback only supports daily interval")
+
+        stooq_symbol = f"{ticker.lower()}.us"
+        url = f"https://stooq.com/q/d/l/?s={stooq_symbol}&i=d"
+        raw = pd.read_csv(url)
+
+        if raw.empty:
+            raise ValueError("Empty Stooq CSV")
+
+        raw["Date"] = pd.to_datetime(raw["Date"])
+        raw = raw.set_index("Date").sort_index()  # oldest → newest
+
+        years_map = {"10y": 10, "5y": 5, "3y": 3, "2y": 2, "1y": 1}
+        months_map = {"6mo": 0.5, "3mo": 0.25}
+        today = dt.date.today()
+
+        if period in years_map:
+            start_date = today - dt.timedelta(days=365 * years_map[period])
+        elif period in months_map:
+            start_date = today - dt.timedelta(days=int(365 * months_map[period]))
+        else:
+            start_date = raw.index.min().date()
+
+        df = raw[raw.index.date >= start_date].copy()
+
+        rename_map = {
+            "Open": "Open",
+            "High": "High",
+            "Low": "Low",
+            "Close": "Close",
+            "Volume": "Volume",
+        }
+        df = df.rename(columns=rename_map)
+
+        print(f"[get_price_history] Using Stooq data for {ticker} ({period}), rows={len(df)}")
+        return df
+    except Exception as e:
+        print(f"[get_price_history] Stooq failed for {ticker}: {e}")
+
+    # 3) Last resort: raw Yahoo
+    try:
+        df = get_history_yahoo_raw(ticker, period=period, interval=interval)
+        if df is not None and not df.empty:
+            print(f"[get_price_history] Fallback to raw Yahoo for {ticker}")
+            return df
+    except Exception as e:
+        print(f"[get_price_history] Raw Yahoo fallback failed for {ticker}: {e}")
+
+    raise ValueError(f"No price history available for {ticker} with period={period}")
 
 
 def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
+    """
+    Build a macro panel aligned to your price history index:
+    - mkt_ret_1d: SPX 1-day return
+    - t10y: 10-year Treasury yield (DGS10)
+    - term_spread: 10y - 3m yield (DGS10 - DGS3MO)
+    - vix: CBOE VIX index level (VIXCLS)
+    """
     key = (symbol, period)
     if key in _macro_cache:
         return _macro_cache[key]
 
-
-    t = yf.Ticker(symbol)
-    hist = t.history(period=period, interval="1d")
+    hist = get_price_history(symbol, period=period, interval="1d")
     df = pd.DataFrame(index=hist.index)
     df["mkt_ret_1d"] = hist["Close"].pct_change()
-    _macro_cache[key] = df
-    return df
+
+    if FRED_API_KEY is None:
+        print("[get_macro_df] FRED_API_KEY not set; using only mkt_ret_1d")
+        _macro_cache[key] = df
+        return df
+
+    try:
+        start_date = df.index.min().date()
+        end_date = df.index.max().date()
+
+        s10 = _get_fred_series("DGS10", start_date, end_date)
+        s3m = _get_fred_series("DGS3MO", start_date, end_date)
+        vix = _get_fred_series("VIXCLS", start_date, end_date)
+
+        macro = pd.DataFrame(index=df.index)
+        macro["t10y"] = s10.reindex(df.index).ffill()
+        macro["t3m"] = s3m.reindex(df.index).ffill()
+        macro["vix"] = vix.reindex(df.index).ffill()
+        macro["term_spread"] = macro["t10y"] - macro["t3m"]
+
+        full = df.join(macro[["t10y", "term_spread", "vix"]], how="left")
+        _macro_cache[key] = full
+        return full
+    except Exception as e:
+        print(f"[get_macro_df] FRED fetch failed: {e}")
+        _macro_cache[key] = df
+        return df
 
 
 # ---------- Feature columns ----------
-
 
 FEATURE_COLUMNS = [
     "ret_1d",
@@ -234,24 +336,19 @@ FEATURE_COLUMNS = [
     "ret_20d",
     "vol_20d",
 
-
     "sma_ratio_10_50",
     "rsi_14",
     "price_to_ma50",
 
-
     "bb_width_20",
-
 
     "volume_price_corr",
     "volume_trend",
     "vol_ma_20",
     "vol_spike_20",
 
-
     "vol_rollmean_20",
     "vol_rollstd_20",
-
 
     "high_low_ratio",
     "daily_range",
@@ -259,16 +356,13 @@ FEATURE_COLUMNS = [
     "hl_range",
     "atr_14",
 
-
     "day_of_week",
     "month",
     "is_month_end",
 
-
     "fund_pe_trailing",
     "fund_pb",
     "fund_market_cap",
-
 
     "macd",
     "macd_signal",
@@ -279,38 +373,31 @@ FEATURE_COLUMNS = [
 
 # ---------- Price feature engineering ----------
 
-
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
-
 
     close = hist["Close"]
     high = hist["High"]
     low = hist["Low"]
     volume = hist["Volume"]
 
-
     hist["ret_1d"] = close.pct_change()
     hist["ret_5d"] = close.pct_change(5)
     hist["ret_20d"] = close.pct_change(20)
     hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
 
-
     hist["ret_1d_lag1"] = hist["ret_1d"].shift(1)
     hist["ret_1d_lag2"] = hist["ret_1d"].shift(2)
     hist["ret_1d_lag5"] = hist["ret_1d"].shift(5)
-
 
     hist["ret_1d_rollmean_5"] = hist["ret_1d"].rolling(5).mean()
     hist["ret_1d_rollstd_5"] = hist["ret_1d"].rolling(5).std()
     hist["ret_1d_rollmean_10"] = hist["ret_1d"].rolling(10).mean()
     hist["ret_1d_rollstd_10"] = hist["ret_1d"].rolling(10).std()
 
-
     sma_10 = close.rolling(10).mean()
     sma_50 = close.rolling(50).mean()
     hist["sma_ratio_10_50"] = sma_10 / (sma_50 + 1e-9)
-
 
     sma_20 = close.rolling(20).mean()
     std_20 = close.rolling(20).std()
@@ -318,49 +405,38 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     lower_20 = sma_20 - 2 * std_20
     hist["bb_width_20"] = (upper_20 - lower_20) / (sma_20 + 1e-9)
 
-
     hist["price_to_ma50"] = close / (sma_50 + 1e-9)
 
-
     hist["volume_price_corr"] = hist["ret_1d"].rolling(20).corr(volume.pct_change())
-
 
     vol_ma_10 = volume.rolling(10).mean()
     vol_ma_30 = volume.rolling(30).mean()
     hist["volume_trend"] = vol_ma_10 / (vol_ma_30 + 1e-9)
 
-
     hist["vol_ma_20"] = volume.rolling(20).mean()
     hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
     hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
 
-
     hist["vol_rollmean_20"] = volume.rolling(20).mean()
     hist["vol_rollstd_20"] = volume.rolling(20).std()
-
 
     hist["high_low_ratio"] = high / (low + 1e-9)
     hist["daily_range"] = (high - low) / (close + 1e-9)
     hist["close_position"] = (close - low) / (high - low + 1e-9)
 
-
     hist["hl_range"] = (high - low) / (close.shift(1) + 1e-9)
     hist["atr_14"] = hist["hl_range"].rolling(14).mean()
-
 
     hist["day_of_week"] = hist.index.dayofweek
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
-
     hist = add_technical_indicators(hist)
-
 
     return hist
 
 
 # ---------- Model factory ----------
-
 
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
     """
@@ -386,7 +462,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
                 random_state=random_state,
                 n_jobs=-1,
             )
-
 
     # regression models
     if model_type == "linreg":
@@ -421,8 +496,6 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
 
 # ---------- Fundamentals fetch ----------
 
-# (everything from here down is unchanged)
-
 def get_fundamental_features(ticker: str) -> dict:
     """
     Fetch a few slow-moving fundamental metrics for the ticker.
@@ -433,9 +506,6 @@ def get_fundamental_features(ticker: str) -> dict:
         "fund_pb": np.nan,
         "fund_market_cap": np.nan,
     }
-
-    # ... REST OF YOUR FILE UNCHANGED ...
-
 
     # 1) Try FMP
     try:
@@ -467,6 +537,7 @@ def get_fundamental_features(ticker: str) -> dict:
 
     return feats
 
+
 # ---------- Build features & target (regression) ----------
 
 def build_features_and_target(
@@ -490,7 +561,7 @@ def build_features_and_target(
 
     for per in periods_to_try:
         try:
-            hist = get_history_cached(ticker, period=per, interval="1d")
+            hist = get_price_history(ticker, period=per, interval="1d")
             if hist is None or hist.empty:
                 raise ValueError(f"No raw history for {ticker} with period={per}")
 
@@ -536,6 +607,7 @@ def build_features_and_target(
         f"Last error: {last_error}"
     )
 
+
 # ---------- Classification target builder ----------
 
 def build_features_and_direction_target(
@@ -554,6 +626,7 @@ def build_features_and_direction_target(
     )
     y_dir = (y_reg > 0).astype(int)
     return X, y_dir, last_feats, last_close, last_vol_20d
+
 
 # ---------- Train & predict helpers ----------
 
@@ -574,6 +647,7 @@ def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg
     else:
         acc = accuracy_score(y_test, y_pred)
         return model, acc, None
+
 
 def predict_next_for_ticker(
     ticker="^GSPC",
@@ -665,10 +739,11 @@ def predict_next_for_ticker(
         "pred_next_price": pred_price,
         "prob_up": prob_up,
         "prob_down": prob_down,
-        "prob_up_gaf": prob_up_gaf,   # NEW: CNN-based probability
+        "prob_up_gaf": prob_up_gaf,   # CNN-based probability
         "num_features": len(feat_cols),
         "top_features": top_features_str,
     }
+
 
 # ---------- Tracking & backtests ----------
 
@@ -677,7 +752,7 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
     Compare model predictions to actual multi-day returns over the past period.
     """
     try:
-        hist = get_history(ticker, period=period, interval="1d")
+        hist = get_price_history(ticker, period=period, interval="1d")
 
         if hist.empty or len(hist) < 50:
             print(f"Insufficient data for {ticker}: only {len(hist)} rows")
@@ -702,9 +777,7 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
             print(f"Not enough data after feature engineering for {ticker}")
             return pd.DataFrame(), 0.0
 
-        # Flexible split:
-        # - aim for ~20% of data in the test set
-        # - but keep it between 60 and 252 rows (about 3 months to 1 year)
+        # Flexible split: ~20% test, bounded
         n_rows = len(df)
         min_test = 60
         max_test = 252
@@ -764,6 +837,7 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         traceback.print_exc()
         return pd.DataFrame(), 0.0
 
+
 def backtest_one_ticker(
     ticker="AAPL",
     period="10y",
@@ -775,7 +849,7 @@ def backtest_one_ticker(
     """
     Backtest a single model type ('rf', 'gbrt', 'xgb', or 'linreg') on one ticker with multi-day predictions.
     """
-    hist = get_history(ticker, period=period, interval="1d")
+    hist = get_price_history(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
     macro_df = get_macro_df(symbol="^GSPC", period=period)
     hist = hist.join(macro_df, how="left")
@@ -838,6 +912,7 @@ def backtest_one_ticker(
         "sharpe": sharpe,
     }
 
+
 def backtest_compare_one_ticker(
     ticker="AAPL",
     period="10y",
@@ -874,6 +949,7 @@ def backtest_compare_one_ticker(
     )
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
+
 def walk_forward_backtest(
     ticker="AAPL",
     period="10y",
@@ -891,7 +967,7 @@ def walk_forward_backtest(
       - Repeat across the history.
     Returns a list of dicts with Sharpe, hit_rate, trades per fold.
     """
-    hist = get_history(ticker, period=period, interval="1d")
+    hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
         return []
 
@@ -978,6 +1054,7 @@ def walk_forward_backtest(
 
     return fold_metrics
 
+
 # ---------- Linear baseline & p-value analysis ----------
 
 def analyze_feature_significance(
@@ -991,9 +1068,6 @@ def analyze_feature_significance(
     Fit an OLS linear model on the same features and return:
       - ols_model: full statsmodels result (for .summary())
       - sig_df: DataFrame with feature, coef, p_value, significant flag, sorted by p_value.
-
-    Use this offline / from the app to inspect which indicators are statistically significant
-    for a given ticker and horizon.
     """
     X, y, _, _, _ = build_features_and_target(
         ticker=ticker,
@@ -1025,7 +1099,8 @@ def analyze_feature_significance(
     sig_df = pd.DataFrame(rows).sort_values("p_value")
     return ols_model, sig_df
 
-# ---------- Gramian Angular Field helper (NEW) ----------
+
+# ---------- Gramian Angular Field helper ----------
 
 def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 30):
     """
@@ -1051,7 +1126,8 @@ def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size
 
     return fig, ax
 
-# ---------- GAF-CNN inference helper (NEW) ----------
+
+# ---------- GAF-CNN inference helper ----------
 
 def predict_up_gaf_cnn(
     ticker: str,
@@ -1061,16 +1137,11 @@ def predict_up_gaf_cnn(
 ) -> float | None:
     """
     Use the trained GAF-CNN to estimate P(up) for the next day for a single ticker.
-
-    Returns
-    -------
-    float or None
-        Probability of an up move according to the CNN, or None if unavailable.
     """
     if gaf_cnn is None:
         return None
 
-    hist = get_history_cached(ticker, period=period, interval="1d")
+    hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty or len(hist) < window + 1:
         return None
 
@@ -1094,6 +1165,7 @@ def predict_up_gaf_cnn(
     except Exception as e:
         print(f"[GAF-CNN] Error during predict for {ticker}: {e}")
         return None
+
 
 # ---------- XGB hyperparameter tuning ----------
 
@@ -1137,6 +1209,7 @@ def tune_xgb_hyperparams(X, y, random_state=42):
     print("Best CV score (neg MSE):", search.best_score_)
 
     return search.best_estimator_
+
 
 if __name__ == "__main__":
     # Example: compare all three models on ^GSPC with different horizons

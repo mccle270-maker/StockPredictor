@@ -148,12 +148,32 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
     except Exception as e:
         print(f"[get_price_history] Yahoo cached failed for {ticker} ({period}): {e}")
 
-    # 2) Fallback: Stooq via pandas-datareader (daily only)
+    # 2) Fallback: Stooq via direct CSV download (daily only)
     try:
-        raw = pdr.DataReader(ticker, "stooq")  # newest rows first
-        raw = raw.sort_index()                 # oldest → newest
+        # Stooq symbol format: AAPL.US, MSFT.US, etc.
+        stooq_symbol = f"{ticker.upper()}.US"
 
-        # Map 'period' string to approx start date
+        url = f"https://stooq.com/q/d/l/?s={stooq_symbol}&i=d"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+
+        raw = pd.read_csv(
+            pd.compat.StringIO(resp.text)
+            if hasattr(pd, "compat") and hasattr(pd.compat, "StringIO")
+            else pd.read_csv(url)
+        )
+    except Exception:
+        # Fallback if pd.compat.StringIO not available – use direct read_csv from URL
+        try:
+            raw = pd.read_csv(url)
+        except Exception as e2:
+            print(f"[get_price_history] Stooq failed for {ticker}: {e2}")
+            raw = None
+
+    if raw is not None and not raw.empty:
+        raw["Date"] = pd.to_datetime(raw["Date"])
+        raw = raw.set_index("Date").sort_index()  # oldest → newest
+
         years_map = {"10y": 10, "5y": 5, "3y": 3, "2y": 2, "1y": 1}
         months_map = {"6mo": 0.5, "3mo": 0.25}
         today = dt.date.today()
@@ -167,7 +187,6 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
 
         df = raw[raw.index.date >= start_date].copy()
 
-        # Rename columns to match yfinance format if needed
         rename_map = {
             "Open": "Open",
             "High": "High",
@@ -179,8 +198,7 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
 
         print(f"[get_price_history] Using Stooq data for {ticker} ({period}), rows={len(df)}")
         return df
-    except Exception as e:
-        print(f"[get_price_history] Stooq failed for {ticker}: {e}")
+
 
     # 3) Last resort: try your original raw Yahoo getter (if it behaves differently)
     try:
