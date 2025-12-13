@@ -286,6 +286,10 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
 
                 # Normalize stock index to date-only for alignment with FRED
         df_dates = df.index.normalize()
+
+        print(f"[DEBUG FRED] Stock date range: {df.index.min()} to {df.index.max()}")
+        print(f"[DEBUG FRED] Stock normalized: {df_dates.min()} to {df_dates.max()}")
+        print(f"[DEBUG FRED] FRED date range: {s10.index.min()} to {s10.index.max()}")
         
         macro = pd.DataFrame(index=df.index)
         macro["t10y"] = s10.reindex(df_dates).ffill().bfill().values
