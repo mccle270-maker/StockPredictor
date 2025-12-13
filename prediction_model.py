@@ -266,7 +266,6 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         s3m = _get_fred_series("DGS3MO", start_date, end_date)
         vix = _get_fred_series("VIXCLS", start_date, end_date)
 
-        # Normalize and remove timezone to match FRED's naive timestamps
         df_dates = df.index.normalize().tz_localize(None)
         
         df["t10y"] = s10.reindex(df_dates).ffill().bfill().values
@@ -281,47 +280,30 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         _macro_cache[key] = df
         return df
 
+# ⭐ UPDATED FEATURE COLUMNS - Added new Tier-1 features
 FEATURE_COLUMNS = [
-    "ret_1d",
-    "ret_5d",
-    "ret_20d",
-    "vol_20d",
-
-    "sma_ratio_10_50",
-    "rsi_14",
-    "price_to_ma50",
-
+    # Existing features
+    "ret_1d", "ret_5d", "ret_20d", "vol_20d",
+    "sma_ratio_10_50", "rsi_14", "price_to_ma50",
     "bb_width_20",
-
-    "volume_price_corr",
-    "volume_trend",
-    "vol_ma_20",
-    "vol_spike_20",
-
-    "vol_rollmean_20",
-    "vol_rollstd_20",
-
-    "high_low_ratio",
-    "daily_range",
-    "close_position",
-    "hl_range",
-    "atr_14",
-
-    "day_of_week",
-    "month",
-    "is_month_end",
-
-    "fund_pe_trailing",
-    "fund_pb",
-    "fund_market_cap",
-
-    "macd",
-    "macd_signal",
-    "macd_hist",
-    "mfi_14",
+    "volume_price_corr", "volume_trend", "vol_ma_20", "vol_spike_20",
+    "vol_rollmean_20", "vol_rollstd_20",
+    "high_low_ratio", "daily_range", "close_position", "hl_range",
+    "day_of_week", "month", "is_month_end",
+    "fund_pe_trailing", "fund_pb", "fund_market_cap",
+    "macd", "macd_signal", "macd_hist", "mfi_14",
+    
+    # NEW Tier-1 features
+    'ret_3d', 'cum_ret_3d', 'cum_ret_5d', 'ret_zscore_20d',
+    'atr_14', 'vol_10d', 'vol_60d', 'vol_ratio_10_60', 'vol_regime_high', 'range_atr_ratio',
+    'volume_zscore', 'dollar_volume', 'dollar_volume_20d_avg', 'ret_vol_interaction',
+    'rel_strength_1d', 'rel_strength_3d', 'rel_momentum_5d',
+    'rsi_change_1d', 'rsi_change_3d', 'rsi_overbought', 'rsi_oversold',
+    'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b', 'ma_20', 'price_minus_20dma', 'ma_20_slope',
 ]
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
+    """Add all technical + momentum + volume features with proper lagging"""
     hist = hist.copy()
 
     close = hist["Close"]
@@ -329,57 +311,124 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     low = hist["Low"]
     volume = hist["Volume"]
 
-    hist["ret_1d"] = close.pct_change()
-    hist["ret_5d"] = close.pct_change(5)
-    hist["ret_20d"] = close.pct_change(20)
-    hist["vol_20d"] = hist["ret_1d"].rolling(20).std()
+    # ===== BASIC RETURNS (properly lagged) =====
+    hist["ret_1d"] = close.pct_change().shift(1)
+    hist["ret_3d"] = close.pct_change(3).shift(1)
+    hist["ret_5d"] = close.pct_change(5).shift(1)
+    hist["ret_20d"] = close.pct_change(20).shift(1)
+    
+    # Cumulative returns
+    hist['cum_ret_3d'] = (1 + close.pct_change()).rolling(3).apply(lambda x: x.prod() - 1, raw=True).shift(1)
+    hist['cum_ret_5d'] = (1 + close.pct_change()).rolling(5).apply(lambda x: x.prod() - 1, raw=True).shift(1)
+    
+    # ===== VOLATILITY FEATURES =====
+    hist['vol_10d'] = close.pct_change().rolling(10).std().shift(1)
+    hist["vol_20d"] = close.pct_change().rolling(20).std().shift(1)
+    hist['vol_60d'] = close.pct_change().rolling(60).std().shift(1)
+    
+    # Volatility ratio and regime
+    hist['vol_ratio_10_60'] = (hist['vol_10d'] / (hist['vol_60d'] + 1e-9)).shift(1)
+    hist['vol_regime_high'] = (hist['vol_10d'] > hist['vol_20d'].rolling(60).quantile(0.75)).astype(int).shift(1)
+    
+    # Return z-score
+    ret_mean_20d = close.pct_change().rolling(20).mean()
+    ret_std_20d = close.pct_change().rolling(20).std()
+    hist['ret_zscore_20d'] = ((close.pct_change() - ret_mean_20d) / (ret_std_20d + 1e-9)).shift(1)
 
-    hist["ret_1d_lag1"] = hist["ret_1d"].shift(1)
-    hist["ret_1d_lag2"] = hist["ret_1d"].shift(2)
-    hist["ret_1d_lag5"] = hist["ret_1d"].shift(5)
+    # ===== ATR (Average True Range) =====
+    high_low = high - low
+    high_close = (high - close.shift(1)).abs()
+    low_close = (low - close.shift(1)).abs()
+    true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+    hist['atr_14'] = true_range.rolling(14).mean().shift(1)
+    hist['range_atr_ratio'] = ((high - low) / (hist['atr_14'] + 1e-9)).shift(1)
 
-    hist["ret_1d_rollmean_5"] = hist["ret_1d"].rolling(5).mean()
-    hist["ret_1d_rollstd_5"] = hist["ret_1d"].rolling(5).std()
-    hist["ret_1d_rollmean_10"] = hist["ret_1d"].rolling(10).mean()
-    hist["ret_1d_rollstd_10"] = hist["ret_1d"].rolling(10).std()
+    # ===== VOLUME FEATURES =====
+    vol_mean_20d = volume.rolling(20).mean()
+    vol_std_20d = volume.rolling(20).std()
+    hist['volume_zscore'] = ((volume - vol_mean_20d) / (vol_std_20d + 1e-9)).shift(1)
+    
+    hist['dollar_volume'] = (close * volume).shift(1)
+    hist['dollar_volume_20d_avg'] = hist['dollar_volume'].rolling(20).mean().shift(1)
+    
+    hist['ret_vol_interaction'] = (close.pct_change() * hist['volume_zscore']).shift(1)
 
-    sma_10 = close.rolling(10).mean()
-    sma_50 = close.rolling(50).mean()
-    hist["sma_ratio_10_50"] = sma_10 / (sma_50 + 1e-9)
-
-    sma_20 = close.rolling(20).mean()
-    std_20 = close.rolling(20).std()
-    upper_20 = sma_20 + 2 * std_20
-    lower_20 = sma_20 - 2 * std_20
-    hist["bb_width_20"] = (upper_20 - lower_20) / (sma_20 + 1e-9)
-
-    hist["price_to_ma50"] = close / (sma_50 + 1e-9)
-
-    hist["volume_price_corr"] = hist["ret_1d"].rolling(20).corr(volume.pct_change())
-
+    # Old volume features (keep for compatibility)
+    hist["volume_price_corr"] = close.pct_change().rolling(20).corr(volume.pct_change()).shift(1)
     vol_ma_10 = volume.rolling(10).mean()
     vol_ma_30 = volume.rolling(30).mean()
-    hist["volume_trend"] = vol_ma_10 / (vol_ma_30 + 1e-9)
+    hist["volume_trend"] = (vol_ma_10 / (vol_ma_30 + 1e-9)).shift(1)
+    hist["vol_ma_20"] = volume.rolling(20).mean().shift(1)
+    hist["vol_spike_20"] = (volume / (hist["vol_ma_20"] + 1e-9)).shift(1)
+    hist["vol_rollmean_20"] = volume.rolling(20).mean().shift(1)
+    hist["vol_rollstd_20"] = volume.rolling(20).std().shift(1)
 
-    hist["vol_ma_20"] = volume.rolling(20).mean()
-    hist["vol_spike_20"] = volume / (hist["vol_ma_20"] + 1e-9)
-    hist["vol_spike_1d_ago"] = hist["vol_spike_20"].shift(1)
+    # ===== RELATIVE STRENGTH (vs SPX) =====
+    try:
+        spx = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False)
+        if not spx.empty:
+            spx_ret_1d = spx['Close'].pct_change().reindex(hist.index, method='ffill')
+            spx_ret_3d = spx['Close'].pct_change(3).reindex(hist.index, method='ffill')
+            spx_ret_5d = spx['Close'].pct_change(5).reindex(hist.index, method='ffill')
+            
+            hist['rel_strength_1d'] = (close.pct_change() - spx_ret_1d).shift(1)
+            hist['rel_strength_3d'] = (close.pct_change(3) - spx_ret_3d).shift(1)
+            hist['rel_momentum_5d'] = (close.pct_change(5) - spx_ret_5d).shift(1)
+        else:
+            hist['rel_strength_1d'] = 0.0
+            hist['rel_strength_3d'] = 0.0
+            hist['rel_momentum_5d'] = 0.0
+    except Exception as e:
+        print(f"[add_price_features] SPX fetch failed: {e}")
+        hist['rel_strength_1d'] = 0.0
+        hist['rel_strength_3d'] = 0.0
+        hist['rel_momentum_5d'] = 0.0
 
-    hist["vol_rollmean_20"] = volume.rolling(20).mean()
-    hist["vol_rollstd_20"] = volume.rolling(20).std()
+    # ===== MOVING AVERAGES & BOLLINGER BANDS =====
+    ma_20 = close.rolling(20).mean()
+    ma_50 = close.rolling(50).mean()
+    sma_10 = close.rolling(10).mean()
+    
+    hist["ma_20"] = ma_20.shift(1)
+    hist["sma_ratio_10_50"] = (sma_10 / (ma_50 + 1e-9)).shift(1)
+    hist["price_to_ma50"] = (close / (ma_50 + 1e-9)).shift(1)
+    hist['price_minus_20dma'] = ((close - ma_20) / (ma_20 + 1e-9)).shift(1)
+    hist['ma_20_slope'] = ma_20.diff(5).shift(1)
 
-    hist["high_low_ratio"] = high / (low + 1e-9)
-    hist["daily_range"] = (high - low) / (close + 1e-9)
-    hist["close_position"] = (close - low) / (high - low + 1e-9)
+    # Bollinger Bands
+    std_20 = close.rolling(20).std()
+    hist['bb_upper'] = (ma_20 + 2 * std_20).shift(1)
+    hist['bb_lower'] = (ma_20 - 2 * std_20).shift(1)
+    hist['bb_mid'] = ma_20.shift(1)
+    hist["bb_width_20"] = ((hist['bb_upper'] - hist['bb_lower']) / (ma_20 + 1e-9)).shift(1)
+    hist['bb_pct_b'] = ((close - hist['bb_lower']) / (hist['bb_upper'] - hist['bb_lower'] + 1e-9)).shift(1)
 
-    hist["hl_range"] = (high - low) / (close.shift(1) + 1e-9)
-    hist["atr_14"] = hist["hl_range"].rolling(14).mean()
+    # ===== RSI ENHANCEMENTS =====
+    hist = add_rsi(hist, window=14, price_col="Close")
+    hist['rsi_change_1d'] = hist['rsi_14'].diff(1).shift(1)
+    hist['rsi_change_3d'] = hist['rsi_14'].diff(3).shift(1)
+    hist['rsi_overbought'] = (hist['rsi_14'] > 70).astype(int).shift(1)
+    hist['rsi_oversold'] = (hist['rsi_14'] < 30).astype(int).shift(1)
+    hist['rsi_14'] = hist['rsi_14'].shift(1)  # Lag RSI itself
 
+    # ===== INTRADAY STRUCTURE =====
+    hist["high_low_ratio"] = (high / (low + 1e-9)).shift(1)
+    hist["daily_range"] = ((high - low) / (close + 1e-9)).shift(1)
+    hist["close_position"] = ((close - low) / (high - low + 1e-9)).shift(1)
+    hist["hl_range"] = ((high - low) / (close.shift(1) + 1e-9)).shift(1)
+
+    # ===== CALENDAR EFFECTS =====
     hist["day_of_week"] = hist.index.dayofweek
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
+    # ===== TECHNICAL INDICATORS (MACD, MFI) =====
     hist = add_technical_indicators(hist)
+    # Lag these too
+    hist["macd"] = hist["macd"].shift(1)
+    hist["macd_signal"] = hist["macd_signal"].shift(1)
+    hist["macd_hist"] = hist["macd_hist"].shift(1)
+    hist["mfi_14"] = hist["mfi_14"].shift(1)
 
     return hist
 
@@ -389,18 +438,20 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
             return XGBClassifier(
                 n_estimators=300,
                 learning_rate=0.05,
-                max_depth=3,
+                max_depth=4,  # ← REDUCED from 5
                 random_state=random_state,
                 tree_method="hist",
                 verbosity=0,
-                subsample=0.9,
-                colsample_bytree=0.9,
+                subsample=0.8,  # ← ADDED
+                colsample_bytree=0.7,  # ← REDUCED from 0.9
+                min_child_weight=5,  # ← ADDED
                 reg_lambda=1.0,
             )
         else:
             return RandomForestClassifier(
                 n_estimators=300,
                 max_depth=6,
+                min_samples_leaf=50,  # ← ADDED
                 random_state=random_state,
                 n_jobs=-1,
             )
@@ -411,28 +462,45 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         return GradientBoostingRegressor(
             n_estimators=300,
             learning_rate=0.05,
-            max_depth=3,
+            max_depth=4,  # ← REDUCED from 5
             random_state=random_state,
         )
     elif model_type == "xgb":
         return XGBRegressor(
             n_estimators=300,
             learning_rate=0.05,
-            max_depth=3,
+            max_depth=4,  # ← REDUCED from 3
             random_state=random_state,
             tree_method="hist",
             verbosity=0,
-            subsample=0.9,
-            colsample_bytree=0.9,
+            subsample=0.8,  # ← REDUCED from 0.9
+            colsample_bytree=0.7,  # ← REDUCED from 0.9
+            min_child_weight=5,  # ← ADDED
             reg_lambda=1.0,
         )
     else:
         return RandomForestRegressor(
             n_estimators=300,
-            max_depth=6,
+            max_depth=8,  # ← INCREASED from 6
+            min_samples_leaf=50,  # ← ADDED
             random_state=random_state,
             n_jobs=-1,
         )
+
+def prune_weak_features(model, X, y, threshold=0.01):
+    """Drop bottom features by importance"""
+    if not hasattr(model, 'feature_importances_'):
+        print("Model has no feature_importances_, skipping pruning")
+        return X
+        
+    importance = model.feature_importances_
+    feature_names = X.columns
+    
+    # Keep only features above threshold
+    important_features = feature_names[importance > threshold]
+    
+    print(f"Pruned {len(feature_names) - len(important_features)} weak features (kept {len(important_features)})")
+    return X[important_features]
 
 def get_fundamental_features(ticker: str) -> dict:
     feats = {
@@ -482,7 +550,7 @@ def build_features_and_target(
         periods_to_try = [period] + fallback_periods
 
     last_error = None
-    min_rows = 60
+    min_rows = 100  # ← INCREASED from 60
 
     for per in periods_to_try:
         try:
@@ -499,6 +567,7 @@ def build_features_and_target(
             for k, v in fund_feats.items():
                 hist[k] = v
 
+            # Target is FORWARD return (not lagged)
             raw_target = hist["Close"].pct_change(horizon).shift(-horizon)
             if use_vol_scaled_target:
                 hist[f"target_ret_{horizon}d_ahead"] = raw_target / (hist["vol_20d"] + 1e-9)
