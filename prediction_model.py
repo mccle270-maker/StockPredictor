@@ -285,7 +285,7 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         print(f"[DEBUG FRED] VIXCLS returned {len(vix)} points")
 
                 # Normalize stock index to date-only for alignment with FRED
-        df_dates = df.index.normalize()
+        df_dates = df.index.normalize().tz_localize(None)
 
         print(f"[DEBUG FRED] Stock date range: {df.index.min()} to {df.index.max()}")
         print(f"[DEBUG FRED] Stock normalized: {df_dates.min()} to {df_dates.max()}")
