@@ -392,9 +392,13 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
     # ===== RELATIVE STRENGTH (Stock - SPX) - FIXED =====
     try:
-        spx_raw = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False, auto_adjust=True)
+        spx_raw = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False)
         
         if not spx_raw.empty:
+            # Flatten MultiIndex columns if they exist
+            if isinstance(spx_raw.columns, pd.MultiIndex):
+                spx_raw.columns = spx_raw.columns.get_level_values(0)
+            
             # Remove timezone from SPX only
             if hasattr(spx_raw.index, 'tz') and spx_raw.index.tz is not None:
                 spx_raw.index = spx_raw.index.tz_localize(None)
@@ -403,20 +407,28 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
             if hasattr(hist.index, 'tz') and hist.index.tz is not None:
                 spx_raw.index = spx_raw.index.tz_localize(hist.index.tz)
             
+            # Extract Close price as Series
+            spx_close = spx_raw['Close']
+            
             # Calculate SPX returns
-            spx_ret_1d = spx_raw['Close'].pct_change()
-            spx_ret_3d = spx_raw['Close'].pct_change(3)
-            spx_ret_5d = spx_raw['Close'].pct_change(5)
+            spx_ret_1d = spx_close.pct_change()
+            spx_ret_3d = spx_close.pct_change(3)
+            spx_ret_5d = spx_close.pct_change(5)
             
             # Reindex to match hist
             spx_ret_1d = spx_ret_1d.reindex(hist.index, method='ffill').fillna(0)
             spx_ret_3d = spx_ret_3d.reindex(hist.index, method='ffill').fillna(0)
             spx_ret_5d = spx_ret_5d.reindex(hist.index, method='ffill').fillna(0)
             
-            # Calculate relative strength (don't use 'close' variable, use hist['Close'])
-            hist['rel_strength_1d'] = (hist['Close'].pct_change() - spx_ret_1d).shift(1)
-            hist['rel_strength_3d'] = (hist['Close'].pct_change(3) - spx_ret_3d).shift(1)
-            hist['rel_momentum_5d'] = (hist['Close'].pct_change(5) - spx_ret_5d).shift(1)
+            # Calculate stock returns
+            stock_ret_1d = hist['Close'].pct_change()
+            stock_ret_3d = hist['Close'].pct_change(3)
+            stock_ret_5d = hist['Close'].pct_change(5)
+            
+            # Calculate relative strength
+            hist['rel_strength_1d'] = (stock_ret_1d - spx_ret_1d).shift(1)
+            hist['rel_strength_3d'] = (stock_ret_3d - spx_ret_3d).shift(1)
+            hist['rel_momentum_5d'] = (stock_ret_5d - spx_ret_5d).shift(1)
             
             print(f"[add_price_features] SPX relative strength calculated successfully")
         else:
@@ -430,6 +442,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
         hist['rel_strength_1d'] = 0.0
         hist['rel_strength_3d'] = 0.0
         hist['rel_momentum_5d'] = 0.0
+
 
     # ===== INTRADAY STRUCTURE =====
     hist["high_low_ratio"] = (high / (low + 1e-9)).shift(1)
