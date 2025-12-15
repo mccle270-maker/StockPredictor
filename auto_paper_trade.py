@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
+from dotenv import load_dotenv
+load_dotenv()
+
 
 WATCHLIST = ["PLTR", "SMCI", "NVDA"]
 
