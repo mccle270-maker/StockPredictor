@@ -316,6 +316,9 @@ def run_app():
         value=default_watchlist,
     )
 
+    # FIX: define tickers so later `if not tickers:` doesn't NameError
+    tickers = [t.strip().upper() for t in watchlist_text.split(",") if t.strip()]
+
     st.sidebar.subheader("Prediction Settings")
     prediction_horizon = st.sidebar.selectbox(
         "Prediction Horizon — Default: 5",
@@ -424,7 +427,7 @@ def run_app():
         help="Used for Deflated Sharpe (DSR); higher = stricter test against overfitting.",
     )
 
-   # --------- Auto-trade / options settings ----------
+    # --------- Auto-trade / options settings ----------
     st.sidebar.subheader("Auto Trading")
 
     trade_mode = st.sidebar.selectbox(
@@ -458,7 +461,6 @@ def run_app():
 
     if dte_max < dte_min:
         st.sidebar.error("Max DTE must be >= Min DTE")
-
 
     # ============ TAB: PREDICTIONS & OPTIONS ============
     with tab_pred:
@@ -1114,7 +1116,6 @@ def run_app():
                     index=[last_date + pd.Timedelta(days=display_horizon)],
                 )
                 future = pd.concat([prices, extra_point])
-
                 st.subheader(f"{chosen} recent prices + predicted {display_horizon_label} price")
                 st.line_chart(future)
             else:
@@ -1341,7 +1342,6 @@ def run_app():
         )
 
         csv_path = "backtest_results_comprehensive.csv"
-
         if os.path.exists(csv_path):
             try:
                 comp_results = pd.read_csv(csv_path)
