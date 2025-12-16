@@ -424,19 +424,41 @@ def run_app():
         help="Used for Deflated Sharpe (DSR); higher = stricter test against overfitting.",
     )
 
-    # --------- Auto-trade / options settings ----------
+   # --------- Auto-trade / options settings ----------
     st.sidebar.subheader("Auto Trading")
+
     trade_mode = st.sidebar.selectbox(
         "Trade mode — Default: Options if suggested",
         ["Stocks only", "Options if suggested", "Options only"],
         index=1,
     )
-    dte_max = st.sidebar.slider("Max DTE (days) — Default: 14", 1, 14, 14)
-    max_premium = st.sidebar.slider("Max premium ($) — Default: 200", 100, 200, 200, 10)
-    prefer_spreads = st.sidebar.checkbox("Prefer spreads when suggested — Default: ON", value=True)
-    auto_run_trader = st.sidebar.checkbox("Auto-run trader after writing signals.json — Default: OFF", value=False)
 
-    tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
+    # New: DTE window (min + max)
+    dte_min = st.sidebar.slider("Min DTE (days) — Default: 0", 0, 30, 0, 1)
+    dte_max = st.sidebar.slider("Max DTE (days) — Default: 45", 1, 180, 45, 1)
+
+    # New: separate strike cap vs premium cap
+    max_strike = st.sidebar.slider("Max strike — Default: 500", 50, 1000, 500, 10)
+
+    # IMPORTANT: In trader, max_premium is dollars per contract (ask * 100)
+    max_premium = st.sidebar.slider("Max premium ($ per contract) — Default: 500", 50, 2000, 500, 50)
+
+    # Optional (only matters for spreads in your trader)
+    width_pct = st.sidebar.slider("Spread width (%) — Default: 5", 1, 20, 5, 1) / 100.0
+
+    prefer_spreads = st.sidebar.checkbox(
+        "Prefer spreads when suggested — Default: ON",
+        value=True
+    )
+
+    auto_run_trader = st.sidebar.checkbox(
+        "Auto-run trader after writing signals.json — Default: OFF",
+        value=False
+    )
+
+    if dte_max < dte_min:
+        st.sidebar.error("Max DTE must be >= Min DTE")
+
 
     # ============ TAB: PREDICTIONS & OPTIONS ============
     with tab_pred:
@@ -635,24 +657,30 @@ def run_app():
                     or (trade_mode == "Options if suggested" and strategy is not None)
                 )
 
-                if use_options and strategy is not None:
-                    signals[tk] = {
-                        "asset": "option",
-                        "strategy": strategy,
-                        "dte_max": int(dte_max),
-                        "max_premium": int(max_premium),
-                        "qty": 1,
-                        "raw_strategy_text": str(strat_text),
-                        "pred_next_ret": float(pred),
-                        "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
-                    }
-                else:
-                    signals[tk] = {
-                        "asset": "stock",
-                        "action": stock_action,
-                        "qty": 1,
-                        "pred_next_ret": float(pred),
-                    }
+            if use_options and strategy is not None:
+                signals[tk] = {
+                    "asset": "option",
+                    "strategy": strategy,
+
+                    # NEW restriction fields (must match your updated trader)
+                    "dte_min": int(dte_min),
+                    "dte_max": int(dte_max),
+                    "max_strike": float(max_strike),
+                    "max_premium": float(max_premium),
+                    "width_pct": float(width_pct),  # optional but your trader supports it
+
+                    "qty": 1,
+                    "raw_strategy_text": str(strat_text),
+                    "pred_next_ret": float(pred),
+                    "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
+                }
+            else:
+                signals[tk] = {
+                    "asset": "stock",
+                    "action": stock_action,
+                    "qty": 1,
+                    "pred_next_ret": float(pred),
+                }
 
             write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
             st.session_state.last_signals = signals

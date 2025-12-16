@@ -6,7 +6,7 @@
     "max_premium": 200,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.037014340232916866,
+    "pred_next_ret": -0.03701434023291685,
     "last_close": 13.079999923706055
   },
   "CCL": {
@@ -16,7 +16,7 @@
     "max_premium": 200,
     "qty": 1,
     "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.005052112919138414,
+    "pred_next_ret": 0.0050521129191384165,
     "last_close": 25.510000228881836
   },
   "SOFI": {
