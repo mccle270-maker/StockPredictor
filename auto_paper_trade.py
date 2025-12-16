@@ -8,7 +8,7 @@ from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import MarketOrderRequest
 from alpaca.trading.enums import OrderSide, TimeInForce
 
-WATCHLIST = ["PLTR", "SMCI", "NVDA"]
+WATCHLIST = ["PLTR", "SMCI", "NVDA", "ZS","SPY", "JPM", "MSFT", "XOM"]
 SIGNALS_PATH = "signals.json"
 
 def load_signals() -> dict:
