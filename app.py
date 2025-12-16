@@ -3,6 +3,25 @@ import streamlit as st
 import pandas as pd
 import time
 import numpy as np
+import json
+import os
+import tempfile
+
+
+def write_signals_json_atomic(signals: dict, path: str = "signals.json"):
+    # write JSON to a temp file, then atomically replace the target
+    fd, tmp_path = tempfile.mkstemp(prefix="signals_", suffix=".json")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(signals, f, indent=2)
+        os.replace(tmp_path, path)
+    finally:
+        # if anything failed before replace, clean up the temp file
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception:
+            pass
 
 # Make FRED_API_KEY available to prediction_model via environment variable
 if "FRED_API_KEY" in st.secrets:
@@ -444,10 +463,24 @@ def run_app():
                 st.session_state.screener_df = screener_df
                 st.session_state.prediction_horizon = prediction_horizon
                 st.session_state.auto_optimize = auto_optimize
+                signals = {}
+                for _, row in st.session_state.pred_df.iterrows():
+                    tk=row["ticker"]
+                    pred = row["pred_next_ret"]
+                    if pred >= 0.005:
+                        signals[tk] = "BUY"
+                    elif pred <= -0.005:
+                        signals[tk] = "SELL"
+                    else:
+                        signals[tk] = "HOLD"
+                write_signals_json_atomic(signals, "signals.json")
             else:
                 st.warning("No predictions generated.")
+                st.session_state.pred_df = None
                 return
-
+            
+            
+            
         # ---------------- Display results ----------------
         if st.session_state.pred_df is not None:
             pred_df = st.session_state.pred_df
