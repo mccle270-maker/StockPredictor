@@ -619,7 +619,7 @@ def build_features_and_target(
 
             print("hist rows:", len(hist), "range:", hist.index.min(), "->", hist.index.max())
             print("df rows:", len(df), "range:", df.index.min(), "->", df.index.max())
-            print("train_days:", int(252 * train_years), "test_days:", int(252 * test_years), "step_days:", step_days)
+        
 
             if df.empty or len(df) < min_rows:
                 raise ValueError(
