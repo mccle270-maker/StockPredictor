@@ -1124,6 +1124,7 @@ def walk_forward_backtest(
     test_years=1,
     threshold=0.002,
     cost_per_trade=0.0005,
+    step_days: int | None = None,
 ):
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
@@ -1150,6 +1151,9 @@ def walk_forward_backtest(
     fold_metrics = []
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
+
+    if step_days is None:
+        step_days = test_days
 
     start = 0
     while True:
@@ -1209,7 +1213,7 @@ def walk_forward_backtest(
             }
         )
 
-        start += test_days
+        start += step_days
 
     return fold_metrics
 
