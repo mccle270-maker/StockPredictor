@@ -1,28 +1,15 @@
 {
-  "F": {
+  "META": {
     "asset": "option",
-    "strategy": "BEAR_PUT_SPREAD",
-    "dte_max": 14,
-    "max_premium": 200,
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
     "qty": 1,
-    "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.03701434023291685,
-    "last_close": 13.079999923706055
-  },
-  "CCL": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_max": 14,
-    "max_premium": 200,
-    "qty": 1,
-    "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.0050521129191384165,
-    "last_close": 25.510000228881836
-  },
-  "SOFI": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1,
-    "pred_next_ret": -0.022040684137888795
+    "raw_strategy_text": "\ud83d\udcc9 BEARISH: Buy Puts (low protection in market)",
+    "pred_next_ret": -0.030368465691968556,
+    "last_close": 656.4246826171875
   }
 }

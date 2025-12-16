@@ -659,34 +659,35 @@ def run_app():
                     or (trade_mode == "Options if suggested" and strategy is not None)
                 )
 
-            if use_options and strategy is not None:
-                signals[tk] = {
-                    "asset": "option",
-                    "strategy": strategy,
+                if use_options and strategy is not None:
+                    signals[tk] = {
+                        "asset": "option",
+                        "strategy": strategy,
 
-                    # NEW restriction fields (must match your updated trader)
-                    "dte_min": int(dte_min),
-                    "dte_max": int(dte_max),
-                    "max_strike": float(max_strike),
-                    "max_premium": float(max_premium),
-                    "width_pct": float(width_pct),  # optional but your trader supports it
+                        # NEW restriction fields (must match your updated trader)
+                        "dte_min": int(dte_min),
+                        "dte_max": int(dte_max),
+                        "max_strike": float(max_strike),
+                        "max_premium": float(max_premium),
+                        "width_pct": float(width_pct),  # optional but your trader supports it
 
-                    "qty": 1,
-                    "raw_strategy_text": str(strat_text),
-                    "pred_next_ret": float(pred),
-                    "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
-                }
-            else:
-                signals[tk] = {
-                    "asset": "stock",
-                    "action": stock_action,
-                    "qty": 1,
-                    "pred_next_ret": float(pred),
-                }
+                        "qty": 1,
+                        "raw_strategy_text": str(strat_text),
+                        "pred_next_ret": float(pred),
+                        "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
+                    }
+                else:
+                    signals[tk] = {
+                        "asset": "stock",
+                        "action": stock_action,
+                        "qty": 1,
+                        "pred_next_ret": float(pred),
+                    }
 
             write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
             st.session_state.last_signals = signals
             st.success(f"Wrote signals.json to: {SIGNALS_OUT_PATH}")
+
 
             # --------- OPTIONAL: auto-run the trader after writing signals.json ----------
             st.session_state.last_trader_stdout = ""
