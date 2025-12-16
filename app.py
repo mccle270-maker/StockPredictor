@@ -558,6 +558,8 @@ def run_app():
                             "qty": 1,
                             "raw_strategy_text": str(strat_text),
                             "pred_next_ret": float(pred),
+                            "last_close": float(row.get("last_close")) if row.get("last_close") is not None
+                            else None,
                         }
                     else:
                         signals[tk] = {
