@@ -1,10 +1,4 @@
 {
-  "AMZN": {
-    "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": -0.004109844750068833
-  },
   "NVDA": {
     "asset": "option",
     "strategy": "IRON_CONDOR",
@@ -14,21 +8,5 @@
     "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
     "pred_next_ret": 0.00979280202836131,
     "last_close": 184.97000122070312
-  },
-  "MSFT": {
-    "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": 0.00043202571144853507
-  },
-  "META": {
-    "asset": "option",
-    "strategy": "BUY_PUT",
-    "dte_max": 14,
-    "max_premium": 200,
-    "qty": 1,
-    "raw_strategy_text": "\ud83d\udcc9 BEARISH: Buy Puts (low protection in market)",
-    "pred_next_ret": -0.030368465691968556,
-    "last_close": 656.4246826171875
   }
 }

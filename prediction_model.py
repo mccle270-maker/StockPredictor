@@ -596,6 +596,11 @@ def build_features_and_target(
             macro_df = get_macro_df(symbol="^GSPC", period=per)
             hist = hist.join(macro_df, how="left")
 
+            for c in MACRO_COLUMNS:
+                if c not in hist.columns:
+                    hist[c] = np.nan
+            hist[MACRO_COLUMNS] = hist[MACRO_COLUMNS].ffill().bfill()
+
             fund_feats = get_fundamental_features(ticker)
             for k, v in fund_feats.items():
                 hist[k] = v
@@ -611,6 +616,10 @@ def build_features_and_target(
             cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
 
             df = hist[cols_needed].dropna().copy()
+
+            print("hist rows:", len(hist), "range:", hist.index.min(), "->", hist.index.max())
+            print("df rows:", len(df), "range:", df.index.min(), "->", df.index.max())
+            print("train_days:", int(252 * train_years), "test_days:", int(252 * test_years), "step_days:", step_days)
 
             if df.empty or len(df) < min_rows:
                 raise ValueError(
