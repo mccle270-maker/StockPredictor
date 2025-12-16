@@ -6,6 +6,7 @@
     "max_premium": 200,
     "qty": 1,
     "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.00979280202836131
+    "pred_next_ret": 0.009792802028361308,
+    "last_close": 184.97000122070312
   }
 }
