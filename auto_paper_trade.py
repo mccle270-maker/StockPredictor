@@ -30,6 +30,9 @@ def main():
     held = {p.symbol for p in positions}
 
     signals = load_signals()
+    print("signals.json loaded:", signals)
+    print("cwd:", os.getcwd())
+
 
     for symbol in WATCHLIST:
         action = signals.get(symbol, "HOLD").upper()
