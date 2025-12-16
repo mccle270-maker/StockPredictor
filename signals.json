@@ -1,12 +1,28 @@
 {
-  "NVDA": {
+  "F": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_max": 14,
+    "max_premium": 200,
+    "qty": 1,
+    "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.037014340232916866,
+    "last_close": 13.079999923706055
+  },
+  "CCL": {
     "asset": "option",
     "strategy": "IRON_CONDOR",
     "dte_max": 14,
     "max_premium": 200,
     "qty": 1,
     "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.00979280202836131,
-    "last_close": 184.97000122070312
+    "pred_next_ret": 0.005052112919138414,
+    "last_close": 25.510000228881836
+  },
+  "SOFI": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.022040684137888795
   }
 }
