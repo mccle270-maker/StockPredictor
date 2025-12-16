@@ -17,6 +17,30 @@ from alpaca.trading.enums import OrderSide, TimeInForce, AssetStatus, OrderClass
 from alpaca.data.historical import OptionHistoricalDataClient
 from alpaca.data.requests import OptionLatestQuoteRequest
 
+def main():
+    key = os.environ["APCA_API_KEY_ID"]
+    secret = os.environ["APCA_API_SECRET_KEY"]
+
+    trade_client = TradingClient(key, secret, paper=True)
+    option_data_client = OptionHistoricalDataClient(key, secret)
+
+    positions = trade_client.get_all_positions()
+    held = {p.symbol for p in positions}
+
+    signals = load_signals()
+    print("signals.json path:", str(SIGNALS_PATH))
+    print("signals.json loaded:", signals)
+
+    # NEW: sync WATCHLIST to whatever is in signals.json
+    global WATCHLIST
+    if signals:
+        WATCHLIST = [str(sym).upper() for sym in signals.keys()]
+    else:
+        # optional: fall back to your default if no signals
+        WATCHLIST = WATCHLIST  # or DEFAULT_WATCHLIST if you renamed above
+
+    for symbol, spec in signals.items():
+        symbol = str(symbol).upper()
 
 WATCHLIST = ["PLTR", "SMCI", "NVDA", "ZS", "SPY", "JPM", "MSFT", "XOM"]
 
