@@ -296,8 +296,8 @@ def main():
         symbol = str(symbol).upper()
 
         if symbol not in WATCHLIST:
-            print(f"{symbol}: not in WATCHLIST, skipping")
-            continue
+            print(f"{symbol}: not in WATCHLIST, but signals.json requested it -> trading anyway")
+            
 
         # ---------------- NEW FORMAT ----------------
         if isinstance(spec, dict):
