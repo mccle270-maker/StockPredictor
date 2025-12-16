@@ -463,17 +463,79 @@ def run_app():
                 st.session_state.screener_df = screener_df
                 st.session_state.prediction_horizon = prediction_horizon
                 st.session_state.auto_optimize = auto_optimize
+                
+                def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | None:
+                    s = (text or "").lower()
+                    # bullish
+                    if "bullish" in s and "call" in s and "spread" in s:
+                        return "BULL_CALL_SPREAD" if prefer_spreads else "BUY_CALL"
+                    if "bullish" in s and "buy calls" in s:
+                        return "BUY_CALL"
+                    # bearish
+                    if "bearish" in s and "put" in s and "spread" in s:
+                        return "BEAR_PUT_SPREAD" if prefer_spreads else "BUY_PUT"
+                    if "bearish" in s and "buy puts" in s:
+                        return "BUY_PUT"
+                    # neutral (optional to support later)
+                    if "iron condor" in s:
+                        return "IRON_CONDOR"
+
+                    return None
+
                 signals = {}
                 for _, row in st.session_state.pred_df.iterrows():
-                    tk=row["ticker"]
-                    pred = row["pred_next_ret"]
+                    tk=str(row["ticker"]).upper()
+                    pred = float(row["pred_next_ret"])
                     if pred >= 0.005:
                         signals[tk] = "BUY"
                     elif pred <= -0.005:
                         signals[tk] = "SELL"
                     else:
                         signals[tk] = "HOLD"
+                    strat_text, _bias = suggest_options_strategy(
+                        pred_ret=pred,
+                        put_call_ratio=row.get("put_call_oi_ratio"),
+                        atm_iv=row.get("atm_iv"),
+                        horizon=prediction_horizon,
+                    )
+                    strategy = normalize_model_option_strategy(strat_text, prefer_spreads=prefer_spreads)
+
+                    use_options = (
+                        trade_mode == "Options only"
+                        or (trade_mode == "Options if suggested" and strategy is not None)
+                    )
+
+                    if use_options and strategy is not None:
+                        signals[tk] = {
+                            "asset": "option",
+                            "strategy": strategy,      # e.g. BUY_CALL, BULL_CALL_SPREAD
+                            "dte_max": int(dte_max),   # 14
+                            "max_premium": int(max_premium),  # 100–200
+                            "qty": 1,
+                            "raw_strategy_text": str(strat_text),  # helps debugging
+                            "pred_next_ret": float(pred),
+                        }
+                    else:
+                        signals[tk] = {
+                        "asset": "stock",
+                        "action": stock_action,
+                        "qty": 1,
+                        "pred_next_ret": float(pred),
+                    }
+
+                write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
+                st.success(f"Wrote signals to {SIGNALS_OUT_PATH}")
                 write_signals_json_atomic(signals, "signals.json")
+                if auto_run_trader:
+                    res = subprocess.run(
+                    [sys.executable, str(TRADER_PATH)],
+                    cwd=str(BASE_DIR),
+                    capture_output=True,
+                    text=True,
+                )
+                st.code(res.stdout or "(no stdout)")
+            if res.returncode != 0:
+                st.error(res.stderr or "(no stderr)")
             else:
                 st.warning("No predictions generated.")
                 st.session_state.pred_df = None
