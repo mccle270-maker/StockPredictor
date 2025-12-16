@@ -1,11 +1,18 @@
 import os
+import sys
+from pathlib import Path
 import streamlit as st
 import pandas as pd
 import time
 import numpy as np
 import json
-import os
 import tempfile
+
+
+# ---------------- Paths ----------------
+BASE_DIR = Path(__file__).resolve().parent
+SIGNALS_OUT_PATH = BASE_DIR / "signals.json"
+TRADER_PATH = BASE_DIR / "auto_paper_trade.py"
 
 
 def write_signals_json_atomic(signals: dict, path: str = "signals.json"):
@@ -23,12 +30,14 @@ def write_signals_json_atomic(signals: dict, path: str = "signals.json"):
         except Exception:
             pass
 
+
 # Make FRED_API_KEY available to prediction_model via environment variable
 if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
     print(f"[DEBUG] FRED_API_KEY set: {os.environ['FRED_API_KEY'][:8]}...")
 else:
     print("[DEBUG] FRED_API_KEY NOT in secrets")
+
 
 from prediction_model import (
     predict_next_for_ticker,
@@ -63,10 +72,12 @@ from option_pricing import (
     price_option,
 )
 
+
 try:
     import squarequant as sq
 except ImportError:
     sq = None
+
 
 def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     params_by_ticker = {
@@ -74,6 +85,7 @@ def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
         "NVDA": HestonParams(v0=0.06, theta=0.05, kappa=1.2, sigma=0.5, rho=-0.7),
     }
     return params_by_ticker.get(ticker.upper())
+
 
 def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: float = 0.0):
     r = daily_returns.dropna()
@@ -95,6 +107,7 @@ def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: fl
     z_deflated = z_strat - z_alpha
     return float(norm.cdf(z_deflated))
 
+
 def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per_year: int = 252):
     daily_excess = daily_returns - risk_free
     if len(daily_excess) < 2 or daily_excess.std() == 0:
@@ -102,6 +115,7 @@ def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per
     mean_ret = daily_excess.mean()
     vol = daily_excess.std()
     return (mean_ret / vol) * np.sqrt(periods_per_year)
+
 
 def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
     if not articles:
@@ -123,6 +137,7 @@ def detect_big_news(articles, sent_thresh: float = 0.5) -> bool:
 
     return False
 
+
 def suggest_model_for_ticker(ticker: str, horizon: int = 1) -> str:
     tk = ticker.upper()
     if horizon == 1:
@@ -138,6 +153,7 @@ def suggest_model_for_ticker(ticker: str, horizon: int = 1) -> str:
     else:
         return "rf"
 
+
 def classify_alignment(pred_ret, put_call_oi_ratio):
     if pred_ret is None or put_call_oi_ratio is None:
         return "unknown"
@@ -146,6 +162,7 @@ def classify_alignment(pred_ret, put_call_oi_ratio):
     if pred_ret < 0 and put_call_oi_ratio > 1.0:
         return "bearish-aligned"
     return "disagree"
+
 
 def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
     pred_pct = pred_ret * 100
@@ -174,6 +191,34 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
     else:
         return "⏸️ NEUTRAL: Wait for clearer signal or diagonal spread", "neutral"
 
+
+# --------- NEW: parse UI strategy text into a machine label ----------
+def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | None:
+    s = (text or "").lower()
+
+    # bullish
+    if "bullish" in s and "call" in s and "spread" in s:
+        return "BULL_CALL_SPREAD" if prefer_spreads else "BUY_CALL"
+    if "bullish" in s and "buy call" in s:
+        return "BUY_CALL"
+    if "bullish" in s and "buy calls" in s:
+        return "BUY_CALL"
+
+    # bearish
+    if "bearish" in s and "put" in s and "spread" in s:
+        return "BEAR_PUT_SPREAD" if prefer_spreads else "BUY_PUT"
+    if "bearish" in s and "buy put" in s:
+        return "BUY_PUT"
+    if "bearish" in s and "buy puts" in s:
+        return "BUY_PUT"
+
+    # optional: neutral strategies (only if your trader supports them)
+    if "iron condor" in s:
+        return "IRON_CONDOR"
+
+    return None
+
+
 def run_app():
     st.title("Stock Predictor Dashboard")
 
@@ -184,8 +229,8 @@ def run_app():
 
     # ============ ADD TABS HERE ============
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📈 Predictions & Options", 
-        "📊 Backtest", 
+        "📈 Predictions & Options",
+        "📊 Backtest",
         "🔬 Comprehensive Test",
         "🚀 Walk-Forward"
     ])
@@ -277,7 +322,7 @@ def run_app():
         **Filters explanation**
         - Min |recent return|: required % move over the lookback window.
         - Min volume spike: how many × above average today's volume must be.
-        
+
         **Note**: Processing includes delays to avoid rate limits.
         """
     )
@@ -305,6 +350,18 @@ def run_app():
         20,
         help="Used for Deflated Sharpe (DSR); higher = stricter test against overfitting.",
     )
+
+    # --------- NEW: auto-trade / options settings ----------
+    st.sidebar.subheader("Auto Trading")
+    trade_mode = st.sidebar.selectbox(
+        "Trade mode",
+        ["Stocks only", "Options if suggested", "Options only"],
+        index=1,
+    )
+    dte_max = st.sidebar.slider("Max DTE (days)", 1, 14, 14)
+    max_premium = st.sidebar.slider("Max premium ($)", 100, 200, 200, 10)
+    prefer_spreads = st.sidebar.checkbox("Prefer spreads when suggested", value=True)
+    auto_run_trader = st.sidebar.checkbox("Auto-run trader after writing signals.json", value=False)
 
     tickers = [t.strip() for t in watchlist_text.split(",") if t.strip()]
 
@@ -463,35 +520,22 @@ def run_app():
                 st.session_state.screener_df = screener_df
                 st.session_state.prediction_horizon = prediction_horizon
                 st.session_state.auto_optimize = auto_optimize
-                
-                def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | None:
-                    s = (text or "").lower()
-                    # bullish
-                    if "bullish" in s and "call" in s and "spread" in s:
-                        return "BULL_CALL_SPREAD" if prefer_spreads else "BUY_CALL"
-                    if "bullish" in s and "buy calls" in s:
-                        return "BUY_CALL"
-                    # bearish
-                    if "bearish" in s and "put" in s and "spread" in s:
-                        return "BEAR_PUT_SPREAD" if prefer_spreads else "BUY_PUT"
-                    if "bearish" in s and "buy puts" in s:
-                        return "BUY_PUT"
-                    # neutral (optional to support later)
-                    if "iron condor" in s:
-                        return "IRON_CONDOR"
 
-                    return None
-
+                # --------- UPDATED: write richer signals.json (stocks + options intent) ----------
                 signals = {}
                 for _, row in st.session_state.pred_df.iterrows():
-                    tk=str(row["ticker"]).upper()
+                    tk = str(row["ticker"]).upper()
                     pred = float(row["pred_next_ret"])
+
+                    # Your existing stock decision thresholds
                     if pred >= 0.005:
-                        signals[tk] = "BUY"
+                        stock_action = "BUY"
                     elif pred <= -0.005:
-                        signals[tk] = "SELL"
+                        stock_action = "SELL"
                     else:
-                        signals[tk] = "HOLD"
+                        stock_action = "HOLD"
+
+                    # Use the same strategy logic you already show in UI
                     strat_text, _bias = suggest_options_strategy(
                         pred_ret=pred,
                         put_call_ratio=row.get("put_call_oi_ratio"),
@@ -508,38 +552,48 @@ def run_app():
                     if use_options and strategy is not None:
                         signals[tk] = {
                             "asset": "option",
-                            "strategy": strategy,      # e.g. BUY_CALL, BULL_CALL_SPREAD
-                            "dte_max": int(dte_max),   # 14
-                            "max_premium": int(max_premium),  # 100–200
+                            "strategy": strategy,
+                            "dte_max": int(dte_max),
+                            "max_premium": int(max_premium),
                             "qty": 1,
-                            "raw_strategy_text": str(strat_text),  # helps debugging
+                            "raw_strategy_text": str(strat_text),
                             "pred_next_ret": float(pred),
                         }
                     else:
                         signals[tk] = {
-                        "asset": "stock",
-                        "action": stock_action,
-                        "qty": 1,
-                        "pred_next_ret": float(pred),
-                    }
+                            "asset": "stock",
+                            "action": stock_action,
+                            "qty": 1,
+                            "pred_next_ret": float(pred),
+                        }
 
                 write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
-                st.success(f"Wrote signals to {SIGNALS_OUT_PATH}")
-                write_signals_json_atomic(signals, "signals.json")
+                st.success(f"Wrote signals.json to: {SIGNALS_OUT_PATH}")
+
+                # --------- OPTIONAL: auto-run the trader after writing signals.json ----------
                 if auto_run_trader:
-                    res = subprocess.run(
-                    [sys.executable, str(TRADER_PATH)],
-                    cwd=str(BASE_DIR),
-                    capture_output=True,
-                    text=True,
-                )
-                st.code(res.stdout or "(no stdout)")
-            if res.returncode != 0:
-                st.error(res.stderr or "(no stderr)")
+                    if not TRADER_PATH.exists():
+                        st.error(f"Trader script not found: {TRADER_PATH}")
+                    else:
+                        res = subprocess.run(
+                            [sys.executable, str(TRADER_PATH)],
+                            cwd=str(BASE_DIR),
+                            capture_output=True,
+                            text=True,
+                        )
+                        st.code(res.stdout or "(no stdout)", language="text")
+                        if res.returncode != 0:
+                            st.error(res.stderr or "(no stderr)")
+
             else:
                 st.warning("No predictions generated.")
                 st.session_state.pred_df = None
                 return
+
+    # NOTE:
+    # Leave the rest of your tabs (Backtest / Comprehensive Test / Walk-Forward) unchanged below this point.
+    # Just keep your existing code after this.
+
             
             
             
