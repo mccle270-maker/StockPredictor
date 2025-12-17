@@ -9,20 +9,20 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.025394210687648078,
+    "pred_next_ret": -0.025394210687648074,
     "last_close": 445.1700134277344
   },
   "AMZN": {
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": -0.004753263594626937
+    "pred_next_ret": -0.004753263594626936
   },
   "MSFT": {
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": -0.0015723788637176013
+    "pred_next_ret": -0.001572378863717601
   },
   "META": {
     "asset": "option",
@@ -34,7 +34,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udcc9 BEARISH: Buy Puts (low protection in market)",
-    "pred_next_ret": -0.0316456856451865,
+    "pred_next_ret": -0.031645685645186515,
     "last_close": 656.4246826171875
   },
   "NVDA": {
@@ -47,7 +47,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.007605895122363091,
+    "pred_next_ret": 0.007605895122363089,
     "last_close": 184.97000122070312
   },
   "AMD": {
@@ -60,7 +60,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.028834470791588008,
+    "pred_next_ret": -0.028834470791588,
     "last_close": 221.6199951171875
   }
 }
