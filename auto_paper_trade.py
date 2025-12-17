@@ -17,30 +17,9 @@ from alpaca.trading.enums import OrderSide, TimeInForce, AssetStatus, OrderClass
 from alpaca.data.historical import OptionHistoricalDataClient
 from alpaca.data.requests import OptionLatestQuoteRequest
 
-def main():
-    key = os.environ["APCA_API_KEY_ID"]
-    secret = os.environ["APCA_API_SECRET_KEY"]
 
-    trade_client = TradingClient(key, secret, paper=True)
-    option_data_client = OptionHistoricalDataClient(key, secret)
-
-    positions = trade_client.get_all_positions()
-    held = {p.symbol for p in positions}
-
-    signals = load_signals()
-    print("signals.json path:", str(SIGNALS_PATH))
-    print("signals.json loaded:", signals)
-
-    # NEW: sync WATCHLIST to whatever is in signals.json
-    global WATCHLIST
-    if signals:
-        WATCHLIST = [str(sym).upper() for sym in signals.keys()]
-    else:
-        # optional: fall back to your default if no signals
-        WATCHLIST = WATCHLIST  # or DEFAULT_WATCHLIST if you renamed above
-
-    for symbol, spec in signals.items():
-        symbol = str(symbol).upper()
+# ---------------- Config ----------------
+DEBUG_OPTIONS = os.environ.get("DEBUG_OPTIONS", "1").strip() not in {"0", "false", "False"}
 
 WATCHLIST = ["PLTR", "SMCI", "NVDA", "ZS", "SPY", "JPM", "MSFT", "XOM"]
 
@@ -69,18 +48,30 @@ def _get_latest_bid_ask(option_data_client: OptionHistoricalDataClient, option_s
     req = OptionLatestQuoteRequest(symbol_or_symbols=[option_symbol])
     quotes = option_data_client.get_option_latest_quote(req)
 
-    q = quotes.get(option_symbol) if isinstance(quotes, dict) else None
+    # alpaca-py often returns a dict keyed by symbol
+    q = quotes.get(option_symbol) if hasattr(quotes, "get") else None
     if q is None:
+        if DEBUG_OPTIONS:
+            print(f"DEBUG quote missing for {option_symbol} -> quotes={quotes}")
         return None, None
 
-    # alpaca-py can return dict-like or object-like
+    # q may be dict-like or object-like
     if isinstance(q, dict):
         bid = q.get("bid_price") or q.get("bp")
         ask = q.get("ask_price") or q.get("ap")
-        return bid, ask
+    else:
+        bid = getattr(q, "bid_price", None) or getattr(q, "bp", None)
+        ask = getattr(q, "ask_price", None) or getattr(q, "ap", None)
 
-    bid = getattr(q, "bid_price", None) or getattr(q, "bp", None)
-    ask = getattr(q, "ask_price", None) or getattr(q, "ap", None)
+    try:
+        bid = float(bid) if bid is not None else None
+    except Exception:
+        bid = None
+    try:
+        ask = float(ask) if ask is not None else None
+    except Exception:
+        ask = None
+
     return bid, ask
 
 
@@ -145,12 +136,12 @@ def pick_single_leg(
     trade_client: TradingClient,
     option_data_client: OptionHistoricalDataClient,
     underlying: str,
-    right: str,            # "CALL" or "PUT"
+    right: str,                 # "CALL" or "PUT"
     spot: float | None,
     dte_min: int,
     dte_max: int,
-    max_premium: float,    # dollars (contract cost * 100)
-    max_strike: float | None,  # strike cap (optional)
+    max_premium: float,         # dollars (ask * 100)
+    max_strike: float | None,
 ):
     want_call = (right.upper().strip() == "CALL")
 
@@ -170,6 +161,8 @@ def pick_single_leg(
         candidates.append((sym, exp, strike))
 
     if not candidates:
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} {right}: no contracts after filters (DTE/strike)")
         return None, None
 
     # prefer near-ATM then nearest expiry
@@ -178,11 +171,23 @@ def pick_single_leg(
     else:
         candidates.sort(key=lambda x: (abs(x[2] - float(spot)), x[1]))
 
+    if DEBUG_OPTIONS:
+        print(f"DEBUG {underlying} {right}: evaluating {min(len(candidates), 20)} of {len(candidates)} candidates")
+        for sym, exp, strike in candidates[:5]:
+            print(f"DEBUG candidate {sym} exp={exp} strike={strike} spot={spot}")
+
     for sym, exp, strike in candidates[:250]:
         bid, ask = _get_latest_bid_ask(option_data_client, sym)
         if ask is None or ask <= 0:
+            if DEBUG_OPTIONS:
+                print(f"DEBUG {underlying} {right}: {sym} ask missing/<=0 (bid={bid}, ask={ask})")
             continue
-        if float(ask) * 100.0 <= float(max_premium):
+
+        premium_dollars = float(ask) * 100.0
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} {right}: {sym} bid={bid} ask={ask} premium=${premium_dollars:.2f} (cap=${max_premium})")
+
+        if premium_dollars <= float(max_premium):
             return sym, float(ask)
 
     return None, None
@@ -195,15 +200,10 @@ def pick_bull_call_spread(
     spot: float | None,
     dte_min: int,
     dte_max: int,
-    max_premium: float,        # dollars (estimated debit * 100)
-    max_strike: float | None,  # strike cap (optional)
+    max_premium: float,         # dollars (est_debit * 100)
+    max_strike: float | None,
     width_pct: float = 0.05,
 ):
-    """
-    Bull call spread (debit):
-      - BUY call near ATM (long_call)
-      - SELL call higher strike (short_call)
-    """
     contracts = _list_option_contracts(trade_client, underlying)
 
     calls = []
@@ -218,6 +218,8 @@ def pick_bull_call_spread(
         calls.append((sym, exp, strike))
 
     if not calls or spot is None:
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BULL_CALL_SPREAD: no calls or spot None (spot={spot})")
         return None, None, None
 
     by_exp = {}
@@ -237,6 +239,11 @@ def pick_bull_call_spread(
 
         long_bid, long_ask = _get_latest_bid_ask(option_data_client, long_sym)
         short_bid, short_ask = _get_latest_bid_ask(option_data_client, short_sym)
+
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BCS exp={exp} long={long_sym}({long_strike}) bid/ask={long_bid}/{long_ask} "
+                  f"short={short_sym}({short_strike}) bid/ask={short_bid}/{short_ask}")
+
         if long_ask is None or short_bid is None:
             continue
 
@@ -244,7 +251,11 @@ def pick_bull_call_spread(
         if est_debit <= 0:
             continue
 
-        if est_debit * 100.0 <= float(max_premium):
+        debit_dollars = est_debit * 100.0
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BCS exp={exp} est_debit={est_debit:.4f} => ${debit_dollars:.2f} (cap=${max_premium})")
+
+        if debit_dollars <= float(max_premium):
             return long_sym, short_sym, est_debit
 
     return None, None, None
@@ -257,15 +268,10 @@ def pick_bear_put_spread(
     spot: float | None,
     dte_min: int,
     dte_max: int,
-    max_premium: float,        # dollars (estimated debit * 100)
-    max_strike: float | None,  # strike cap (optional)
+    max_premium: float,         # dollars (est_debit * 100)
+    max_strike: float | None,
     width_pct: float = 0.05,
 ):
-    """
-    Bear put spread (debit):
-      - BUY put near ATM (long_put)
-      - SELL put lower strike (short_put)
-    """
     contracts = _list_option_contracts(trade_client, underlying)
 
     puts = []
@@ -280,6 +286,8 @@ def pick_bear_put_spread(
         puts.append((sym, exp, strike))
 
     if not puts or spot is None:
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BEAR_PUT_SPREAD: no puts or spot None (spot={spot})")
         return None, None, None
 
     by_exp = {}
@@ -299,6 +307,11 @@ def pick_bear_put_spread(
 
         long_bid, long_ask = _get_latest_bid_ask(option_data_client, long_sym)
         short_bid, short_ask = _get_latest_bid_ask(option_data_client, short_sym)
+
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BPS exp={exp} long={long_sym}({long_strike}) bid/ask={long_bid}/{long_ask} "
+                  f"short={short_sym}({short_strike}) bid/ask={short_bid}/{short_ask}")
+
         if long_ask is None or short_bid is None:
             continue
 
@@ -306,7 +319,11 @@ def pick_bear_put_spread(
         if est_debit <= 0:
             continue
 
-        if est_debit * 100.0 <= float(max_premium):
+        debit_dollars = est_debit * 100.0
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BPS exp={exp} est_debit={est_debit:.4f} => ${debit_dollars:.2f} (cap=${max_premium})")
+
+        if debit_dollars <= float(max_premium):
             return long_sym, short_sym, est_debit
 
     return None, None, None
@@ -326,222 +343,229 @@ def main():
     print("signals.json path:", str(SIGNALS_PATH))
     print("signals.json loaded:", signals)
 
+    # Sync watchlist to signals (so you don't get misleading warnings)
+    global WATCHLIST
+    if signals:
+        WATCHLIST = [str(sym).upper() for sym in signals.keys()]
+
     for symbol, spec in signals.items():
         symbol = str(symbol).upper()
 
         if symbol not in WATCHLIST:
             print(f"{symbol}: not in WATCHLIST, but signals.json requested it -> trading anyway")
 
-        # ---------------- NEW FORMAT ----------------
-        if isinstance(spec, dict):
-            asset = str(spec.get("asset", "stock")).lower().strip()
+        if not isinstance(spec, dict):
+            # OLD FORMAT (string)
+            action = str(spec).upper()
+            if action not in {"BUY", "SELL", "HOLD"}:
+                print(f"{symbol}: invalid action '{action}', treating as HOLD")
+                action = "HOLD"
 
-            # ===== STOCKS =====
-            if asset == "stock":
-                action = str(spec.get("action", "HOLD")).upper()
-                qty = float(spec.get("qty", shares_for(symbol)))
+            if action == "HOLD":
+                print(f"{symbol}: HOLD")
+                continue
+            if action == "BUY" and symbol in held:
+                print(f"{symbol}: BUY skipped (already holding)")
+                continue
+            if action == "SELL" and symbol not in held:
+                print(f"{symbol}: SELL skipped (no position to close)")
+                continue
 
-                if action not in {"BUY", "SELL", "HOLD"}:
-                    print(f"{symbol}: invalid action '{action}', treating as HOLD")
-                    action = "HOLD"
+            side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
+            order = MarketOrderRequest(
+                symbol=symbol,
+                qty=shares_for(symbol),
+                side=side,
+                time_in_force=TimeInForce.DAY,
+            )
+            submitted = trade_client.submit_order(order_data=order)
+            print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
+            continue
 
-                if action == "BUY" and symbol in held:
-                    print(f"{symbol}: BUY skipped (already holding)")
+        # NEW FORMAT
+        asset = str(spec.get("asset", "stock")).lower().strip()
+
+        # ===== STOCKS =====
+        if asset == "stock":
+            action = str(spec.get("action", "HOLD")).upper()
+            qty = float(spec.get("qty", shares_for(symbol)))
+
+            if action not in {"BUY", "SELL", "HOLD"}:
+                print(f"{symbol}: invalid action '{action}', treating as HOLD")
+                action = "HOLD"
+
+            if action == "BUY" and symbol in held:
+                print(f"{symbol}: BUY skipped (already holding)")
+                continue
+            if action == "SELL" and symbol not in held:
+                print(f"{symbol}: SELL skipped (no position to close)")
+                continue
+            if action == "HOLD":
+                print(f"{symbol}: HOLD")
+                continue
+
+            side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
+            order = MarketOrderRequest(
+                symbol=symbol,
+                qty=qty,
+                side=side,
+                time_in_force=TimeInForce.DAY,
+            )
+            submitted = trade_client.submit_order(order_data=order)
+            print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
+            continue
+
+        # ===== OPTIONS =====
+        if asset == "option":
+            strategy = str(spec.get("strategy", "")).upper().strip()
+
+            dte_min = int(spec.get("dte_min", 0))
+            dte_max = int(spec.get("dte_max", 45))
+            max_premium = float(spec.get("max_premium", 500))  # dollars
+            qty = int(spec.get("qty", 1))
+
+            max_strike = spec.get("max_strike", None)
+            try:
+                max_strike = float(max_strike) if max_strike is not None else None
+            except Exception:
+                max_strike = None
+
+            width_pct = float(spec.get("width_pct", 0.05))
+
+            if dte_min < 0:
+                dte_min = 0
+            if dte_max < dte_min:
+                dte_max = dte_min
+
+            spot = spec.get("last_close", None)
+            try:
+                spot = float(spot) if spot is not None else None
+            except Exception:
+                spot = None
+
+            if DEBUG_OPTIONS:
+                print(f"DEBUG {symbol}: strategy={strategy} spot={spot} dte={dte_min}-{dte_max} "
+                      f"max_premium=${max_premium} max_strike={max_strike} width_pct={width_pct}")
+
+            # --- single-leg ---
+            if strategy in {"BUY_CALL", "BUY_PUT"}:
+                right = "CALL" if strategy == "BUY_CALL" else "PUT"
+                opt_sym, ask = pick_single_leg(
+                    trade_client,
+                    option_data_client,
+                    symbol,
+                    right,
+                    spot,
+                    dte_min,
+                    dte_max,
+                    max_premium,
+                    max_strike,
+                )
+                if opt_sym is None or ask is None:
+                    strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
+                    print(
+                        f"{symbol}: No {strategy} found with premium<=${max_premium} "
+                        f"and {dte_min}-{dte_max} DTE{strike_msg}"
+                    )
                     continue
-                if action == "SELL" and symbol not in held:
-                    print(f"{symbol}: SELL skipped (no position to close)")
-                    continue
-                if action == "HOLD":
-                    print(f"{symbol}: HOLD")
+
+                if opt_sym in held:
+                    print(f"{symbol}: Option {opt_sym} already held -> skipping")
                     continue
 
-                side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
-                order = MarketOrderRequest(
-                    symbol=symbol,
+                order = LimitOrderRequest(
+                    symbol=opt_sym,
                     qty=qty,
-                    side=side,
+                    side=OrderSide.BUY,
                     time_in_force=TimeInForce.DAY,
+                    limit_price=round(float(ask), 2),
                 )
                 submitted = trade_client.submit_order(order_data=order)
-                print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
+                print(
+                    f"{datetime.now(timezone.utc).isoformat()} {symbol} {strategy} "
+                    f"-> {opt_sym} @ {ask:.2f} (limit) -> {submitted.id}"
+                )
                 continue
 
-            # ===== OPTIONS =====
-            if asset == "option":
-                strategy = str(spec.get("strategy", "")).upper().strip()
-
-                # updated defaults
-                dte_min = int(spec.get("dte_min", 0))
-                dte_max = int(spec.get("dte_max", 45))
-                max_premium = float(spec.get("max_premium", 500))  # dollars
-                qty = int(spec.get("qty", 1))
-
-                # optional strike cap (lets META/NVDA/etc pass with higher strikes)
-                max_strike = spec.get("max_strike", None)
-                try:
-                    max_strike = float(max_strike) if max_strike is not None else None
-                except Exception:
-                    max_strike = None
-
-                width_pct = float(spec.get("width_pct", 0.05))
-
-                if dte_min < 0:
-                    dte_min = 0
-                if dte_max < dte_min:
-                    dte_max = dte_min
-
-                spot = spec.get("last_close", None)
-                try:
-                    spot = float(spot) if spot is not None else None
-                except Exception:
-                    spot = None
-
-                # --- single-leg ---
-                if strategy in {"BUY_CALL", "BUY_PUT"}:
-                    right = "CALL" if strategy == "BUY_CALL" else "PUT"
-                    opt_sym, ask = pick_single_leg(
-                        trade_client,
-                        option_data_client,
-                        symbol,
-                        right,
-                        spot,
-                        dte_min,
-                        dte_max,
-                        max_premium,
-                        max_strike,
-                    )
-                    if opt_sym is None or ask is None:
-                        strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
-                        print(
-                            f"{symbol}: No {strategy} found with premium<=${max_premium} "
-                            f"and {dte_min}-{dte_max} DTE{strike_msg}"
-                        )
-                        continue
-
-                    if opt_sym in held:
-                        print(f"{symbol}: Option {opt_sym} already held -> skipping")
-                        continue
-
-                    order = LimitOrderRequest(
-                        symbol=opt_sym,
-                        qty=qty,
-                        side=OrderSide.BUY,
-                        time_in_force=TimeInForce.DAY,
-                        limit_price=round(float(ask), 2),
-                    )
-                    submitted = trade_client.submit_order(order_data=order)
+            # --- spreads (MLeg) ---
+            if strategy == "BULL_CALL_SPREAD":
+                long_call, short_call, est_debit = pick_bull_call_spread(
+                    trade_client,
+                    option_data_client,
+                    symbol,
+                    spot,
+                    dte_min,
+                    dte_max,
+                    max_premium,
+                    max_strike,
+                    width_pct=width_pct,
+                )
+                if not long_call or not short_call or est_debit is None:
+                    strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
                     print(
-                        f"{datetime.now(timezone.utc).isoformat()} {symbol} {strategy} "
-                        f"-> {opt_sym} @ {ask:.2f} (limit) -> {submitted.id}"
+                        f"{symbol}: No BULL_CALL_SPREAD found with est_debit<=${max_premium} "
+                        f"and {dte_min}-{dte_max} DTE{strike_msg}"
                     )
                     continue
 
-                # --- spreads (MLeg) ---
-                if strategy == "BULL_CALL_SPREAD":
-                    long_call, short_call, est_debit = pick_bull_call_spread(
-                        trade_client,
-                        option_data_client,
-                        symbol,
-                        spot,
-                        dte_min,
-                        dte_max,
-                        max_premium,
-                        max_strike,
-                        width_pct=width_pct,
-                    )
-                    if not long_call or not short_call or est_debit is None:
-                        strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
-                        print(
-                            f"{symbol}: No BULL_CALL_SPREAD found with est_debit<=${max_premium} "
-                            f"and {dte_min}-{dte_max} DTE{strike_msg}"
-                        )
-                        continue
-
-                    legs = [
-                        OptionLegRequest(symbol=short_call, side=OrderSide.SELL, ratio_qty=1),
-                        OptionLegRequest(symbol=long_call, side=OrderSide.BUY, ratio_qty=1),
-                    ]
-                    req = MarketOrderRequest(
-                        qty=qty,
-                        order_class=OrderClass.MLEG,
-                        time_in_force=TimeInForce.DAY,
-                        legs=legs,
-                    )
-                    submitted = trade_client.submit_order(req)
-                    print(
-                        f"{datetime.now(timezone.utc).isoformat()} {symbol} BULL_CALL_SPREAD "
-                        f"-> long={long_call} short={short_call} est_debit={est_debit:.2f} -> {submitted.id}"
-                    )
-                    continue
-
-                if strategy == "BEAR_PUT_SPREAD":
-                    long_put, short_put, est_debit = pick_bear_put_spread(
-                        trade_client,
-                        option_data_client,
-                        symbol,
-                        spot,
-                        dte_min,
-                        dte_max,
-                        max_premium,
-                        max_strike,
-                        width_pct=width_pct,
-                    )
-                    if not long_put or not short_put or est_debit is None:
-                        strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
-                        print(
-                            f"{symbol}: No BEAR_PUT_SPREAD found with est_debit<=${max_premium} "
-                            f"and {dte_min}-{dte_max} DTE{strike_msg}"
-                        )
-                        continue
-
-                    legs = [
-                        OptionLegRequest(symbol=short_put, side=OrderSide.SELL, ratio_qty=1),
-                        OptionLegRequest(symbol=long_put, side=OrderSide.BUY, ratio_qty=1),
-                    ]
-                    req = MarketOrderRequest(
-                        qty=qty,
-                        order_class=OrderClass.MLEG,
-                        time_in_force=TimeInForce.DAY,
-                        legs=legs,
-                    )
-                    submitted = trade_client.submit_order(req)
-                    print(
-                        f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
-                        f"-> long={long_put} short={short_put} est_debit={est_debit:.2f} -> {submitted.id}"
-                    )
-                    continue
-
-                print(f"{symbol}: OPTIONS strategy '{strategy}' not supported -> skipping")
+                legs = [
+                    OptionLegRequest(symbol=short_call, side=OrderSide.SELL, ratio_qty=1),
+                    OptionLegRequest(symbol=long_call, side=OrderSide.BUY, ratio_qty=1),
+                ]
+                req = MarketOrderRequest(
+                    qty=qty,
+                    order_class=OrderClass.MLEG,
+                    time_in_force=TimeInForce.DAY,
+                    legs=legs,
+                )
+                submitted = trade_client.submit_order(req)
+                print(
+                    f"{datetime.now(timezone.utc).isoformat()} {symbol} BULL_CALL_SPREAD "
+                    f"-> long={long_call} short={short_call} est_debit={est_debit:.2f} -> {submitted.id}"
+                )
                 continue
 
-            print(f"{symbol}: unknown asset '{asset}', skipping")
+            if strategy == "BEAR_PUT_SPREAD":
+                long_put, short_put, est_debit = pick_bear_put_spread(
+                    trade_client,
+                    option_data_client,
+                    symbol,
+                    spot,
+                    dte_min,
+                    dte_max,
+                    max_premium,
+                    max_strike,
+                    width_pct=width_pct,
+                )
+                if not long_put or not short_put or est_debit is None:
+                    strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
+                    print(
+                        f"{symbol}: No BEAR_PUT_SPREAD found with est_debit<=${max_premium} "
+                        f"and {dte_min}-{dte_max} DTE{strike_msg}"
+                    )
+                    continue
+
+                legs = [
+                    OptionLegRequest(symbol=short_put, side=OrderSide.SELL, ratio_qty=1),
+                    OptionLegRequest(symbol=long_put, side=OrderSide.BUY, ratio_qty=1),
+                ]
+                req = MarketOrderRequest(
+                    qty=qty,
+                    order_class=OrderClass.MLEG,
+                    time_in_force=TimeInForce.DAY,
+                    legs=legs,
+                )
+                submitted = trade_client.submit_order(req)
+                print(
+                    f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
+                    f"-> long={long_put} short={short_put} est_debit={est_debit:.2f} -> {submitted.id}"
+                )
+                continue
+
+            print(f"{symbol}: OPTIONS strategy '{strategy}' not supported -> skipping")
             continue
 
-        # ---------------- OLD FORMAT (string) ----------------
-        action = str(spec).upper()
-        if action not in {"BUY", "SELL", "HOLD"}:
-            print(f"{symbol}: invalid action '{action}', treating as HOLD")
-            action = "HOLD"
-
-        if action == "HOLD":
-            print(f"{symbol}: HOLD")
-            continue
-        if action == "BUY" and symbol in held:
-            print(f"{symbol}: BUY skipped (already holding)")
-            continue
-        if action == "SELL" and symbol not in held:
-            print(f"{symbol}: SELL skipped (no position to close)")
-            continue
-
-        side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
-        order = MarketOrderRequest(
-            symbol=symbol,
-            qty=shares_for(symbol),
-            side=side,
-            time_in_force=TimeInForce.DAY,
-        )
-        submitted = trade_client.submit_order(order_data=order)
-        print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
+        print(f"{symbol}: unknown asset '{asset}', skipping")
 
 
 if __name__ == "__main__":
