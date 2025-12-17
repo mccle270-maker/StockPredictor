@@ -320,7 +320,7 @@ def run_app():
                 progress_bar.progress((i + 1) / len(flagged))
                 status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
                 if i > 0:
-                    time.sleep(5)
+                    time.sleep(1)
 
                 try:
                     out = predict_next_for_ticker(
