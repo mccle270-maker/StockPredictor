@@ -1,1229 +1,2264 @@
 # prediction_model.py
+
 import os
+
 import numpy as np
+
 import pandas as pd
+
 import yfinance as yf
 
 import datetime as dt
+
 import requests
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
+
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
+
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+
 from sklearn.linear_model import LinearRegression
+
 import statsmodels.api as sm
 
 from xgboost import XGBRegressor, XGBClassifier
 
+# ===================== NEW: Elastic Net feature selection imports =====================
+try:
+    from sklearn.linear_model import ElasticNetCV
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import Pipeline
+except Exception:
+    ElasticNetCV = None
+    StandardScaler = None
+    Pipeline = None
+
 from data_fetch import (
+
     get_history as get_history_yahoo_raw,
+
     get_history_cached as get_history_yahoo,
+
     get_fmp_fundamentals,
+
 )
 
 from option_pricing import (
+
     OptionSpec,
+
     HestonParams,
+
     PricingModel,
+
     price_option,
+
 )
 
+
+# ===================== NEW: Elastic Net config from env =====================
+def _env_bool(name: str, default: bool = False) -> bool:
+    v = os.environ.get(name)
+    if v is None:
+        return default
+    return str(v).strip().lower() in ("1", "true", "yes", "y", "on")
+
+
+USE_ELASTICNET_SELECT = _env_bool("USE_ELASTICNET_SELECT", False)
+try:
+    ELASTICNET_L1_RATIO = float(os.environ.get("ELASTICNET_L1_RATIO", "0.5"))
+except Exception:
+    ELASTICNET_L1_RATIO = 0.5
+
+try:
+    ELASTICNET_CV_FOLDS = int(os.environ.get("ELASTICNET_CV_FOLDS", "5"))
+except Exception:
+    ELASTICNET_CV_FOLDS = 5
+
+
 def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
+
     params_by_ticker = {
+
         "AAPL": HestonParams(v0=0.04, theta=0.04, kappa=1.5, sigma=0.3, rho=-0.6),
+
         "NVDA": HestonParams(v0=0.06, theta=0.05, kappa=1.2, sigma=0.5, rho=-0.7),
+
     }
+
     return params_by_ticker.get(ticker.upper())
 
+
 def price_atm_call_for_ticker(
+
     ticker: str,
+
     expiry: pd.Timestamp | str,
+
     spot: float,
+
     atm_iv: float | None,
+
     model: PricingModel = PricingModel.BLACK_SCHOLES,
+
     risk_free: float = 0.05,
+
     div_yield: float = 0.0,
+
 ) -> float | None:
+
     try:
+
         if isinstance(expiry, str):
+
             expiry_date = pd.to_datetime(expiry).date()
+
         else:
+
             expiry_date = expiry.date()
 
         val_date = pd.Timestamp.today().date()
+
         vol = float(atm_iv) if atm_iv is not None else 0.2
 
         opt_spec = OptionSpec(
+
             spot=float(spot),
+
             strike=float(spot),
+
             maturity_date=expiry_date,
+
             valuation_date=val_date,
+
             rate=float(risk_free),
+
             div_yield=float(div_yield),
+
             vol=vol,
+
             is_call=True,
+
         )
 
         heston_params = None
+
         if model == PricingModel.HESTON:
+
             heston_params = get_heston_params_for_ticker(ticker)
+
             if heston_params is None:
+
                 return None
 
         return float(price_option(opt_spec, model=model, heston_params=heston_params))
+
     except Exception as e:
+
         print(f"[pricing] Error pricing ATM call for {ticker}: {e}")
+
         return None
 
+
 from pyts.image import GramianAngularField
+
 import matplotlib.pyplot as plt
 
 gaf_cnn = None
 
 try:
+
     from tensorflow import keras
+
     GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
 
     if os.path.exists(GAF_CNN_MODEL_PATH):
+
         print(f"[GAF-CNN] Loading model from {GAF_CNN_MODEL_PATH}...")
+
         gaf_cnn = keras.models.load_model(GAF_CNN_MODEL_PATH)
+
         print("[GAF-CNN] Loaded successfully.")
+
     else:
+
         print(f"[GAF-CNN] Model file not found at {GAF_CNN_MODEL_PATH}; prob_up_gaf will be None.")
+
 except Exception as e:
+
     print(f"[GAF-CNN] TensorFlow/Keras not available or failed to load model: {e}. prob_up_gaf will be None.")
+
     gaf_cnn = None
 
+
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
+
     delta = df[price_col].diff()
+
     gain = delta.clip(lower=0)
+
     loss = -delta.clip(upper=0)
 
     avg_gain = gain.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
+
     avg_loss = loss.ewm(alpha=1 / window, min_periods=window, adjust=False).mean()
 
     rs = avg_gain / avg_loss
+
     rsi = 100 - (100 / (1 + rs))
 
     df[f"rsi_{window}"] = rsi
+
     return df
 
+
 def add_macd(df, price_col: str = "Close", fast: int = 12, slow: int = 26, signal: int = 9):
+
     ema_fast = df[price_col].ewm(span=fast, adjust=False).mean()
+
     ema_slow = df[price_col].ewm(span=slow, adjust=False).mean()
 
     macd = ema_fast - ema_slow
+
     macd_signal = macd.ewm(span=signal, adjust=False).mean()
+
     macd_hist = macd - macd_signal
 
     df["macd"] = macd
+
     df["macd_signal"] = macd_signal
+
     df["macd_hist"] = macd_hist
+
     return df
 
+
 def add_mfi(df, window: int = 14):
+
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
+
     rmf = tp * df["Volume"]
 
     tp_shift = tp.shift(1)
+
     pos_mf = rmf.where(tp > tp_shift, 0.0)
+
     neg_mf = rmf.where(tp < tp_shift, 0.0)
 
     pos_mf_sum = pos_mf.rolling(window=window, min_periods=window).sum()
+
     neg_mf_sum = neg_mf.rolling(window=window, min_periods=window).sum()
 
     money_flow_ratio = pos_mf_sum / neg_mf_sum.replace(0, np.nan)
+
     mfi = 100 - (100 / (1 + money_flow_ratio))
 
     df[f"mfi_{window}"] = mfi
+
     return df
+
 
 def add_technical_indicators(df):
+
     df = df.copy()
+
     df = add_rsi(df, window=14, price_col="Close")
+
     df = add_macd(df, price_col="Close", fast=12, slow=26, signal=9)
+
     df = add_mfi(df, window=14)
+
     return df
 
+
 FUNDAMENTAL_COLUMNS = [
+
     "fund_pe_trailing",
+
     "fund_pb",
+
     "fund_market_cap",
+
 ]
 
 MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix"]
+
 _macro_cache = {}
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY")
 
+
 def _get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
+
     if FRED_API_KEY is None:
+
         raise RuntimeError("FRED_API_KEY not set in environment")
 
     url = (
+
         "https://api.stlouisfed.org/fred/series/observations"
+
         f"?series_id={series_id}"
+
         f"&api_key={FRED_API_KEY}"
+
         "&file_type=json"
+
         f"&observation_start={start.isoformat()}"
+
         f"&observation_end={end.isoformat()}"
+
     )
-    
+
     resp = requests.get(url, timeout=10)
+
     resp.raise_for_status()
+
     data = resp.json().get("observations", [])
 
     dates = []
+
     values = []
+
     for obs in data:
+
         d = obs.get("date")
+
         v = obs.get("value")
+
         if v in (".", None):
+
             continue
+
         dates.append(pd.to_datetime(d))
+
         values.append(float(v))
 
     return pd.Series(values, index=pd.DatetimeIndex(dates))
 
+
 def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
+
     try:
+
         df = get_history_yahoo(ticker, period=period, interval=interval)
+
         if df is not None and not df.empty:
+
             return df
+
     except Exception as e:
+
         print(f"[get_price_history] Yahoo cached failed for {ticker} ({period}): {e}")
 
     try:
+
         if interval != "1d":
+
             raise ValueError("Stooq fallback only supports daily interval")
 
         stooq_symbol = f"{ticker.lower()}.us"
+
         url = f"https://stooq.com/q/d/l/?s={stooq_symbol}&i=d"
+
         raw = pd.read_csv(url)
 
         if raw.empty:
+
             raise ValueError("Empty Stooq CSV")
 
         raw["Date"] = pd.to_datetime(raw["Date"])
+
         raw = raw.set_index("Date").sort_index()
 
         years_map = {"10y": 10, "5y": 5, "3y": 3, "2y": 2, "1y": 1}
+
         months_map = {"6mo": 0.5, "3mo": 0.25}
+
         today = dt.date.today()
 
         if period in years_map:
+
             start_date = today - dt.timedelta(days=365 * years_map[period])
+
         elif period in months_map:
+
             start_date = today - dt.timedelta(days=int(365 * months_map[period]))
+
         else:
+
             start_date = raw.index.min().date()
 
         df = raw[raw.index.date >= start_date].copy()
 
         rename_map = {
+
             "Open": "Open",
+
             "High": "High",
+
             "Low": "Low",
+
             "Close": "Close",
+
             "Volume": "Volume",
+
         }
+
         df = df.rename(columns=rename_map)
 
         print(f"[get_price_history] Using Stooq data for {ticker} ({period}), rows={len(df)}")
+
         return df
+
     except Exception as e:
+
         print(f"[get_price_history] Stooq failed for {ticker}: {e}")
 
     try:
+
         df = get_history_yahoo_raw(ticker, period=period, interval=interval)
+
         if df is not None and not df.empty:
+
             print(f"[get_price_history] Fallback to raw Yahoo for {ticker}")
+
             return df
+
     except Exception as e:
+
         print(f"[get_price_history] Raw Yahoo fallback failed for {ticker}: {e}")
 
     raise ValueError(f"No price history available for {ticker} with period={period}")
 
+
 def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
+
     key = (symbol, period)
+
     if key in _macro_cache:
+
         return _macro_cache[key]
 
     hist = get_price_history(symbol, period=period, interval="1d")
+
     df = pd.DataFrame(index=hist.index)
+
     df["mkt_ret_1d"] = hist["Close"].pct_change()
 
     if FRED_API_KEY is None:
+
         print("[get_macro_df] FRED_API_KEY not set; using only mkt_ret_1d")
+
         _macro_cache[key] = df
+
         return df
 
     try:
+
         start_date = df.index.min().date()
+
         end_date = df.index.max().date()
 
         s10 = _get_fred_series("DGS10", start_date, end_date)
+
         s3m = _get_fred_series("DGS3MO", start_date, end_date)
+
         vix = _get_fred_series("VIXCLS", start_date, end_date)
 
         df_dates = df.index.normalize().tz_localize(None)
-        
+
         df["t10y"] = s10.reindex(df_dates).ffill().bfill().values
+
         df["t3m"] = s3m.reindex(df_dates).ffill().bfill().values
+
         df["vix"] = vix.reindex(df_dates).ffill().bfill().values
+
         df["term_spread"] = df["t10y"] - df["t3m"]
-        
+
         _macro_cache[key] = df
+
         return df
+
     except Exception as e:
+
         print(f"[get_macro_df] FRED fetch failed: {e}")
+
         _macro_cache[key] = df
+
         return df
+
 
 # ⭐ UPDATED FEATURE COLUMNS - Added new Tier-1 features
+
 FEATURE_COLUMNS = [
+
     # Existing features
+
     "ret_1d", "ret_5d", "ret_20d", "vol_20d",
+
     "sma_ratio_10_50", "rsi_14", "price_to_ma50",
+
     "bb_width_20",
+
     "volume_price_corr", "volume_trend", "vol_ma_20", "vol_spike_20",
+
     "vol_rollmean_20", "vol_rollstd_20",
+
     "high_low_ratio", "daily_range", "close_position", "hl_range",
+
     "day_of_week", "month", "is_month_end",
+
     "fund_pe_trailing", "fund_pb", "fund_market_cap",
+
     "macd", "macd_signal", "macd_hist", "mfi_14",
-    
+
     # NEW Tier-1 features
+
     'ret_3d', 'cum_ret_3d', 'cum_ret_5d', 'ret_zscore_20d',
+
     'atr_14', 'vol_10d', 'vol_60d', 'vol_ratio_10_60', 'vol_regime_high', 'range_atr_ratio',
+
     'volume_zscore', 'dollar_volume', 'dollar_volume_20d_avg', 'ret_vol_interaction',
+
     'rel_strength_1d', 'rel_strength_3d', 'rel_momentum_5d',
+
     'rsi_change_1d', 'rsi_change_3d', 'rsi_overbought', 'rsi_oversold',
+
     'bb_upper', 'bb_lower', 'bb_mid', 'bb_pct_b', 'ma_20', 'price_minus_20dma', 'ma_20_slope',
+
 ]
 
+
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
+
     """Add all technical + momentum + volume features with proper lagging"""
+
     hist = hist.copy()
 
     close = hist["Close"]
+
     high = hist["High"]
+
     low = hist["Low"]
+
     volume = hist["Volume"]
 
     # ===== BASIC RETURNS (properly lagged) =====
+
     hist["ret_1d"] = close.pct_change().shift(1)
+
     hist["ret_3d"] = close.pct_change(3).shift(1)
+
     hist["ret_5d"] = close.pct_change(5).shift(1)
+
     hist["ret_20d"] = close.pct_change(20).shift(1)
-    
+
     # Cumulative returns
+
     hist['cum_ret_3d'] = (1 + close.pct_change()).rolling(3).apply(lambda x: x.prod() - 1, raw=True).shift(1)
+
     hist['cum_ret_5d'] = (1 + close.pct_change()).rolling(5).apply(lambda x: x.prod() - 1, raw=True).shift(1)
-    
+
     # ===== VOLATILITY FEATURES =====
+
     hist['vol_10d'] = close.pct_change().rolling(10).std().shift(1)
+
     hist["vol_20d"] = close.pct_change().rolling(20).std().shift(1)
+
     hist['vol_60d'] = close.pct_change().rolling(60).std().shift(1)
-    
+
     # Volatility ratio and regime
+
     hist['vol_ratio_10_60'] = (hist['vol_10d'] / (hist['vol_60d'] + 1e-9)).shift(1)
+
     hist['vol_regime_high'] = (hist['vol_10d'] > hist['vol_20d'].rolling(60).quantile(0.75)).astype(int).shift(1)
-    
+
     # Return z-score
+
     ret_mean_20d = close.pct_change().rolling(20).mean()
+
     ret_std_20d = close.pct_change().rolling(20).std()
+
     hist['ret_zscore_20d'] = ((close.pct_change() - ret_mean_20d) / (ret_std_20d + 1e-9)).shift(1)
 
     # ===== ATR (Average True Range) =====
+
     high_low = high - low
+
     high_close = (high - close.shift(1)).abs()
+
     low_close = (low - close.shift(1)).abs()
+
     true_range = pd.concat([high_low, high_close, low_close], axis=1).max(axis=1)
+
     hist['atr_14'] = true_range.rolling(14).mean().shift(1)
+
     hist['range_atr_ratio'] = ((high - low) / (hist['atr_14'] + 1e-9)).shift(1)
 
     # ===== VOLUME FEATURES =====
+
     vol_mean_20d = volume.rolling(20).mean()
+
     vol_std_20d = volume.rolling(20).std()
+
     hist['volume_zscore'] = ((volume - vol_mean_20d) / (vol_std_20d + 1e-9)).shift(1)
-    
+
     hist['dollar_volume'] = (close * volume).shift(1)
+
     hist['dollar_volume_20d_avg'] = hist['dollar_volume'].rolling(20).mean().shift(1)
-    
+
     hist['ret_vol_interaction'] = (close.pct_change() * hist['volume_zscore']).shift(1)
 
     # Old volume features (keep for compatibility)
+
     hist["volume_price_corr"] = close.pct_change().rolling(20).corr(volume.pct_change()).shift(1)
+
     vol_ma_10 = volume.rolling(10).mean()
+
     vol_ma_30 = volume.rolling(30).mean()
+
     hist["volume_trend"] = (vol_ma_10 / (vol_ma_30 + 1e-9)).shift(1)
+
     hist["vol_ma_20"] = volume.rolling(20).mean().shift(1)
+
     hist["vol_spike_20"] = (volume / (hist["vol_ma_20"] + 1e-9)).shift(1)
+
     hist["vol_rollmean_20"] = volume.rolling(20).mean().shift(1)
+
     hist["vol_rollstd_20"] = volume.rolling(20).std().shift(1)
 
     # ===== MOVING AVERAGES & BOLLINGER BANDS (BEFORE SPX) =====
+
     ma_20 = close.rolling(20).mean()
+
     ma_50 = close.rolling(50).mean()
+
     sma_10 = close.rolling(10).mean()
-    
+
     hist["ma_20"] = ma_20.shift(1)
+
     hist["sma_ratio_10_50"] = (sma_10 / (ma_50 + 1e-9)).shift(1)
+
     hist["price_to_ma50"] = (close / (ma_50 + 1e-9)).shift(1)
+
     hist['price_minus_20dma'] = ((close - ma_20) / (ma_20 + 1e-9)).shift(1)
+
     hist['ma_20_slope'] = ma_20.diff(5).shift(1)
 
     # Bollinger Bands
+
     std_20 = close.rolling(20).std()
+
     hist['bb_upper'] = (ma_20 + 2 * std_20).shift(1)
+
     hist['bb_lower'] = (ma_20 - 2 * std_20).shift(1)
+
     hist['bb_mid'] = ma_20.shift(1)
+
     hist["bb_width_20"] = ((hist['bb_upper'] - hist['bb_lower']) / (hist['bb_mid'] + 1e-9))
+
     hist['bb_pct_b'] = ((close - hist['bb_lower']) / (hist['bb_upper'] - hist['bb_lower'] + 1e-9)).shift(1)
 
     # ===== RSI ENHANCEMENTS =====
+
     hist = add_rsi(hist, window=14, price_col="Close")
+
     hist['rsi_change_1d'] = hist['rsi_14'].diff(1).shift(1)
+
     hist['rsi_change_3d'] = hist['rsi_14'].diff(3).shift(1)
+
     hist['rsi_overbought'] = (hist['rsi_14'] > 70).astype(int).shift(1)
+
     hist['rsi_oversold'] = (hist['rsi_14'] < 30).astype(int).shift(1)
+
     hist['rsi_14'] = hist['rsi_14'].shift(1)  # Lag RSI itself
 
     # ===== RELATIVE STRENGTH (Stock - SPX) - FIXED =====
+
     try:
+
         spx_raw = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False)
-        
+
         if not spx_raw.empty:
+
             # Flatten MultiIndex columns if they exist
+
             if isinstance(spx_raw.columns, pd.MultiIndex):
+
                 spx_raw.columns = spx_raw.columns.get_level_values(0)
-            
+
             # Remove timezone from SPX only
+
             if hasattr(spx_raw.index, 'tz') and spx_raw.index.tz is not None:
+
                 spx_raw.index = spx_raw.index.tz_localize(None)
-            
+
             # Match hist's timezone (add it back if hist has one)
+
             if hasattr(hist.index, 'tz') and hist.index.tz is not None:
+
                 spx_raw.index = spx_raw.index.tz_localize(hist.index.tz)
-            
+
             # Extract Close price as Series
+
             spx_close = spx_raw['Close']
-            
+
             # Calculate SPX returns
+
             spx_ret_1d = spx_close.pct_change()
+
             spx_ret_3d = spx_close.pct_change(3)
+
             spx_ret_5d = spx_close.pct_change(5)
-            
+
             # Reindex to match hist
+
             spx_ret_1d = spx_ret_1d.reindex(hist.index, method='ffill').fillna(0)
+
             spx_ret_3d = spx_ret_3d.reindex(hist.index, method='ffill').fillna(0)
+
             spx_ret_5d = spx_ret_5d.reindex(hist.index, method='ffill').fillna(0)
-            
+
             # Calculate stock returns
+
             stock_ret_1d = hist['Close'].pct_change()
+
             stock_ret_3d = hist['Close'].pct_change(3)
+
             stock_ret_5d = hist['Close'].pct_change(5)
-            
+
             # Calculate relative strength
+
             hist['rel_strength_1d'] = (stock_ret_1d - spx_ret_1d).shift(1)
+
             hist['rel_strength_3d'] = (stock_ret_3d - spx_ret_3d).shift(1)
+
             hist['rel_momentum_5d'] = (stock_ret_5d - spx_ret_5d).shift(1)
-            
+
             print(f"[add_price_features] SPX relative strength calculated successfully")
+
         else:
+
             hist['rel_strength_1d'] = 0.0
+
             hist['rel_strength_3d'] = 0.0
+
             hist['rel_momentum_5d'] = 0.0
+
             print("[add_price_features] SPX data empty, setting relative strength to 0")
-            
+
     except Exception as e:
+
         print(f"[add_price_features] SPX fetch failed: {e}")
+
         hist['rel_strength_1d'] = 0.0
+
         hist['rel_strength_3d'] = 0.0
+
         hist['rel_momentum_5d'] = 0.0
 
-
     # ===== INTRADAY STRUCTURE =====
+
     hist["high_low_ratio"] = (high / (low + 1e-9)).shift(1)
+
     hist["daily_range"] = ((high - low) / (close + 1e-9)).shift(1)
+
     hist["close_position"] = ((close - low) / (high - low + 1e-9)).shift(1)
+
     hist["hl_range"] = ((high - low) / (close.shift(1) + 1e-9)).shift(1)
 
     # ===== CALENDAR EFFECTS =====
+
     hist["day_of_week"] = hist.index.dayofweek
+
     hist["month"] = hist.index.month
+
     hist["is_month_end"] = (hist.index.day >= 25).astype(int)
 
     # ===== TECHNICAL INDICATORS (MACD, MFI) =====
+
     hist = add_technical_indicators(hist)
+
     # Lag these too
+
     hist["macd"] = hist["macd"].shift(1)
+
     hist["macd_signal"] = hist["macd_signal"].shift(1)
+
     hist["macd_hist"] = hist["macd_hist"].shift(1)
+
     hist["mfi_14"] = hist["mfi_14"].shift(1)
 
     return hist
 
+
 def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
+
     if task == "clf":
+
         if model_type == "xgb":
+
             return XGBClassifier(
+
                 n_estimators=300,
+
                 learning_rate=0.05,
+
                 max_depth=4,  # ← REDUCED from 5
+
                 random_state=random_state,
+
                 tree_method="hist",
+
                 verbosity=0,
+
                 subsample=0.8,  # ← ADDED
+
                 colsample_bytree=0.7,  # ← REDUCED from 0.9
+
                 min_child_weight=5,  # ← ADDED
+
                 reg_lambda=1.0,
+
             )
+
         else:
+
             return RandomForestClassifier(
+
                 n_estimators=300,
+
                 max_depth=6,
+
                 min_samples_leaf=50,  # ← ADDED
+
                 random_state=random_state,
+
                 n_jobs=-1,
+
             )
 
     if model_type == "linreg":
+
         return LinearRegression()
+
     if model_type == "gbrt":
+
         return GradientBoostingRegressor(
+
             n_estimators=300,
+
             learning_rate=0.05,
+
             max_depth=4,  # ← REDUCED from 5
+
             random_state=random_state,
+
         )
+
     elif model_type == "xgb":
+
         return XGBRegressor(
+
             n_estimators=300,
+
             learning_rate=0.05,
+
             max_depth=4,  # ← REDUCED from 3
+
             random_state=random_state,
+
             tree_method="hist",
+
             verbosity=0,
+
             subsample=0.8,  # ← REDUCED from 0.9
+
             colsample_bytree=0.7,  # ← REDUCED from 0.9
+
             min_child_weight=5,  # ← ADDED
+
             reg_lambda=1.0,
+
         )
+
     else:
+
         return RandomForestRegressor(
+
             n_estimators=300,
+
             max_depth=8,  # ← INCREASED from 6
+
             min_samples_leaf=50,  # ← ADDED
+
             random_state=random_state,
+
             n_jobs=-1,
+
         )
+
 
 def prune_weak_features(model, X, y, threshold=0.01):
+
     """Drop bottom features by importance"""
+
     if not hasattr(model, 'feature_importances_'):
+
         print("Model has no feature_importances_, skipping pruning")
+
         return X
-        
+
     importance = model.feature_importances_
+
     feature_names = X.columns
-    
-    # Keep only features above threshold
+
     important_features = feature_names[importance > threshold]
-    
+
     print(f"Pruned {len(feature_names) - len(important_features)} weak features (kept {len(important_features)})")
+
     return X[important_features]
 
+
+# ===================== NEW: Elastic Net selector (time-series safe CV) =====================
+def select_features_elasticnet_timeseries(
+    X: np.ndarray,
+    y: np.ndarray,
+    feature_names: list[str],
+    n_splits: int = 5,
+    l1_ratio: float = 0.5,
+    min_features: int = 8,
+    random_state: int = 42,
+) -> tuple[np.ndarray, list[str], np.ndarray]:
+    """
+    Fit ElasticNetCV on training set with TimeSeriesSplit and return reduced X + names + boolean mask.
+    Uses a StandardScaler pipeline because Elastic Net is scale-sensitive.
+    """
+    if ElasticNetCV is None or Pipeline is None or StandardScaler is None:
+        raise RuntimeError("scikit-learn not available for ElasticNetCV/StandardScaler/Pipeline")
+
+    n_splits = int(max(3, n_splits))
+    n_splits = int(min(n_splits, max(3, len(y) // 50))) if len(y) >= 200 else n_splits
+
+    tscv = TimeSeriesSplit(n_splits=n_splits)
+
+    pipe = Pipeline(
+        steps=[
+            ("scaler", StandardScaler(with_mean=True, with_std=True)),
+            ("enet", ElasticNetCV(
+                l1_ratio=float(l1_ratio),
+                alphas=None,
+                cv=tscv,
+                n_jobs=-1,
+                random_state=random_state,
+                max_iter=5000,
+            )),
+        ]
+    )
+
+    pipe.fit(X, y)
+    coefs = pipe.named_steps["enet"].coef_
+    mask = np.abs(coefs) > 1e-10
+
+    # Fallback: if too few selected, keep top-|coef| features
+    if mask.sum() < min_features:
+        idx = np.argsort(np.abs(coefs))[::-1]
+        keep = idx[:min_features]
+        mask = np.zeros_like(mask, dtype=bool)
+        mask[keep] = True
+
+    selected_names = [feature_names[i] for i, m in enumerate(mask) if m]
+    X_sel = X[:, mask]
+    return X_sel, selected_names, mask
+
+
 def get_fundamental_features(ticker: str) -> dict:
+
     feats = {
+
         "fund_pe_trailing": np.nan,
+
         "fund_pb": np.nan,
+
         "fund_market_cap": np.nan,
+
     }
 
     try:
+
         fmp_data = get_fmp_fundamentals(ticker)
+
         if isinstance(fmp_data, dict):
+
             for k in feats.keys():
+
                 if k in fmp_data:
+
                     feats[k] = fmp_data.get(k, np.nan)
+
     except Exception:
+
         pass
 
     if any(pd.isna(v) for v in feats.values()):
+
         try:
+
             t = yf.Ticker(ticker)
+
             info = t.info
+
             if pd.isna(feats["fund_pe_trailing"]):
+
                 feats["fund_pe_trailing"] = info.get("trailingPE", np.nan)
+
             if pd.isna(feats["fund_pb"]):
+
                 feats["fund_pb"] = info.get("priceToBook", np.nan)
+
             if pd.isna(feats["fund_market_cap"]):
+
                 feats["fund_market_cap"] = float(info.get("marketCap", np.nan))
+
         except Exception:
+
             pass
 
     for k in feats:
+
         if pd.isna(feats[k]):
+
             feats[k] = 0.0
 
     return feats
 
+
 def build_features_and_target(
+
     ticker="^GSPC",
+
     period="5y",
+
     horizon=1,
+
     use_vol_scaled_target: bool = False,
+
 ):
+
     fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
+
     if period in fallback_periods:
+
         periods_to_try = [period] + [p for p in fallback_periods if p != period]
+
     else:
+
         periods_to_try = [period] + fallback_periods
 
     last_error = None
+
     min_rows = 100  # ← INCREASED from 60
 
     for per in periods_to_try:
+
         try:
+
             hist = get_price_history(ticker, period=per, interval="1d")
+
             if hist is None or hist.empty:
+
                 raise ValueError(f"No raw history for {ticker} with period={per}")
 
             hist = add_price_features(hist)
 
             macro_df = get_macro_df(symbol="^GSPC", period=per)
+
             hist = hist.join(macro_df, how="left")
 
             for c in MACRO_COLUMNS:
+
                 if c not in hist.columns:
+
                     hist[c] = np.nan
+
             hist[MACRO_COLUMNS] = hist[MACRO_COLUMNS].ffill().bfill()
 
             fund_feats = get_fundamental_features(ticker)
+
             for k, v in fund_feats.items():
+
                 hist[k] = v
 
             # Target is FORWARD return (not lagged)
+
             raw_target = hist["Close"].pct_change(horizon).shift(-horizon)
+
             if use_vol_scaled_target:
+
                 hist[f"target_ret_{horizon}d_ahead"] = raw_target / (hist["vol_20d"] + 1e-9)
+
             else:
+
                 hist[f"target_ret_{horizon}d_ahead"] = raw_target
 
             feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
             cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
 
             df = hist[cols_needed].dropna().copy()
 
             print("hist rows:", len(hist), "range:", hist.index.min(), "->", hist.index.max())
+
             print("df rows:", len(df), "range:", df.index.min(), "->", df.index.max())
-        
 
             if df.empty or len(df) < min_rows:
+
                 raise ValueError(
+
                     f"Only {len(df)} usable rows for {ticker} with period={per}"
+
                 )
 
             X = df[feat_cols].values
+
             y = df[f"target_ret_{horizon}d_ahead"].values
 
             last_row = df.iloc[-1]
+
             last_row_features = last_row[feat_cols].values
+
             last_close = hist.loc[df.index[-1], "Close"]
+
             last_vol_20d = last_row["vol_20d"]
 
             return X, y, last_row_features, last_close, last_vol_20d
 
         except Exception as e:
+
             last_error = e
+
             continue
 
     raise ValueError(
+
         f"No usable history for {ticker} after trying periods {periods_to_try}. "
+
         f"Last error: {last_error}"
+
     )
+
 
 def build_features_and_direction_target(
+
     ticker="^GSPC",
+
     period="5y",
+
     horizon=1,
+
 ):
+
     X, y_reg, last_feats, last_close, last_vol_20d = build_features_and_target(
+
         ticker=ticker,
+
         period=period,
+
         horizon=horizon,
+
         use_vol_scaled_target=False,
+
     )
+
     y_dir = (y_reg > 0).astype(int)
+
     return X, y_dir, last_feats, last_close, last_vol_20d
 
+
 def train_model(X, y, model_type="rf", test_size=0.2, random_state=42, task="reg"):
+
     n = len(X)
+
     split_idx = int(n * (1 - test_size))
+
     X_train, X_test = X[:split_idx], X[split_idx:]
+
     y_train, y_test = y[:split_idx], y[split_idx:]
 
     model = make_model(model_type=model_type, random_state=random_state, task=task)
+
     model.fit(X_train, y_train)
+
     y_pred = model.predict(X_test)
 
     if task == "reg":
+
         r2 = r2_score(y_test, y_pred)
+
         rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+
         return model, r2, rmse
+
     else:
+
         acc = accuracy_score(y_test, y_pred)
+
         return model, acc, None
 
+
 def predict_next_for_ticker(
+
     ticker="^GSPC",
+
     period="5y",
+
     model_type="rf",
+
     horizon=1,
+
     use_vol_scaled_target: bool = False,
+
     auto_optimize: bool = True,  # NEW: Enable auto feature pruning
+
 ):
+
     X, y, x_last, last_close, last_vol_20d = build_features_and_target(
+
         ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
+
     )
 
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
     n = len(X)
-    
+
+    # ===================== NEW: Elastic Net selection happens on TRAINING only =====================
+    # We keep your existing 80/10/10 structure for auto_optimize,
+    # but ElasticNet selection only uses the training segment to avoid leakage.
+    en_selected_names = None
+    en_mask = None
+
+    if USE_ELASTICNET_SELECT:
+        try:
+            train_end_for_en = int(n * 0.8)
+            X_en_train = X[:train_end_for_en]
+            y_en_train = y[:train_end_for_en]
+
+            X_en_train_sel, en_selected_names, en_mask = select_features_elasticnet_timeseries(
+                X=X_en_train,
+                y=y_en_train,
+                feature_names=list(feat_cols),
+                n_splits=ELASTICNET_CV_FOLDS,
+                l1_ratio=ELASTICNET_L1_RATIO,
+                min_features=10,
+            )
+
+            # Apply same mask to full arrays (train/test + last row)
+            X = X[:, en_mask]
+            x_last = x_last[en_mask]
+            feat_cols = en_selected_names
+
+            print(f"[{ticker}] ElasticNet selected {len(feat_cols)} features")
+
+        except Exception as e:
+            print(f"[{ticker}] ElasticNet selection failed; continuing without it. Error: {e}")
+
     if auto_optimize:
+
         # Use validation set to prune features
+
         train_end = int(n * 0.8)
+
         val_end = int(n * 0.9)
-        
+
         X_train = X[:train_end]
+
         y_train = y[:train_end]
+
         X_val = X[train_end:val_end]
+
         y_val = y[train_end:val_end]
-        
+
         # Train initial model to get feature importance
+
         model_init = make_model(model_type=model_type, random_state=42, task="reg")
+
         model_init.fit(X_train, y_train)
-        
+
         # Prune weak features
-        importance = model_init.feature_importances_
-        important_mask = importance > 0.001  # Drop features <0.1% importance
+
+        if hasattr(model_init, "feature_importances_"):
+            importance = model_init.feature_importances_
+            important_mask = importance > 0.001  # Drop features <0.1% importance
+        else:
+            important_mask = np.ones(X.shape[1], dtype=bool)
+
         important_features = [feat_cols[i] for i in range(len(feat_cols)) if important_mask[i]]
-        
+
         print(f"[{ticker}] Using {len(important_features)}/{len(feat_cols)} features for prediction")
-        
+
         # Retrain on full training data (80%) with pruned features
+
         X_train_full = X[:train_end][:, important_mask]
+
         y_train_full = y[:train_end]
+
         x_last_pruned = x_last[important_mask]
-        
+
         # Update feat_cols for feature importance display
+
         feat_cols = important_features
+
     else:
+
         # Original behavior - use all features
+
         split_idx = int(n * 0.8)
+
         X_train_full = X[:split_idx]
+
         y_train_full = y[:split_idx]
+
         x_last_pruned = x_last
 
     # Train final model
+
     model = make_model(model_type=model_type, random_state=42, task="reg")
+
     model.fit(X_train_full, y_train_full)
 
     pred_ret = float(model.predict(x_last_pruned.reshape(1, -1))[0])
+
     if use_vol_scaled_target:
+
         pred_ret = pred_ret * float(last_vol_20d)
+
     pred_price = float(last_close * (1 + pred_ret))
 
     prob_up = None
+
     prob_down = None
+
     try:
+
         y_dir = (y > 0).astype(int)
+
         y_dir_train = y_dir[:len(X_train_full)]
 
         clf = make_model(model_type=model_type, random_state=42, task="clf")
+
         clf.fit(X_train_full, y_dir_train)
 
         if hasattr(clf, "predict_proba"):
+
             proba = clf.predict_proba(x_last_pruned.reshape(1, -1))[0]
+
             if hasattr(clf, "classes_") and 1 in clf.classes_:
+
                 idx_up = list(clf.classes_).index(1)
+
                 prob_up = float(proba[idx_up])
+
                 prob_down = float(1.0 - prob_up)
+
             else:
+
                 prob_up = float(proba.max())
+
                 prob_down = float(1.0 - prob_up)
+
         else:
+
             pred_dir = int(clf.predict(x_last_pruned.reshape(1, -1))[0])
+
             prob_up = 1.0 if pred_dir == 1 else 0.0
+
             prob_down = 1.0 - prob_up
+
     except Exception:
+
         prob_up = None
+
         prob_down = None
 
     prob_up_gaf = None
+
     try:
+
         prob_up_gaf = predict_up_gaf_cnn(ticker)
+
     except Exception as e:
+
         print(f"[GAF-CNN] Failed to compute prob_up_gaf for {ticker}: {e}")
+
         prob_up_gaf = None
 
     fund_feats = get_fundamental_features(ticker)
+
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
     if hasattr(model, "feature_importances_"):
+
         feature_importance = dict(zip(feat_cols, model.feature_importances_))
+
         top_features = sorted(
+
             feature_importance.items(), key=lambda x: x[1], reverse=True
+
         )[:5]
+
         top_features_str = "\n".join(
+
             [f"- **{feat}**: {imp:.3f}" for feat, imp in top_features]
+
         )
+
     else:
+
         top_features_str = "N/A"
 
     return {
+
         "ticker": ticker,
+
         "model_type": model_type,
+
         "horizon": horizon,
+
         "last_close": last_close,
+
         "vol_20d": last_vol_20d,
+
         "pe_ratio": pe_ratio,
+
         "pred_next_ret": pred_ret,
+
         "pred_next_price": pred_price,
+
         "prob_up": prob_up,
+
         "prob_down": prob_down,
+
         "prob_up_gaf": prob_up_gaf,
+
         "num_features": len(feat_cols),
+
         "top_features": top_features_str,
+
+        # NEW: debug info for feature selection
+        "elasticnet_enabled": bool(USE_ELASTICNET_SELECT),
+        "elasticnet_l1_ratio": float(ELASTICNET_L1_RATIO),
+        "elasticnet_cv_folds": int(ELASTICNET_CV_FOLDS),
+        "elasticnet_selected_n": int(len(feat_cols)) if USE_ELASTICNET_SELECT else None,
+
     }
 
+
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
+
     try:
+
         hist = get_price_history(ticker, period=period, interval="1d")
 
         if hist.empty or len(hist) < 50:
+
             print(f"Insufficient data for {ticker}: only {len(hist)} rows")
+
             return pd.DataFrame(), 0.0
 
         hist = add_price_features(hist)
+
         macro_df = get_macro_df(symbol="^GSPC", period=period)
+
         hist = hist.join(macro_df, how="left")
+
         fund_feats = get_fundamental_features(ticker)
+
         for k, v in fund_feats.items():
+
             hist[k] = v
 
         hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
+
             -horizon
+
         )
 
         feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
         cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+
         df = hist[cols_needed].dropna().copy()
 
         print(f"After dropna for {ticker}: {len(df)} rows")
 
         if len(df) < 50:
+
             print(f"Not enough data after feature engineering for {ticker}")
+
             return pd.DataFrame(), 0.0
 
         n_rows = len(df)
+
         min_test = 60
+
         max_test = 252
+
         proposed_test = int(n_rows * 0.2)
 
         test_size = max(min_test, proposed_test)
+
         test_size = min(test_size, max_test, n_rows - 1)
 
         if test_size < 5:
+
             print(f"Test size too small: {test_size}")
+
             return pd.DataFrame(), 0.0
 
         train_df = df.iloc[:-test_size]
+
         test_df = df.iloc[-test_size:]
 
         print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
 
         X_train = train_df[feat_cols].values
+
         y_train = train_df[f"target_ret_{horizon}d_ahead"].values
 
+        # ===================== NEW: Optional ElasticNet pre-selection on training =====================
+        selected_mask = None
+        selected_names = None
+
+        if USE_ELASTICNET_SELECT:
+            try:
+                X_train_sel, selected_names, selected_mask = select_features_elasticnet_timeseries(
+                    X=X_train,
+                    y=y_train,
+                    feature_names=list(feat_cols),
+                    n_splits=ELASTICNET_CV_FOLDS,
+                    l1_ratio=ELASTICNET_L1_RATIO,
+                    min_features=10,
+                )
+                X_train = X_train_sel
+                feat_cols = selected_names
+                print(f"[{ticker}] track_predictions ElasticNet selected {len(feat_cols)} features")
+            except Exception as e:
+                print(f"[{ticker}] track_predictions ElasticNet failed; skipping. Error: {e}")
+
         model = make_model(model_type=model_type, random_state=42)
+
         model.fit(X_train, y_train)
 
-        X_test = test_df[feat_cols].values
+        X_test = test_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
         y_test = test_df[f"target_ret_{horizon}d_ahead"].values
+
+        if selected_mask is not None:
+            X_test = X_test[:, selected_mask]
+
         y_pred = model.predict(X_test)
 
         results = pd.DataFrame(
+
             {
+
                 "date": test_df.index,
+
                 "actual_close": hist.loc[test_df.index, "Close"],
+
                 "predicted_return": y_pred,
+
                 "actual_return": y_test,
+
                 "pred_direction": np.sign(y_pred),
+
                 "actual_direction": np.sign(y_test),
+
                 "correct_direction": np.sign(y_pred) == np.sign(y_test),
+
             }
+
         )
 
         results["predicted_price"] = results["actual_close"] * (
+
             1 + results["predicted_return"]
+
         )
 
         accuracy = results["correct_direction"].mean()
 
         print(
+
             f"Success! Generated {len(results)} test predictions with {accuracy*100:.1f}% accuracy"
+
         )
 
         return results, accuracy
 
     except Exception as e:
+
         print(f"Error in track_predictions for {ticker}: {e}")
+
         import traceback
 
         traceback.print_exc()
+
         return pd.DataFrame(), 0.0
 
+
 def backtest_one_ticker(
+
     ticker="AAPL",
+
     period="10y",
+
     test_years=1,
+
     threshold=0.002,
+
     model_type="rf",
+
     horizon=1,
+
 ):
+
     hist = get_price_history(ticker, period=period, interval="1d")
+
     hist = add_price_features(hist)
+
     macro_df = get_macro_df(symbol="^GSPC", period=period)
+
     hist = hist.join(macro_df, how="left")
+
     fund_feats = get_fundamental_features(ticker)
+
     for k, v in fund_feats.items():
+
         hist[k] = v
 
     hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(
+
         -horizon
+
     )
 
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
     cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+
     df = hist[cols_needed].dropna().copy()
 
     cutoff_date = df.index.max() - pd.Timedelta(days=252 * test_years)
+
     train_mask = df.index <= cutoff_date
+
     test_mask = df.index > cutoff_date
 
     train_df = df.loc[train_mask].copy()
+
     test_df = df.loc[test_mask].copy()
 
     X_train = train_df[feat_cols].values
+
     y_train = train_df[f"target_ret_{horizon}d_ahead"].values
 
-    X_test = test_df[feat_cols].values
+    # NEW: ElasticNet selection on training only
+    selected_mask = None
+    selected_feats = None
+    if USE_ELASTICNET_SELECT:
+        try:
+            X_train_sel, selected_feats, selected_mask = select_features_elasticnet_timeseries(
+                X=X_train,
+                y=y_train,
+                feature_names=list(feat_cols),
+                n_splits=ELASTICNET_CV_FOLDS,
+                l1_ratio=ELASTICNET_L1_RATIO,
+                min_features=10,
+            )
+            X_train = X_train_sel
+            feat_cols = selected_feats
+            print(f"[{ticker}] backtest_one_ticker ElasticNet selected {len(feat_cols)} features")
+        except Exception as e:
+            print(f"[{ticker}] backtest_one_ticker ElasticNet failed; skipping. Error: {e}")
+
+    X_test = test_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
     y_test = test_df[f"target_ret_{horizon}d_ahead"].values
+    if selected_mask is not None:
+        X_test = X_test[:, selected_mask]
 
     model = make_model(model_type=model_type, random_state=42)
+
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
 
     positions = np.where(
+
         y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
+
     )
 
     cost_per_trade = 0.0005
+
     pnl = []
+
     prev_pos = 0
+
     for pos, ret in zip(positions, y_test):
+
         trade = abs(pos - prev_pos)
+
         pnl_t = pos * ret - cost_per_trade * trade
+
         pnl.append(pnl_t)
+
         prev_pos = pos
+
     pnl = np.array(pnl)
 
     cum_ret = (1 + pnl).prod() - 1
+
     hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
+
     avg_daily = pnl.mean()
+
     std_daily = pnl.std(ddof=1)
+
     sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
 
     return {
+
         "ticker": ticker,
+
         "model_type": model_type,
+
         "horizon": horizon,
+
         "test_days": len(pnl),
+
         "total_return": cum_ret,
+
         "hit_rate": hit_rate,
+
         "sharpe": sharpe,
+
+        "elasticnet_enabled": bool(USE_ELASTICNET_SELECT),
+        "elasticnet_selected_features": selected_feats,
+        "elasticnet_selected_n": len(selected_feats) if selected_feats is not None else None,
+
     }
 
 
 # ⭐ NEW: Auto-optimized backtest with per-stock feature pruning
+
 def backtest_one_ticker_auto_optimized(
+
     ticker="AAPL",
+
     period="10y",
+
     test_years=2,
+
     threshold=0.002,
+
     model_type="rf",
+
     horizon=5,
+
     importance_threshold=0.001,
+
 ):
+
     """
+
     Backtest with automatic per-stock feature optimization.
+
     Works for ANY ticker - learns which features matter during training.
+
     """
-    
+
     hist = get_price_history(ticker, period=period, interval="1d")
+
     hist = add_price_features(hist)
+
     macro_df = get_macro_df(symbol="^GSPC", period=period)
+
     hist = hist.join(macro_df, how="left")
+
     fund_feats = get_fundamental_features(ticker)
+
     for k, v in fund_feats.items():
+
         hist[k] = v
 
     hist[f"target_ret_{horizon}d_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
 
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
     cols_needed = feat_cols + [f"target_ret_{horizon}d_ahead"]
+
     df = hist[cols_needed].dropna().copy()
 
     # Split: train (60%) / validation (20%) / test (20%)
+
     n = len(df)
+
     train_end = int(n * 0.6)
+
     val_end = int(n * 0.8)
-    
+
     train_df = df.iloc[:train_end]
+
     val_df = df.iloc[train_end:val_end]
+
     test_df = df.iloc[val_end:]
 
     # Step 1: Train initial model on training set
+
     X_train = train_df[feat_cols].values
+
     y_train = train_df[f"target_ret_{horizon}d_ahead"].values
-    
+
+    # NEW: ElasticNet selection first (training only), then RF/XGB importance pruning
+    selected_mask = None
+    if USE_ELASTICNET_SELECT:
+        try:
+            X_train_sel, selected_feats, selected_mask = select_features_elasticnet_timeseries(
+                X=X_train,
+                y=y_train,
+                feature_names=list(feat_cols),
+                n_splits=ELASTICNET_CV_FOLDS,
+                l1_ratio=ELASTICNET_L1_RATIO,
+                min_features=10,
+            )
+            X_train = X_train_sel
+            feat_cols = selected_feats
+            print(f"[{ticker}] auto_optimized ElasticNet selected {len(feat_cols)} features")
+        except Exception as e:
+            print(f"[{ticker}] auto_optimized ElasticNet failed; skipping. Error: {e}")
+            selected_mask = None
+
     model_init = make_model(model_type=model_type, random_state=42)
+
     model_init.fit(X_train, y_train)
-    
+
     # Step 2: Identify important features
-    importance = model_init.feature_importances_
-    important_mask = importance > importance_threshold
+
+    if hasattr(model_init, "feature_importances_"):
+        importance = model_init.feature_importances_
+        important_mask = importance > importance_threshold
+    else:
+        important_mask = np.ones(len(feat_cols), dtype=bool)
+
     important_features = [feat_cols[i] for i in range(len(feat_cols)) if important_mask[i]]
-    
+
     dropped_count = len(feat_cols) - len(important_features)
+
     print(f"[{ticker}] Kept {len(important_features)}/{len(feat_cols)} features (dropped {dropped_count} weak features)")
-    
+
     # Step 3: Retrain on train+validation with pruned features
+
     train_val_df = df.iloc[:val_end]
-    X_train_val = train_val_df[important_features].values
+
+    X_train_val_full = train_val_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
     y_train_val = train_val_df[f"target_ret_{horizon}d_ahead"].values
-    
+
+    # Apply ElasticNet selection (if any) THEN importance pruning mask mapping
+    # If ElasticNet ran, important_features are within the ElasticNet-selected feature space.
+    if selected_mask is not None:
+        X_train_val_full = X_train_val_full[:, selected_mask]
+
+    # Now build index mask for important_features within current feat_cols list
+    feat_to_idx = {f: i for i, f in enumerate(feat_cols)}
+    imp_idx = [feat_to_idx[f] for f in important_features if f in feat_to_idx]
+    X_train_val = X_train_val_full[:, imp_idx]
+
     model_final = make_model(model_type=model_type, random_state=42)
+
     model_final.fit(X_train_val, y_train_val)
-    
+
     # Step 4: Evaluate on held-out test set
-    X_test = test_df[important_features].values
+
+    X_test_full = test_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
     y_test = test_df[f"target_ret_{horizon}d_ahead"].values
+
+    if selected_mask is not None:
+        X_test_full = X_test_full[:, selected_mask]
+
+    X_test = X_test_full[:, imp_idx]
+
     y_pred = model_final.predict(X_test)
 
     positions = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
 
     cost_per_trade = 0.0005
+
     pnl = []
+
     prev_pos = 0
+
     for pos, ret in zip(positions, y_test):
+
         trade = abs(pos - prev_pos)
+
         pnl_t = pos * ret - cost_per_trade * trade
+
         pnl.append(pnl_t)
+
         prev_pos = pos
+
     pnl = np.array(pnl)
 
     cum_ret = (1 + pnl).prod() - 1
+
     hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
+
     avg_daily = pnl.mean()
+
     std_daily = pnl.std(ddof=1)
+
     sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
 
     return {
+
         "ticker": ticker,
+
         "model_type": model_type,
+
         "horizon": horizon,
-        "num_features_original": len(feat_cols),
+
+        "num_features_original": len(FEATURE_COLUMNS) + len(MACRO_COLUMNS),
+
         "num_features_used": len(important_features),
+
         "features_dropped": dropped_count,
+
         "test_days": len(pnl),
+
         "total_return": cum_ret,
+
         "hit_rate": hit_rate,
+
         "sharpe": sharpe,
+
+        "elasticnet_enabled": bool(USE_ELASTICNET_SELECT),
+        "elasticnet_selected_n": int(selected_mask.sum()) if selected_mask is not None else None,
+
     }
 
 
-# ⭐ UPDATED: backtest_compare with auto_optimize option
 def backtest_compare_one_ticker(
+
     ticker="AAPL",
+
     period="10y",
+
     test_years=1,
+
     threshold=0.002,
+
     horizon=1,
+
     auto_optimize=True,  # NEW: Enable automatic feature pruning per stock
+
 ):
+
     """Compare RF, GBRT, XGB with optional auto-optimization"""
-    
+
     if auto_optimize:
+
         # Use auto-optimized version (prunes weak features per stock)
+
         rf_res = backtest_one_ticker_auto_optimized(
+
             ticker=ticker,
+
             period=period,
+
             test_years=test_years,
+
             threshold=threshold,
+
             model_type="rf",
+
             horizon=horizon,
+
         )
+
         gbrt_res = backtest_one_ticker_auto_optimized(
+
             ticker=ticker,
+
             period=period,
+
             test_years=test_years,
+
             threshold=threshold,
+
             model_type="gbrt",
+
             horizon=horizon,
+
         )
+
         xgb_res = backtest_one_ticker_auto_optimized(
+
             ticker=ticker,
+
             period=period,
+
             test_years=test_years,
+
             threshold=threshold,
+
             model_type="xgb",
+
             horizon=horizon,
+
         )
+
     else:
-        # Use original version (all 58 features)
+
         rf_res = backtest_one_ticker(
+
             ticker=ticker,
+
             period=period,
+
             test_years=test_years,
+
             threshold=threshold,
+
             model_type="rf",
+
             horizon=horizon,
+
         )
+
         gbrt_res = backtest_one_ticker(
+
             ticker=ticker,
+
             period=period,
+
             test_years=test_years,
+
             threshold=threshold,
+
             model_type="gbrt",
+
             horizon=horizon,
+
         )
+
         xgb_res = backtest_one_ticker(
+
             ticker=ticker,
+
             period=period,
+
             test_years=test_years,
+
             threshold=threshold,
+
             model_type="xgb",
+
             horizon=horizon,
+
         )
-    
+
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
 
 def walk_forward_backtest(
+
     ticker="AAPL",
+
     period="10y",
+
     horizon=1,
+
     model_type="rf",
+
     train_years=4,
+
     test_years=1,
+
     threshold=0.002,
+
     cost_per_trade=0.0005,
+
     step_days: int | None = None,
+
 ):
+
     hist = get_price_history(ticker, period=period, interval="1d")
+
     if hist is None or hist.empty:
+
         return []
 
     hist = add_price_features(hist)
 
     macro_df = get_macro_df(symbol="^GSPC", period=period)
+
     hist = hist.join(macro_df, how="left")
+
     fund_feats = get_fundamental_features(ticker)
+
     for k, v in fund_feats.items():
+
         hist[k] = v
 
     target_col = f"target_ret_{horizon}d_ahead"
+
     hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
 
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
     cols_needed = feat_cols + [target_col]
+
     df = hist[cols_needed].dropna().copy()
 
     if df.empty:
+
         return []
 
     fold_metrics = []
+
     train_days = int(252 * train_years)
+
     test_days = int(252 * test_years)
 
     if step_days is None:
+
         step_days = test_days
-    
+
     print("train_days:", train_days)
+
     print("test_days:", test_days)
+
     print("step_days:", step_days)
 
     start = 0
+
     while True:
+
         train_start = start
+
         train_end = train_start + train_days
+
         test_end = train_end + test_days
+
         if test_end > len(df):
+
             break
 
         train_df = df.iloc[train_start:train_end]
+
         test_df = df.iloc[train_end:test_end]
+
         if len(train_df) < 50 or len(test_df) < 20:
+
             break
 
         X_train = train_df[feat_cols].values
+
         y_train = train_df[target_col].values
+
         X_test = test_df[feat_cols].values
+
         y_test = test_df[target_col].values
 
+        # NEW: ElasticNet selection per fold (training only)
+        fold_mask = None
+        if USE_ELASTICNET_SELECT:
+            try:
+                X_train_sel, fold_feats, fold_mask = select_features_elasticnet_timeseries(
+                    X=X_train,
+                    y=y_train,
+                    feature_names=list(feat_cols),
+                    n_splits=ELASTICNET_CV_FOLDS,
+                    l1_ratio=ELASTICNET_L1_RATIO,
+                    min_features=10,
+                )
+                X_train = X_train_sel
+                X_test = X_test[:, fold_mask]
+                print(f"[{ticker}] WF fold ElasticNet selected {len(fold_feats)} features")
+            except Exception as e:
+                print(f"[{ticker}] WF fold ElasticNet failed; skipping. Error: {e}")
+
         model = make_model(model_type=model_type, random_state=42)
+
         model.fit(X_train, y_train)
+
         y_pred = model.predict(X_test)
 
         positions = np.where(
+
             y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0)
+
         )
 
         pnl = []
+
         prev_pos = 0
+
         for pos, ret in zip(positions, y_test):
+
             trade = abs(pos - prev_pos)
+
             pnl_t = pos * ret - cost_per_trade * trade
+
             pnl.append(pnl_t)
+
             prev_pos = pos
+
         pnl = np.array(pnl)
 
         hit_rate = (np.sign(y_pred) == np.sign(y_test)).mean()
+
         avg_daily = pnl.mean()
+
         std_daily = pnl.std(ddof=1)
+
         sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
+
         num_trades = int(
+
             np.count_nonzero(
+
                 np.diff(np.concatenate([[0], positions])) != 0
+
             )
+
         )
 
         fold_metrics.append(
+
             {
+
                 "train_start": train_df.index[0],
+
                 "train_end": train_df.index[-1],
+
                 "test_start": test_df.index[0],
+
                 "test_end": test_df.index[-1],
+
                 "test_days": len(pnl),
+
                 "hit_rate": hit_rate,
+
                 "sharpe": sharpe,
+
                 "num_trades": num_trades,
+
             }
+
         )
 
         start += step_days
@@ -1232,178 +2267,289 @@ def walk_forward_backtest(
 
 
 def analyze_feature_significance(
+
     ticker="^GSPC",
+
     period="5y",
+
     horizon=1,
+
     use_vol_scaled_target: bool = False,
+
     alpha: float = 0.05,
+
 ):
+
     X, y, _, _, _ = build_features_and_target(
+
         ticker=ticker,
+
         period=period,
+
         horizon=horizon,
+
         use_vol_scaled_target=use_vol_scaled_target,
+
     )
 
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+
     X_df = pd.DataFrame(X, columns=feat_cols)
 
     X_df = sm.add_constant(X_df)
+
     ols_model = sm.OLS(y, X_df).fit()
 
     rows = []
+
     ordered_names = ["const"] + feat_cols
+
     for name in ordered_names:
+
         if name in ols_model.params.index:
+
             p_val = float(ols_model.pvalues[name])
+
             rows.append(
+
                 {
+
                     "feature": name,
+
                     "coef": float(ols_model.params[name]),
+
                     "p_value": p_val,
+
                     "significant": bool(p_val < alpha),
+
                 }
+
             )
 
     sig_df = pd.DataFrame(rows).sort_values("p_value")
+
     return ols_model, sig_df
 
 
 def make_gaf_image_from_returns(returns: pd.Series, window: int = 60, image_size: int = 30):
+
     r = returns.dropna().values
+
     if len(r) < window:
+
         return None, None
 
     window_vals = r[-window:]
+
     X = window_vals.reshape(1, -1)
 
     gaf = GramianAngularField(image_size=image_size, method="summation")
+
     X_gaf = gaf.fit_transform(X)
+
     img = X_gaf[0]
 
     fig, ax = plt.subplots(figsize=(2, 2))
+
     cax = ax.imshow(img, cmap="rainbow", origin="lower", aspect="equal")
+
     ax.set_title(f"GAF (last {window} returns)")
+
     ax.set_xticks([])
+
     ax.set_yticks([])
+
     fig.colorbar(cax, ax=ax, fraction=0.046, pad=0.04)
 
     return fig, ax
 
 
 def predict_up_gaf_cnn(
+
     ticker: str,
+
     window: int = 30,
+
     image_size: int = 30,
+
     period: str = "3y",
+
 ) -> float | None:
+
     if gaf_cnn is None:
+
         return None
 
     hist = get_price_history(ticker, period=period, interval="1d")
+
     if hist is None or hist.empty or len(hist) < window + 1:
+
         return None
 
     closes = hist["Close"].astype(float).values
+
     rets = pd.Series(closes).pct_change().dropna()
 
     if len(rets) < window:
+
         return None
 
     window_vals = rets.values[-window:]
+
     X = window_vals.reshape(1, -1)
 
     gaf = GramianAngularField(image_size=image_size, method="summation")
+
     X_gaf = gaf.fit_transform(X)
+
     X_input = X_gaf[..., np.newaxis]
 
     try:
+
         proba = gaf_cnn.predict(X_input, verbose=0)[0]
+
         prob_up = float(proba[0])
+
         return prob_up
+
     except Exception as e:
+
         print(f"[GAF-CNN] Error during predict for {ticker}: {e}")
+
         return None
 
 
 def tune_xgb_hyperparams(X, y, random_state=42):
+
     tscv = TimeSeriesSplit(n_splits=3)
 
     base_model = XGBRegressor(
+
         objective="reg:squarederror",
+
         tree_method="hist",
+
         random_state=random_state,
+
         verbosity=0,
+
     )
 
     param_distributions = {
+
         "learning_rate": [0.01, 0.03, 0.05, 0.1],
+
         "n_estimators": [200, 400, 600],
+
         "max_depth": [3, 4, 5],
+
         "min_child_weight": [1, 3, 5],
+
         "subsample": [0.7, 0.9, 1.0],
+
         "colsample_bytree": [0.7, 0.9, 1.0],
+
         "reg_lambda": [0.0, 1.0, 5.0],
+
     }
 
     search = RandomizedSearchCV(
+
         estimator=base_model,
+
         param_distributions=param_distributions,
+
         n_iter=20,
+
         scoring="neg_mean_squared_error",
+
         cv=tscv,
+
         random_state=random_state,
+
         n_jobs=-1,
+
         verbose=1,
+
     )
 
     search.fit(X, y)
+
     print("Best XGB params:", search.best_params_)
+
     print("Best CV score (neg MSE):", search.best_score_)
 
     return search.best_estimator_
 
 
 if __name__ == "__main__":
+
     print("=" * 60)
+
     print("Testing 1-Day Predictions - All Models")
+
     print("=" * 60)
+
     X, y, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=1)
+
     best_xgb = tune_xgb_hyperparams(X, y)
 
     rf_model, rf_r2, rf_rmse = train_model(X, y, model_type="rf")
+
     print("Random Forest (1-day)")
-    print(f"  Samples: {len(X)}")
-    print(f"  Features: {len(FEATURE_COLUMNS) + len(MACRO_COLUMNS)}")
-    print(f"  Test R^2:  {rf_r2:.4f}")
-    print(f"  Test RMSE: {rf_rmse:.6f}")
+
+    print(f" Samples: {len(X)}")
+
+    print(f" Features: {len(FEATURE_COLUMNS) + len(MACRO_COLUMNS)}")
+
+    print(f" Test R^2: {rf_r2:.4f}")
+
+    print(f" Test RMSE: {rf_rmse:.6f}")
 
     gbrt_model, gbrt_r2, gbrt_rmse = train_model(X, y, model_type="gbrt")
+
     print("\nGradient Boosting (1-day)")
-    print(f"  Test R^2:  {gbrt_r2:.4f}")
-    print(f"  Test RMSE: {gbrt_rmse:.6f}")
+
+    print(f" Test R^2: {gbrt_r2:.4f}")
+
+    print(f" Test RMSE: {gbrt_rmse:.6f}")
 
     xgb_model, xgb_r2, xgb_rmse = train_model(X, y, model_type="xgb")
+
     print("\nXGBoost (1-day)")
-    print(f"  Test R^2:  {xgb_r2:.4f}")
-    print(f"  Test RMSE: {xgb_rmse:.6f}")
+
+    print(f" Test R^2: {xgb_r2:.4f}")
+
+    print(f" Test RMSE: {xgb_rmse:.6f}")
 
     print("\n" + "=" * 60)
+
     print("Testing 2-Day Predictions")
+
     print("=" * 60)
+
     X2, y2, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=2)
+
     rf_model2, rf_r2_2d, rf_rmse_2d = train_model(X2, y2, model_type="rf")
 
     print("Random Forest (2-day)")
-    print(f"  Test R^2:  {rf_r2_2d:.4f}")
-    print(f"  Test RMSE: {rf_rmse_2d:.6f}")
+
+    print(f" Test R^2: {rf_r2_2d:.4f}")
+
+    print(f" Test RMSE: {rf_rmse_2d:.6f}")
 
     print("\n" + "=" * 60)
+
     print("Testing 3-Day Predictions")
+
     print("=" * 60)
+
     X3, y3, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=3)
+
     rf_model3, rf_r2_3d, rf_rmse_3d = train_model(X3, y3, model_type="rf")
 
     print("Random Forest (3-day)")
-    print(f"  Test R^2:  {rf_r2_3d:.4f}")
-    print(f"  Test RMSE: {rf_rmse_3d:.6f}")
+
+    print(f" Test R^2: {rf_r2_3d:.4f}")
+
+    print(f" Test RMSE: {rf_rmse_3d:.6f}")
