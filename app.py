@@ -180,7 +180,7 @@ def _build_display_df(pred_df: pd.DataFrame, display_horizon: int):
             cols_to_show.append(mc_col)
     display = pred_df[cols_to_show].copy()
     rename_map = {
-        "ticker":"Ticker","model_type":"Model","horizon":"Days Ahead","last_close":"Last Close","vol_20d":"Vol 20D",
+        "ticker":"Ticker","model_type":"Model","horizon":"Days Ahead","last_close":"Last Close","liveprice":"Live Price","livets":"Live As Of","vol_20d":"Vol 20D",
         "pe_ratio":"P/E","num_features":"# Features Used","atm_iv":"ATM IV","iv_minus_realized":"IV - Realized Vol",
         "put_call_oi_ratio":"Put/Call OI Ratio","pred_next_ret_pct":f"Predicted {display_horizon_label} Return (%)",
         "pred_next_price":"Predicted Price","prob_up":"Prob Up","prob_down":"Prob Down","prob_up_gaf":"GAF-CNN Prob Up",
