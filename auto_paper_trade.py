@@ -127,6 +127,7 @@ def _list_option_contracts(
 def _extract_contract_fields(c):
     """
     Returns (symbol, exp_date, strike, is_call) or (None,...).
+    Works with alpaca.trading.models.OptionContract where `type` is a ContractType enum. [web:2]
     """
     if isinstance(c, dict):
         sym = c.get("symbol")
@@ -142,11 +143,35 @@ def _extract_contract_fields(c):
     if sym is None or exp is None or strike is None or ctype is None:
         return None, None, None, None
 
+    # exp can be date already (likely) or an ISO string
     if isinstance(exp, str):
         try:
             exp = date.fromisoformat(exp)
         except Exception:
             return None, None, None, None
+
+    # ctype is often an Enum; prefer .value
+    if hasattr(ctype, "value"):
+        ctype_str = str(ctype.value).lower().strip()
+    else:
+        ctype_str = str(ctype).lower().strip()
+
+    # handle common representations: "call"/"put", "c"/"p", "ContractType.CALL"
+    if "call" in ctype_str or ctype_str == "c":
+        is_call = True
+    elif "put" in ctype_str or ctype_str == "p":
+        is_call = False
+    else:
+        # unknown/unexpected type representation
+        return None, None, None, None
+
+    try:
+        strike = float(strike)
+    except Exception:
+        return None, None, None, None
+
+    return str(sym), exp, strike, is_call
+
 
     is_call = str(ctype).lower().startswith("c")
     try:
