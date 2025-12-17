@@ -663,6 +663,7 @@ def build_features_and_target(
     period="5y",
     horizon=1,
     use_vol_scaled_target: bool = False,
+    run_gaf: bool = False,
 ):
     fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
     periods_to_try = [period] + [p for p in fallback_periods if p != period] if period in fallback_periods else [period] + fallback_periods
@@ -704,13 +705,14 @@ def build_features_and_target(
 
             # -------- NEW: compute GAF-CNN prob on SAME usable rows --------
             prob_up_gaf = None
-            try:
-                closes_usable = hist.loc[df.index, "Close"].astype(float)
-                rets_usable = closes_usable.pct_change().dropna()
-                prob_up_gaf = predict_up_gafcnn_from_rets(rets_usable, window=30, image_size=30)
-            except Exception as e:
-                print(f"[GAF-CNN] Failed on usable rows for {ticker}: {e}")
-                prob_up_gaf = None
+            if run_gaf:
+                try:
+                    closes_usable = hist.loc[df.index, "Close"].astype(float)
+                    rets_usable = closes_usable.pct_change().dropna()
+                    prob_up_gaf = predict_up_gafcnn_from_rets(rets_usable, window=30, image_size=30)
+                except Exception as e:
+                    print(f"[GAF-CNN] Failed on usable rows for {ticker}: {e}")
+                    prob_up_gaf = None
             # --------------------------------------------------------------
 
             X = df[feat_cols].values
@@ -733,7 +735,7 @@ def build_features_and_target(
 
 def build_features_and_direction_target(ticker="^GSPC", period="5y", horizon=1):
     X, yreg, last_feats, last_close, last_vol_20d = build_features_and_target(
-        ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=False
+        ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=False,
     )
     ydir = (yreg > 0).astype(int)
     return X, ydir, last_feats, last_close, last_vol_20d
@@ -761,9 +763,10 @@ def predict_next_for_ticker(
     horizon=1,
     use_vol_scaled_target: bool = False,
     auto_optimize: bool = True,
+    run_gaf: bool = False,
 ):
     X, y, x_last, last_close, last_vol_20d, prob_up_gaf = build_features_and_target(
-        ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
+        ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target, run_gaf=run_gaf,
     )
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
 

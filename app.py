@@ -32,6 +32,8 @@ try:
 except ImportError:
     sq = None
 
+run_gaf = st.sidebar.checkbox("Run GAF-CNN (slow)", value=False)
+
 BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_OUT_PATH = BASE_DIR / "signals.json"
 TRADER_PATH = BASE_DIR / "auto_paper_trade.py"
@@ -330,6 +332,7 @@ def run_app():
                         horizon=prediction_horizon,
                         use_vol_scaled_target=False,
                         auto_optimize=auto_optimize,
+                        run_gaf=run_gaf
                     )
                     opt = get_option_snapshot_features(tk)
                     out.update(opt)
@@ -779,7 +782,7 @@ def run_app():
                 try:
                     out_h = predict_next_for_ticker(
                         chosen, period="5y", model_type=model_type, horizon=h,
-                        use_vol_scaled_target=False, auto_optimize=st.session_state.get("auto_optimize", True),
+                        use_vol_scaled_target=False, auto_optimize=st.session_state.get("auto_optimize", True), run_gaf=run_gaf,
                     )
                     mc_res = {}
                     atm_iv_h = out_h.get("atm_iv")
