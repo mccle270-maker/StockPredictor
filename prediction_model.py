@@ -56,8 +56,8 @@ except Exception:
     StandardScaler = None
     Pipeline = None
 
-from datafetch import get_history as get_history_yahoo_raw, get_history_cached as get_history_yahoo, get_fmp_fundamentals
-from optionpricing import OptionSpec, HestonParams, PricingModel, price_option
+from data_fetch import get_history as get_history_yahoo_raw, get_history_cached as get_history_yahoo, get_fmp_fundamentals
+from option_pricing import OptionSpec, HestonParams, PricingModel, price_option
 from pyts.image import GramianAngularField
 
 import matplotlib.pyplot as plt

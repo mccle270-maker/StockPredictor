@@ -42,7 +42,7 @@ def get_fmp_fundamentals(ticker: str) -> dict:
 
         if isinstance(key_metrics, list) and key_metrics:
             k0 = key_metrics[0]
-            out["fund_market_cap"] = k0.get("marketCap", None)
+            out["fund_marketcap"] = k0.get("marketCap", None)
 
     except Exception:
         return {}
