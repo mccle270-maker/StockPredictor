@@ -3,6 +3,32 @@ import os, datetime as dt, requests
 import numpy as np
 import pandas as pd
 import yfinance as yf
+
+# ---- SPX cache (avoid repeated yf.download("^GSPC") per ticker) ----
+_SPX_CACHE = {}  # key: (start_date, end_date) -> DataFrame
+
+def _get_spx(start, end):
+    # Normalize keys so repeated calls match
+    start = pd.Timestamp(start).tz_localize(None)
+    end = pd.Timestamp(end).tz_localize(None)
+    key = (start, end)
+
+    if key in _SPX_CACHE:
+        return _SPX_CACHE[key]
+
+    spx = yf.download("^GSPC", start=start, end=end, progress=False)
+
+    # Flatten columns if yfinance returns a MultiIndex
+    if isinstance(spx.columns, pd.MultiIndex):
+        spx.columns = spx.columns.get_level_values(0)
+
+    # Strip timezone so downstream comparisons don’t thrash
+    if hasattr(spx.index, "tz") and spx.index.tz is not None:
+        spx.index = spx.index.tz_localize(None)
+
+    _SPX_CACHE[key] = spx
+    return spx
+
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_squared_error, accuracy_score
 from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
@@ -303,35 +329,36 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["macd_hist"] = hist["macd_hist"].shift(1)
     hist["mfi_14"] = hist["mfi_14"].shift(1)
 
-    # Relative strength vs SPX (kept from your version)
+    # Relative strength vs SPX (cached)
     try:
-        spx_raw = yf.download("^GSPC", start=hist.index[0], end=hist.index[-1], progress=False)
-        if not spx_raw.empty:
-            if isinstance(spx_raw.columns, pd.MultiIndex):
-                spx_raw.columns = spx_raw.columns.get_level_values(0)
-            if hasattr(spx_raw.index, "tz") and spx_raw.index.tz is not None:
-                spx_raw.index = spx_raw.index.tz_localize(None)
-            if hasattr(hist.index, "tz") and hist.index.tz is not None:
-                spx_raw.index = spx_raw.index.tz_localize(hist.index.tz)
-            spx_close = spx_raw["Close"]
-            spx_ret_1d = spx_close.pct_change().reindex(hist.index, method="ffill").fillna(0)
-            spx_ret_3d = spx_close.pct_change(3).reindex(hist.index, method="ffill").fillna(0)
-            spx_ret_5d = spx_close.pct_change(5).reindex(hist.index, method="ffill").fillna(0)
-            stock_ret_1d = close.pct_change()
-            stock_ret_3d = close.pct_change(3)
-            stock_ret_5d = close.pct_change(5)
-            hist["rel_strength_1d"] = (stock_ret_1d - spx_ret_1d).shift(1)
-            hist["rel_strength_3d"] = (stock_ret_3d - spx_ret_3d).shift(1)
-            hist["rel_momentum_5d"] = (stock_ret_5d - spx_ret_5d).shift(1)
-        else:
+        spx_raw = _get_spx(hist.index[0], hist.index[-1])
+
+        if spx_raw is None or spx_raw.empty or "Close" not in spx_raw.columns:
             hist["rel_strength_1d"] = 0.0
             hist["rel_strength_3d"] = 0.0
             hist["rel_momentum_5d"] = 0.0
+        else:
+            # Align SPX close to this ticker's index
+            spx_close = spx_raw["Close"].reindex(hist.index, method="ffill").fillna(0.0)
+
+            spx_ret_1d = spx_close.pct_change()
+            spx_ret_3d = spx_close.pct_change(3)
+            spx_ret_5d = spx_close.pct_change(5)
+
+            stock_ret_1d = close.pct_change()
+            stock_ret_3d = close.pct_change(3)
+            stock_ret_5d = close.pct_change(5)
+
+            hist["rel_strength_1d"] = (stock_ret_1d - spx_ret_1d).shift(1)
+            hist["rel_strength_3d"] = (stock_ret_3d - spx_ret_3d).shift(1)
+            hist["rel_momentum_5d"] = (stock_ret_5d - spx_ret_5d).shift(1)
+
     except Exception as e:
         print(f"[add_price_features] SPX fetch failed: {e}")
         hist["rel_strength_1d"] = 0.0
         hist["rel_strength_3d"] = 0.0
         hist["rel_momentum_5d"] = 0.0
+
 
     # Intraday structure (existing)
     hist["high_low_ratio"] = (high / (low + 1e-9)).shift(1)
