@@ -21,7 +21,7 @@ from prediction_model import (
     make_gaf_image_from_returns,
 )
 from stock_screener import screen_stocks
-from data_fetch import get_history_cached, get_option_snapshot_features, get_news_for_ticker, get_atm_greeks
+from data_fetch import get_history_cached, get_history_intraday_cached, get_option_snapshot_features, get_news_for_ticker, get_atm_greeks
 from yfinance.exceptions import YFRateLimitError
 from monte_carlo_pricer import option_mc_ev
 from scipy.stats import norm
@@ -336,6 +336,20 @@ def run_app():
 
                     atm_iv = out.get("atm_iv")
                     last_close = out.get("last_close")
+                    live_price = None
+                    live_ts = None
+                    try:
+                        intraday = get_history_intraday_cached(tk, period="1d", interval="1m")
+                        if intraday is not None and (not intraday.empty) and ("Close" in intraday.columns):
+                            live_price = float(intraday["Close"].iloc[-1])
+                            live_ts = intraday.index[-1]
+                    except Exception:
+                        live_price = None
+                        live_ts = None
+                    out["liveprice"] = live_price
+                    out["livets"] = str(live_ts) if live_ts is not None else None
+                        
+
                     out["iv_minus_realized"] = None
                     if atm_iv is not None and out.get("vol_20d") is not None:
                         try:

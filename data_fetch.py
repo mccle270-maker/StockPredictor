@@ -175,6 +175,11 @@ def get_news_for_ticker(ticker, limit=5):
 def get_history_cached(ticker, period="1y", interval="1d"):
     return get_history(ticker, period, interval)
 
+# Intraday (during-the-day) history
+@st.cache_data(ttl=60)  # refresh at most once per minute
+def get_history_intraday_cached(ticker, period="1d", interval="1m"):
+    return get_history(ticker, period, interval)
+
 
 def get_history(ticker, period="1y", interval="1d"):
     """
