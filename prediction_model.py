@@ -96,7 +96,7 @@ def price_atm_call_for_ticker(
     expiry: pd.Timestamp | str,
     spot: float,
     atm_iv: float | None = None,
-    model: PricingModel = PricingModel.BLACKSCHOLES,
+    model: PricingModel = PricingModel.BLACK_SCHOLES,
     risk_free: float = 0.05,
     div_yield: float = 0.0,
 ) -> float | None:
