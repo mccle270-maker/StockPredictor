@@ -48,14 +48,12 @@ def _get_latest_bid_ask(option_data_client: OptionHistoricalDataClient, option_s
     req = OptionLatestQuoteRequest(symbol_or_symbols=[option_symbol])
     quotes = option_data_client.get_option_latest_quote(req)
 
-    # alpaca-py often returns a dict keyed by symbol
     q = quotes.get(option_symbol) if hasattr(quotes, "get") else None
     if q is None:
         if DEBUG_OPTIONS:
             print(f"DEBUG quote missing for {option_symbol} -> quotes={quotes}")
         return None, None
 
-    # q may be dict-like or object-like
     if isinstance(q, dict):
         bid = q.get("bid_price") or q.get("bp")
         ask = q.get("ask_price") or q.get("ap")
@@ -75,12 +73,46 @@ def _get_latest_bid_ask(option_data_client: OptionHistoricalDataClient, option_s
     return bid, ask
 
 
-def _list_option_contracts(trade_client: TradingClient, underlying: str):
-    req = GetOptionContractsRequest(
+def _list_option_contracts(
+    trade_client: TradingClient,
+    underlying: str,
+    dte_min: int | None = None,
+    dte_max: int | None = None,
+    strike_lte: float | None = None,
+    strike_gte: float | None = None,
+):
+    """
+    Pull contracts from Alpaca with server-side filters (important).
+    The GetOptionContractsRequest supports expiration_date_gte/lte and strike_price_gte/lte. [web:1]
+    """
+    kwargs = dict(
         underlying_symbols=[underlying],
         status=AssetStatus.ACTIVE,
+        limit=10000,  # max per docs; helps avoid pagination for most underlyings [web:1]
     )
+
+    if dte_min is not None and dte_max is not None:
+        today = date.today()
+        exp_gte = today + timedelta(days=int(dte_min))
+        exp_lte = today + timedelta(days=int(dte_max))
+        kwargs["expiration_date_gte"] = exp_gte
+        kwargs["expiration_date_lte"] = exp_lte
+
+    # Note: these are strings in the request model docs [web:1]
+    if strike_gte is not None:
+        kwargs["strike_price_gte"] = str(float(strike_gte))
+    if strike_lte is not None:
+        kwargs["strike_price_lte"] = str(float(strike_lte))
+
+    req = GetOptionContractsRequest(**kwargs)
     resp = trade_client.get_option_contracts(req)
+
+    if DEBUG_OPTIONS:
+        try:
+            n = len(resp.option_contracts) if hasattr(resp, "option_contracts") else len(resp)
+        except Exception:
+            n = None
+        print(f"DEBUG contracts raw type={type(resp)} count={n} for {underlying} kwargs={kwargs}")
 
     if hasattr(resp, "option_contracts"):
         return resp.option_contracts
@@ -145,15 +177,26 @@ def pick_single_leg(
 ):
     want_call = (right.upper().strip() == "CALL")
 
-    contracts = _list_option_contracts(trade_client, underlying)
-    candidates = []
+    # Server-side constraints (DTE + strike) to avoid empty/huge results. [web:1]
+    contracts = _list_option_contracts(
+        trade_client,
+        underlying,
+        dte_min=dte_min,
+        dte_max=dte_max,
+        strike_lte=max_strike,
+    )
 
+    if DEBUG_OPTIONS:
+        print(f"DEBUG {underlying} {right}: total contracts fetched={len(contracts)}")
+
+    candidates = []
     for c in contracts:
         sym, exp, strike, is_call = _extract_contract_fields(c)
         if sym is None:
             continue
         if is_call != want_call:
             continue
+        # still keep client-side DTE/strike just in case
         if not _in_dte_window(exp, dte_min, dte_max):
             continue
         if max_strike is not None and float(strike) > float(max_strike):
@@ -162,10 +205,9 @@ def pick_single_leg(
 
     if not candidates:
         if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} {right}: no contracts after filters (DTE/strike)")
+            print(f"DEBUG {underlying} {right}: no contracts after filters (DTE/strike/type)")
         return None, None
 
-    # prefer near-ATM then nearest expiry
     if spot is None:
         candidates.sort(key=lambda x: x[1])
     else:
@@ -204,7 +246,16 @@ def pick_bull_call_spread(
     max_strike: float | None,
     width_pct: float = 0.05,
 ):
-    contracts = _list_option_contracts(trade_client, underlying)
+    contracts = _list_option_contracts(
+        trade_client,
+        underlying,
+        dte_min=dte_min,
+        dte_max=dte_max,
+        strike_lte=max_strike,
+    )
+
+    if DEBUG_OPTIONS:
+        print(f"DEBUG {underlying} BULL_CALL_SPREAD: total contracts fetched={len(contracts)} spot={spot}")
 
     calls = []
     for c in contracts:
@@ -217,9 +268,13 @@ def pick_bull_call_spread(
             continue
         calls.append((sym, exp, strike))
 
-    if not calls or spot is None:
+    if not calls:
         if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BULL_CALL_SPREAD: no calls or spot None (spot={spot})")
+            print(f"DEBUG {underlying} BULL_CALL_SPREAD: no calls after filters")
+        return None, None, None
+    if spot is None:
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BULL_CALL_SPREAD: spot is None -> can't pick ATM")
         return None, None, None
 
     by_exp = {}
@@ -227,7 +282,7 @@ def pick_bull_call_spread(
         by_exp.setdefault(exp, []).append((sym, strike))
 
     for exp in sorted(by_exp.keys()):
-        chain = sorted(by_exp[exp], key=lambda x: x[1])  # by strike
+        chain = sorted(by_exp[exp], key=lambda x: x[1])
 
         long_sym, long_strike = min(chain, key=lambda x: abs(x[1] - float(spot)))
 
@@ -247,7 +302,7 @@ def pick_bull_call_spread(
         if long_ask is None or short_bid is None:
             continue
 
-        est_debit = float(long_ask) - float(short_bid)  # conservative
+        est_debit = float(long_ask) - float(short_bid)
         if est_debit <= 0:
             continue
 
@@ -272,7 +327,16 @@ def pick_bear_put_spread(
     max_strike: float | None,
     width_pct: float = 0.05,
 ):
-    contracts = _list_option_contracts(trade_client, underlying)
+    contracts = _list_option_contracts(
+        trade_client,
+        underlying,
+        dte_min=dte_min,
+        dte_max=dte_max,
+        strike_lte=max_strike,
+    )
+
+    if DEBUG_OPTIONS:
+        print(f"DEBUG {underlying} BEAR_PUT_SPREAD: total contracts fetched={len(contracts)} spot={spot}")
 
     puts = []
     for c in contracts:
@@ -285,9 +349,13 @@ def pick_bear_put_spread(
             continue
         puts.append((sym, exp, strike))
 
-    if not puts or spot is None:
+    if not puts:
         if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BEAR_PUT_SPREAD: no puts or spot None (spot={spot})")
+            print(f"DEBUG {underlying} BEAR_PUT_SPREAD: no puts after filters")
+        return None, None, None
+    if spot is None:
+        if DEBUG_OPTIONS:
+            print(f"DEBUG {underlying} BEAR_PUT_SPREAD: spot is None -> can't pick ATM")
         return None, None, None
 
     by_exp = {}
@@ -295,7 +363,7 @@ def pick_bear_put_spread(
         by_exp.setdefault(exp, []).append((sym, strike))
 
     for exp in sorted(by_exp.keys()):
-        chain = sorted(by_exp[exp], key=lambda x: x[1])  # strikes asc
+        chain = sorted(by_exp[exp], key=lambda x: x[1])
 
         long_sym, long_strike = min(chain, key=lambda x: abs(x[1] - float(spot)))
 
@@ -343,7 +411,6 @@ def main():
     print("signals.json path:", str(SIGNALS_PATH))
     print("signals.json loaded:", signals)
 
-    # Sync watchlist to signals (so you don't get misleading warnings)
     global WATCHLIST
     if signals:
         WATCHLIST = [str(sym).upper() for sym in signals.keys()]
@@ -355,7 +422,6 @@ def main():
             print(f"{symbol}: not in WATCHLIST, but signals.json requested it -> trading anyway")
 
         if not isinstance(spec, dict):
-            # OLD FORMAT (string)
             action = str(spec).upper()
             if action not in {"BUY", "SELL", "HOLD"}:
                 print(f"{symbol}: invalid action '{action}', treating as HOLD")
@@ -382,10 +448,8 @@ def main():
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
             continue
 
-        # NEW FORMAT
         asset = str(spec.get("asset", "stock")).lower().strip()
 
-        # ===== STOCKS =====
         if asset == "stock":
             action = str(spec.get("action", "HOLD")).upper()
             qty = float(spec.get("qty", shares_for(symbol)))
@@ -415,13 +479,12 @@ def main():
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
             continue
 
-        # ===== OPTIONS =====
         if asset == "option":
             strategy = str(spec.get("strategy", "")).upper().strip()
 
             dte_min = int(spec.get("dte_min", 0))
             dte_max = int(spec.get("dte_max", 45))
-            max_premium = float(spec.get("max_premium", 500))  # dollars
+            max_premium = float(spec.get("max_premium", 500))  # dollars (per contract)
             qty = int(spec.get("qty", 1))
 
             max_strike = spec.get("max_strike", None)
@@ -444,10 +507,11 @@ def main():
                 spot = None
 
             if DEBUG_OPTIONS:
-                print(f"DEBUG {symbol}: strategy={strategy} spot={spot} dte={dte_min}-{dte_max} "
-                      f"max_premium=${max_premium} max_strike={max_strike} width_pct={width_pct}")
+                print(
+                    f"DEBUG {symbol}: strategy={strategy} spot={spot} dte={dte_min}-{dte_max} "
+                    f"max_premium=${max_premium} max_strike={max_strike} width_pct={width_pct}"
+                )
 
-            # --- single-leg ---
             if strategy in {"BUY_CALL", "BUY_PUT"}:
                 right = "CALL" if strategy == "BUY_CALL" else "PUT"
                 opt_sym, ask = pick_single_leg(
@@ -487,7 +551,6 @@ def main():
                 )
                 continue
 
-            # --- spreads (MLeg) ---
             if strategy == "BULL_CALL_SPREAD":
                 long_call, short_call, est_debit = pick_bull_call_spread(
                     trade_client,
