@@ -229,7 +229,7 @@ def run_app():
         auto_optimize = st.checkbox("Auto-optimize features", value=True)
         pricing_model_label = st.selectbox("Pricing engine", ["Black-Scholes","Heston (stochastic vol)"], index=0)
         pricing_model = PricingModel.BLACK_SCHOLES if pricing_model_label == "Black-Scholes" else PricingModel.HESTON
-        run_gaf = st.sidebar.checkbox("Run GAF-CNN (slow)", value=False)
+        
 
     with st.sidebar.expander("Filters", expanded=False):
         max_tickers = st.slider("Max tickers per run", 1, 20, 5)
@@ -279,6 +279,8 @@ def run_app():
         auto_run_trader = st.checkbox("Auto-run trader after signals.json", value=False)
         if dte_max < dte_min:
             st.error("Max DTE must be >= Min DTE")
+        run_gaf = st.sidebar.checkbox("Run GAF-CNN (slow)", value=False)
+
 
     # ===================== TAB 1: Predictions & Options =====================
     with tab_pred:
