@@ -131,7 +131,7 @@ def price_atm_call_for_ticker(
 gafcnn = None
 try:
     from tensorflow import keras
-    GAF_CNN_MODEL_PATH = "gafcnn_updown.keras"
+    GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
     if os.path.exists(GAF_CNN_MODEL_PATH):
         print(f"[GAF-CNN] Loading model from {GAF_CNN_MODEL_PATH}...")
         gafcnn = keras.models.load_model(GAF_CNN_MODEL_PATH)
