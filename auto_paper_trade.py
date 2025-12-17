@@ -18,9 +18,6 @@ from alpaca.data.historical import OptionHistoricalDataClient
 from alpaca.data.requests import OptionLatestQuoteRequest
 
 
-# ---------------- Config ----------------
-DEBUG_OPTIONS = os.environ.get("DEBUG_OPTIONS", "1").strip() not in {"0", "false", "False"}
-
 WATCHLIST = ["PLTR", "SMCI", "NVDA", "ZS", "SPY", "JPM", "MSFT", "XOM"]
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -50,8 +47,6 @@ def _get_latest_bid_ask(option_data_client: OptionHistoricalDataClient, option_s
 
     q = quotes.get(option_symbol) if hasattr(quotes, "get") else None
     if q is None:
-        if DEBUG_OPTIONS:
-            print(f"DEBUG quote missing for {option_symbol} -> quotes={quotes}")
         return None, None
 
     if isinstance(q, dict):
@@ -82,13 +77,13 @@ def _list_option_contracts(
     strike_gte: float | None = None,
 ):
     """
-    Pull contracts from Alpaca with server-side filters (important).
-    The GetOptionContractsRequest supports expiration_date_gte/lte and strike_price_gte/lte. [web:1]
+    Pull contracts from Alpaca with server-side filters.
+    GetOptionContractsRequest supports expiration_date_gte/lte and strike_price_gte/lte. [web:0]
     """
     kwargs = dict(
         underlying_symbols=[underlying],
         status=AssetStatus.ACTIVE,
-        limit=10000,  # max per docs; helps avoid pagination for most underlyings [web:1]
+        limit=10000,
     )
 
     if dte_min is not None and dte_max is not None:
@@ -98,7 +93,6 @@ def _list_option_contracts(
         kwargs["expiration_date_gte"] = exp_gte
         kwargs["expiration_date_lte"] = exp_lte
 
-    # Note: these are strings in the request model docs [web:1]
     if strike_gte is not None:
         kwargs["strike_price_gte"] = str(float(strike_gte))
     if strike_lte is not None:
@@ -106,13 +100,6 @@ def _list_option_contracts(
 
     req = GetOptionContractsRequest(**kwargs)
     resp = trade_client.get_option_contracts(req)
-
-    if DEBUG_OPTIONS:
-        try:
-            n = len(resp.option_contracts) if hasattr(resp, "option_contracts") else len(resp)
-        except Exception:
-            n = None
-        print(f"DEBUG contracts raw type={type(resp)} count={n} for {underlying} kwargs={kwargs}")
 
     if hasattr(resp, "option_contracts"):
         return resp.option_contracts
@@ -127,7 +114,7 @@ def _list_option_contracts(
 def _extract_contract_fields(c):
     """
     Returns (symbol, exp_date, strike, is_call) or (None,...).
-    Works with alpaca.trading.models.OptionContract where `type` is a ContractType enum. [web:2]
+    Handles ContractType enums correctly (call/put). [web:0]
     """
     if isinstance(c, dict):
         sym = c.get("symbol")
@@ -143,37 +130,24 @@ def _extract_contract_fields(c):
     if sym is None or exp is None or strike is None or ctype is None:
         return None, None, None, None
 
-    # exp can be date already (likely) or an ISO string
     if isinstance(exp, str):
         try:
             exp = date.fromisoformat(exp)
         except Exception:
             return None, None, None, None
 
-    # ctype is often an Enum; prefer .value
     if hasattr(ctype, "value"):
         ctype_str = str(ctype.value).lower().strip()
     else:
         ctype_str = str(ctype).lower().strip()
 
-    # handle common representations: "call"/"put", "c"/"p", "ContractType.CALL"
     if "call" in ctype_str or ctype_str == "c":
         is_call = True
     elif "put" in ctype_str or ctype_str == "p":
         is_call = False
     else:
-        # unknown/unexpected type representation
         return None, None, None, None
 
-    try:
-        strike = float(strike)
-    except Exception:
-        return None, None, None, None
-
-    return str(sym), exp, strike, is_call
-
-
-    is_call = str(ctype).lower().startswith("c")
     try:
         strike = float(strike)
     except Exception:
@@ -202,7 +176,6 @@ def pick_single_leg(
 ):
     want_call = (right.upper().strip() == "CALL")
 
-    # Server-side constraints (DTE + strike) to avoid empty/huge results. [web:1]
     contracts = _list_option_contracts(
         trade_client,
         underlying,
@@ -211,9 +184,6 @@ def pick_single_leg(
         strike_lte=max_strike,
     )
 
-    if DEBUG_OPTIONS:
-        print(f"DEBUG {underlying} {right}: total contracts fetched={len(contracts)}")
-
     candidates = []
     for c in contracts:
         sym, exp, strike, is_call = _extract_contract_fields(c)
@@ -221,7 +191,6 @@ def pick_single_leg(
             continue
         if is_call != want_call:
             continue
-        # still keep client-side DTE/strike just in case
         if not _in_dte_window(exp, dte_min, dte_max):
             continue
         if max_strike is not None and float(strike) > float(max_strike):
@@ -229,8 +198,6 @@ def pick_single_leg(
         candidates.append((sym, exp, strike))
 
     if not candidates:
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} {right}: no contracts after filters (DTE/strike/type)")
         return None, None
 
     if spot is None:
@@ -238,23 +205,12 @@ def pick_single_leg(
     else:
         candidates.sort(key=lambda x: (abs(x[2] - float(spot)), x[1]))
 
-    if DEBUG_OPTIONS:
-        print(f"DEBUG {underlying} {right}: evaluating {min(len(candidates), 20)} of {len(candidates)} candidates")
-        for sym, exp, strike in candidates[:5]:
-            print(f"DEBUG candidate {sym} exp={exp} strike={strike} spot={spot}")
-
     for sym, exp, strike in candidates[:250]:
         bid, ask = _get_latest_bid_ask(option_data_client, sym)
         if ask is None or ask <= 0:
-            if DEBUG_OPTIONS:
-                print(f"DEBUG {underlying} {right}: {sym} ask missing/<=0 (bid={bid}, ask={ask})")
             continue
 
-        premium_dollars = float(ask) * 100.0
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} {right}: {sym} bid={bid} ask={ask} premium=${premium_dollars:.2f} (cap=${max_premium})")
-
-        if premium_dollars <= float(max_premium):
+        if float(ask) * 100.0 <= float(max_premium):
             return sym, float(ask)
 
     return None, None
@@ -279,9 +235,6 @@ def pick_bull_call_spread(
         strike_lte=max_strike,
     )
 
-    if DEBUG_OPTIONS:
-        print(f"DEBUG {underlying} BULL_CALL_SPREAD: total contracts fetched={len(contracts)} spot={spot}")
-
     calls = []
     for c in contracts:
         sym, exp, strike, is_call = _extract_contract_fields(c)
@@ -293,13 +246,7 @@ def pick_bull_call_spread(
             continue
         calls.append((sym, exp, strike))
 
-    if not calls:
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BULL_CALL_SPREAD: no calls after filters")
-        return None, None, None
-    if spot is None:
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BULL_CALL_SPREAD: spot is None -> can't pick ATM")
+    if not calls or spot is None:
         return None, None, None
 
     by_exp = {}
@@ -319,11 +266,6 @@ def pick_bull_call_spread(
 
         long_bid, long_ask = _get_latest_bid_ask(option_data_client, long_sym)
         short_bid, short_ask = _get_latest_bid_ask(option_data_client, short_sym)
-
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BCS exp={exp} long={long_sym}({long_strike}) bid/ask={long_bid}/{long_ask} "
-                  f"short={short_sym}({short_strike}) bid/ask={short_bid}/{short_ask}")
-
         if long_ask is None or short_bid is None:
             continue
 
@@ -331,11 +273,7 @@ def pick_bull_call_spread(
         if est_debit <= 0:
             continue
 
-        debit_dollars = est_debit * 100.0
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BCS exp={exp} est_debit={est_debit:.4f} => ${debit_dollars:.2f} (cap=${max_premium})")
-
-        if debit_dollars <= float(max_premium):
+        if est_debit * 100.0 <= float(max_premium):
             return long_sym, short_sym, est_debit
 
     return None, None, None
@@ -360,9 +298,6 @@ def pick_bear_put_spread(
         strike_lte=max_strike,
     )
 
-    if DEBUG_OPTIONS:
-        print(f"DEBUG {underlying} BEAR_PUT_SPREAD: total contracts fetched={len(contracts)} spot={spot}")
-
     puts = []
     for c in contracts:
         sym, exp, strike, is_call = _extract_contract_fields(c)
@@ -374,13 +309,7 @@ def pick_bear_put_spread(
             continue
         puts.append((sym, exp, strike))
 
-    if not puts:
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BEAR_PUT_SPREAD: no puts after filters")
-        return None, None, None
-    if spot is None:
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BEAR_PUT_SPREAD: spot is None -> can't pick ATM")
+    if not puts or spot is None:
         return None, None, None
 
     by_exp = {}
@@ -400,11 +329,6 @@ def pick_bear_put_spread(
 
         long_bid, long_ask = _get_latest_bid_ask(option_data_client, long_sym)
         short_bid, short_ask = _get_latest_bid_ask(option_data_client, short_sym)
-
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BPS exp={exp} long={long_sym}({long_strike}) bid/ask={long_bid}/{long_ask} "
-                  f"short={short_sym}({short_strike}) bid/ask={short_bid}/{short_ask}")
-
         if long_ask is None or short_bid is None:
             continue
 
@@ -412,11 +336,7 @@ def pick_bear_put_spread(
         if est_debit <= 0:
             continue
 
-        debit_dollars = est_debit * 100.0
-        if DEBUG_OPTIONS:
-            print(f"DEBUG {underlying} BPS exp={exp} est_debit={est_debit:.4f} => ${debit_dollars:.2f} (cap=${max_premium})")
-
-        if debit_dollars <= float(max_premium):
+        if est_debit * 100.0 <= float(max_premium):
             return long_sym, short_sym, est_debit
 
     return None, None, None
@@ -442,9 +362,6 @@ def main():
 
     for symbol, spec in signals.items():
         symbol = str(symbol).upper()
-
-        if symbol not in WATCHLIST:
-            print(f"{symbol}: not in WATCHLIST, but signals.json requested it -> trading anyway")
 
         if not isinstance(spec, dict):
             action = str(spec).upper()
@@ -475,6 +392,7 @@ def main():
 
         asset = str(spec.get("asset", "stock")).lower().strip()
 
+        # ===== STOCKS =====
         if asset == "stock":
             action = str(spec.get("action", "HOLD")).upper()
             qty = float(spec.get("qty", shares_for(symbol)))
@@ -504,12 +422,13 @@ def main():
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
             continue
 
+        # ===== OPTIONS =====
         if asset == "option":
             strategy = str(spec.get("strategy", "")).upper().strip()
 
             dte_min = int(spec.get("dte_min", 0))
             dte_max = int(spec.get("dte_max", 45))
-            max_premium = float(spec.get("max_premium", 500))  # dollars (per contract)
+            max_premium = float(spec.get("max_premium", 500))  # dollars per 1-lot / spread
             qty = int(spec.get("qty", 1))
 
             max_strike = spec.get("max_strike", None)
@@ -531,12 +450,7 @@ def main():
             except Exception:
                 spot = None
 
-            if DEBUG_OPTIONS:
-                print(
-                    f"DEBUG {symbol}: strategy={strategy} spot={spot} dte={dte_min}-{dte_max} "
-                    f"max_premium=${max_premium} max_strike={max_strike} width_pct={width_pct}"
-                )
-
+            # --- single-leg ---
             if strategy in {"BUY_CALL", "BUY_PUT"}:
                 right = "CALL" if strategy == "BUY_CALL" else "PUT"
                 opt_sym, ask = pick_single_leg(
@@ -576,6 +490,7 @@ def main():
                 )
                 continue
 
+            # --- spreads (MLEG) as LIMIT orders ---
             if strategy == "BULL_CALL_SPREAD":
                 long_call, short_call, est_debit = pick_bull_call_spread(
                     trade_client,
@@ -600,16 +515,21 @@ def main():
                     OptionLegRequest(symbol=short_call, side=OrderSide.SELL, ratio_qty=1),
                     OptionLegRequest(symbol=long_call, side=OrderSide.BUY, ratio_qty=1),
                 ]
-                req = MarketOrderRequest(
+
+                # small buffer to improve fills, but never exceed max_premium cap
+                limit_price = round(min(float(est_debit) + 0.02, float(max_premium) / 100.0), 2)
+
+                req = LimitOrderRequest(
                     qty=qty,
                     order_class=OrderClass.MLEG,
                     time_in_force=TimeInForce.DAY,
+                    limit_price=limit_price,
                     legs=legs,
                 )
-                submitted = trade_client.submit_order(req)
+                submitted = trade_client.submit_order(order_data=req)
                 print(
                     f"{datetime.now(timezone.utc).isoformat()} {symbol} BULL_CALL_SPREAD "
-                    f"-> long={long_call} short={short_call} est_debit={est_debit:.2f} -> {submitted.id}"
+                    f"-> long={long_call} short={short_call} limit={limit_price:.2f} -> {submitted.id}"
                 )
                 continue
 
@@ -637,16 +557,20 @@ def main():
                     OptionLegRequest(symbol=short_put, side=OrderSide.SELL, ratio_qty=1),
                     OptionLegRequest(symbol=long_put, side=OrderSide.BUY, ratio_qty=1),
                 ]
-                req = MarketOrderRequest(
+
+                limit_price = round(min(float(est_debit) + 0.02, float(max_premium) / 100.0), 2)
+
+                req = LimitOrderRequest(
                     qty=qty,
                     order_class=OrderClass.MLEG,
                     time_in_force=TimeInForce.DAY,
+                    limit_price=limit_price,
                     legs=legs,
                 )
-                submitted = trade_client.submit_order(req)
+                submitted = trade_client.submit_order(order_data=req)
                 print(
                     f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
-                    f"-> long={long_put} short={short_put} est_debit={est_debit:.2f} -> {submitted.id}"
+                    f"-> long={long_put} short={short_put} limit={limit_price:.2f} -> {submitted.id}"
                 )
                 continue
 

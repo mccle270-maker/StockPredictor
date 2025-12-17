@@ -4,37 +4,37 @@
     "strategy": "BEAR_PUT_SPREAD",
     "dte_min": 0,
     "dte_max": 45,
-    "max_strike": 500.0,
+    "max_strike": 1000.0,
     "max_premium": 500.0,
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.02539421068764807,
+    "pred_next_ret": -0.025394210687648078,
     "last_close": 445.1700134277344
   },
   "AMZN": {
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": -0.004753263594626934
+    "pred_next_ret": -0.004753263594626937
   },
   "MSFT": {
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": -0.0015723788637176015
+    "pred_next_ret": -0.0015723788637176013
   },
   "META": {
     "asset": "option",
     "strategy": "BUY_PUT",
     "dte_min": 0,
     "dte_max": 45,
-    "max_strike": 500.0,
+    "max_strike": 1000.0,
     "max_premium": 500.0,
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udcc9 BEARISH: Buy Puts (low protection in market)",
-    "pred_next_ret": -0.031645685645186494,
+    "pred_next_ret": -0.0316456856451865,
     "last_close": 656.4246826171875
   },
   "NVDA": {
@@ -42,12 +42,12 @@
     "strategy": "IRON_CONDOR",
     "dte_min": 0,
     "dte_max": 45,
-    "max_strike": 500.0,
+    "max_strike": 1000.0,
     "max_premium": 500.0,
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.007605895122363089,
+    "pred_next_ret": 0.007605895122363091,
     "last_close": 184.97000122070312
   },
   "AMD": {
@@ -55,12 +55,12 @@
     "strategy": "BEAR_PUT_SPREAD",
     "dte_min": 0,
     "dte_max": 45,
-    "max_strike": 500.0,
+    "max_strike": 1000.0,
     "max_premium": 500.0,
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.028834470791588015,
+    "pred_next_ret": -0.028834470791588008,
     "last_close": 221.6199951171875
   }
 }
