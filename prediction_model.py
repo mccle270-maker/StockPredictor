@@ -702,6 +702,17 @@ def build_features_and_target(
             if df.empty or len(df) < min_rows:
                 raise ValueError(f"Only {len(df)} usable rows for {ticker} with period={per}")
 
+            # -------- NEW: compute GAF-CNN prob on SAME usable rows --------
+            prob_up_gaf = None
+            try:
+                closes_usable = hist.loc[df.index, "Close"].astype(float)
+                rets_usable = closes_usable.pct_change().dropna()
+                prob_up_gaf = predict_up_gafcnn_from_rets(rets_usable, window=30, image_size=30)
+            except Exception as e:
+                print(f"[GAF-CNN] Failed on usable rows for {ticker}: {e}")
+                prob_up_gaf = None
+            # --------------------------------------------------------------
+
             X = df[feat_cols].values
             y = df["ftarget_ret_horizon_ahead"].values
 
@@ -710,12 +721,14 @@ def build_features_and_target(
             last_close = hist.loc[df.index[-1], "Close"]
             last_vol_20d = last_row["vol_20d"]
 
-            return X, y, last_row_features, last_close, last_vol_20d
+            return X, y, last_row_features, last_close, last_vol_20d, prob_up_gaf
+
         except Exception as e:
             last_error = e
             continue
 
     raise ValueError(f"No usable history for {ticker} after trying periods={periods_to_try}. Last error={last_error}")
+
 
 
 def build_features_and_direction_target(ticker="^GSPC", period="5y", horizon=1):
@@ -749,7 +762,7 @@ def predict_next_for_ticker(
     use_vol_scaled_target: bool = False,
     auto_optimize: bool = True,
 ):
-    X, y, x_last, last_close, last_vol_20d = build_features_and_target(
+    X, y, x_last, last_close, last_vol_20d, prob_up_gaf = build_features_and_target(
         ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
     )
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
@@ -837,13 +850,6 @@ def predict_next_for_ticker(
         prob_up = None
         prob_down = None
 
-    prob_up_gaf = None
-    try:
-        prob_up_gaf = predict_up_gafcnn(ticker)
-    except Exception as e:
-        print(f"[GAF-CNN] Failed to compute prob_up_gaf for {ticker}: {e}")
-        prob_up_gaf = None
-
     fund_feats = get_fundamental_features(ticker)
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
@@ -873,6 +879,7 @@ def predict_next_for_ticker(
         "elasticnet_cv_folds": int(ELASTICNET_CV_FOLDS),
         "elasticnet_selected_n": int(len(feat_cols)) if USE_ELASTICNET_SELECT else None,
     }
+
 
 
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
@@ -1186,7 +1193,7 @@ def analyze_feature_significance(
     use_vol_scaled_target: bool = False,
     alpha: float = 0.05,
 ):
-    X, y, _, _, _ = build_features_and_target(
+    X, y, _, _, _, _ = build_features_and_target(
         ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
     )
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
@@ -1258,6 +1265,32 @@ def predict_up_gafcnn(ticker: str, window: int = 30, image_size: int = 30, perio
         return float(proba)
     except Exception as e:
         print(f"[GAF-CNN] Error during predict for {ticker}: {e}")
+        return None
+    
+def predict_up_gafcnn_from_rets(
+    rets: pd.Series,
+    window: int = 30,
+    image_size: int = 30
+) -> float | None:
+    if gafcnn is None:
+        return None
+
+    r = rets.dropna().astype(float)
+    if len(r) < window:
+        return None
+
+    window_vals = r.values[-window:]
+    X = window_vals.reshape(1, -1)
+
+    gaf = GramianAngularField(image_size=image_size, method="summation")
+    Xgaf = gaf.fit_transform(X)
+    Xinput = Xgaf[..., np.newaxis]
+
+    try:
+        proba = gafcnn.predict(Xinput, verbose=0)[0][0]
+        return float(proba)
+    except Exception as e:
+        print(f"[GAF-CNN] Error during predict (from_rets): {e}")
         return None
 
 
@@ -1431,7 +1464,7 @@ if __name__ == "__main__":
     print("Testing 1-Day Predictions - All Models")
     print("=" * 60)
 
-    X, y, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=1)
+    X, y, _, _, _, _ = build_features_and_target("^GSPC", period="10y", horizon=1)
 
     best_xgb = tune_xgb_hyperparams(X, y)
 
