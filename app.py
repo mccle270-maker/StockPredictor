@@ -32,7 +32,6 @@ try:
 except ImportError:
     sq = None
 
-run_gaf = st.sidebar.checkbox("Run GAF-CNN (slow)", value=False)
 
 BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_OUT_PATH = BASE_DIR / "signals.json"
@@ -230,6 +229,7 @@ def run_app():
         auto_optimize = st.checkbox("Auto-optimize features", value=True)
         pricing_model_label = st.selectbox("Pricing engine", ["Black-Scholes","Heston (stochastic vol)"], index=0)
         pricing_model = PricingModel.BLACK_SCHOLES if pricing_model_label == "Black-Scholes" else PricingModel.HESTON
+        run_gaf = st.sidebar.checkbox("Run GAF-CNN (slow)", value=False)
 
     with st.sidebar.expander("Filters", expanded=False):
         max_tickers = st.slider("Max tickers per run", 1, 20, 5)
