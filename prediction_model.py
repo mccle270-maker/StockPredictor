@@ -1366,7 +1366,7 @@ def walk_forward_backtest(
     if step_days is None:
         step_days = test_days
 
-        start = 0
+    start = 0
     while True:
         train_start = start
         train_end = train_start + train_days
