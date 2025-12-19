@@ -1366,23 +1366,36 @@ def walk_forward_backtest(
     if step_days is None:
         step_days = test_days
 
-    start = 0
+        start = 0
     while True:
         train_start = start
         train_end = train_start + train_days
-        test_end = train_end + test_days
-        if test_end >= len(df):
+
+        test_start = train_end
+        test_end = test_start + test_days
+
+        # stop when you can't form a full fold
+        if test_end > len(df):
             break
 
         train_df = df.iloc[train_start:train_end]
-        test_df = df.iloc[train_end:test_end]
+        test_df  = df.iloc[test_start:test_end]
+
+        # don't kill the entire backtest if one fold is too small
         if len(train_df) < 50 or len(test_df) < 20:
-            break
+            start += step_days
+            continue
 
         Xtrain = train_df[feat_cols].values
         ytrain = train_df[target_col].values
-        Xtest = test_df[feat_cols].values
-        ytest = test_df[target_col].values
+        Xtest  = test_df[feat_cols].values
+        ytest  = test_df[target_col].values
+
+        # ... your existing: fit model, predict, simulate trades, compute metrics ...
+        # fold_metrics.append({...})
+
+        # IMPORTANT: advance by stride (smaller stride => more folds)
+        start += step_days
 
         if USE_ELASTICNET_SELECT:
             try:

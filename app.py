@@ -955,6 +955,12 @@ def run_app():
 
         # keep the same threshold you used originally
         wf_threshold = st.slider("Signal threshold", 0.0, 1.0, 0.2, 0.05) / 100.0
+        wf_step_days = st.selectbox(
+        "Fold stride (trading days)",
+        [5, 10, 21, 63, 126],
+        index=2,                 # default = 21
+        key="wf_step_days",
+    )
 
         if st.button("Run Walk-Forward", key="run_wf"):
             with st.spinner("Running walk-forward..."):
@@ -966,6 +972,7 @@ def run_app():
                         model_type=wf_model,
                         train_years=3,
                         test_years=1,
+                        step_days=int(wf_step_days),
                         threshold=float(wf_threshold),
                     )
                     if not fold_results:
