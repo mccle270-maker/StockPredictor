@@ -1397,8 +1397,8 @@ def analyze_feature_significance(
     use_vol_scaled_target: bool = False,
     alpha: float = 0.05,
 ):
-    X, y, _, _, _, _, _ = build_features_and_target(
-        ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target, use_vol_scaled_target=use_vol_scaled_target
+    X, y, *_ = build_features_and_target(
+        ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target
     )
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
 
