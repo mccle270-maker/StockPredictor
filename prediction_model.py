@@ -89,6 +89,33 @@ def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     }
     return params_by_ticker.get(ticker.upper())
 
+from scipy.stats import norm
+TRADING_DAYS = 252
+
+def add_gbm_features(hist: pd.DataFrame, window: int = 60, horizon: int = 5):
+    close = hist["Close"].astype(float)
+    logret = np.log(close).diff()
+
+    mu_d = logret.rolling(window).mean().shift(1)          # lag
+    sig_d = logret.rolling(window).std(ddof=1).shift(1)    # lag
+
+    T = horizon / TRADING_DAYS
+    m = (mu_d - 0.5 * sig_d**2) * T
+    s = sig_d * np.sqrt(T)
+
+    # return distribution implied by GBM:
+    # S_T/S_0 = exp(m + sZ)
+    # ret = exp(m + sZ) - 1
+    hist[f"gbm_mu{window}"] = mu_d
+    hist[f"gbm_sig{window}"] = sig_d
+    hist[f"gbm_prob_up_{horizon}d"] = norm.cdf(m / (s + 1e-12))
+    hist[f"gbm_exp_ret_{horizon}d"] = np.exp(mu_d * T) - 1.0
+
+    hist[f"gbm_p05_ret_{horizon}d"] = np.exp(m + s * norm.ppf(0.05)) - 1.0
+    hist[f"gbm_p95_ret_{horizon}d"] = np.exp(m + s * norm.ppf(0.95)) - 1.0
+
+    return hist
+
 
 # Strip timezone so downstream comparisons don't thrash...
 def price_atm_call_for_ticker(
@@ -399,7 +426,8 @@ FEATURE_COLUMNS = [
     "gap_ret_1d", "intraday_ret_1d", "body_to_range", "upper_wick_to_range", "lower_wick_to_range",
     "adx_14",
     "beta_60_spx", "corr_20_spx", "corr_60_spx",
-    "vol_20d_std",
+    "vol_20d_std", "gbm_mu_60d", "gbm_sig_60d", "gbm_prob_up_1d", "gbm_exp_ret_1d", "gbm_p05_ret_1d", "gbm_p95_ret_1d"
+    "gbm_prob_up_5d", "gbm_exp_ret_5d", "gbm_p05_ret_5d", "gbm_p95_ret_5d",
     "dist_from_high_20", "dist_from_low_20", "up_days_5", "down_days_5",
 ]
 
@@ -415,6 +443,32 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
     # NEW features requested...
     ret_1d_raw = close.pct_change()
+    # ---- GBM features (lagged, no leakage) ----
+    logret_1d = np.log(close).diff()
+
+    # rolling daily drift/vol estimates (window can be 60; tune later)
+    mu_d_60 = logret_1d.rolling(60).mean().shift(1)
+    sig_d_60 = logret_1d.rolling(60).std(ddof=1).shift(1)
+
+    hist["gbm_mu_60d"] = mu_d_60
+    hist["gbm_sig_60d"] = sig_d_60
+
+    # horizon-aware GBM distribution features (use your model horizon if available; for now compute for 1/5 days)
+    for h in [1, 5]:
+        T = h / 252.0
+        m = (mu_d_60 - 0.5 * sig_d_60**2) * T
+        s = sig_d_60 * np.sqrt(T)
+
+    # P(S_{t+h} > S_t) = P(log(S_{t+h}/S_t) > 0) = Phi(m/s)
+    hist[f"gbm_prob_up_{h}d"] = norm.cdf(m / (s + 1e-12))
+
+    # expected return under GBM: E[S_T/S_0 - 1] = exp(mu*T) - 1
+    hist[f"gbm_exp_ret_{h}d"] = np.exp(mu_d_60 * T) - 1.0
+
+    # uncertainty bounds (returns)
+    hist[f"gbm_p05_ret_{h}d"] = np.exp(m + s * norm.ppf(0.05)) - 1.0
+    hist[f"gbm_p95_ret_{h}d"] = np.exp(m + s * norm.ppf(0.95)) - 1.0
+
     hist["ret_1d"] = ret_1d_raw.shift(1)
     hist["ret_3d"] = close.pct_change(3).shift(1)
     hist["ret_5d"] = close.pct_change(5).shift(1)
@@ -1076,6 +1130,21 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
             "correct_direction": (np.sign(ypred) == np.sign(ytest)),
         })
         results["predicted_price"] = results["actual_close"] * (1 + results["predicted_return"])
+
+        from scipy.stats import norm
+
+        T = horizon / 252.0
+
+        mu = hist.loc[test_df.index, "gbm_mu_60d"].astype(float)     # daily log-return drift
+        sig = hist.loc[test_df.index, "gbm_sig_60d"].astype(float)   # daily log-return vol
+        S0 = results["actual_close"].astype(float)
+
+        m = (mu - 0.5 * sig**2) * T
+        s = sig * np.sqrt(T)
+
+        results["gbm_med_price"] = S0 * np.exp(m)
+        results["gbm_p05_price"] = S0 * np.exp(m + s * norm.ppf(0.05))
+        results["gbm_p95_price"] = S0 * np.exp(m + s * norm.ppf(0.95))
 
         accuracy = results["correct_direction"].mean()
         print(f"[track_predictions] Success: {len(results)} test preds; direction accuracy={100*accuracy:.1f}%")

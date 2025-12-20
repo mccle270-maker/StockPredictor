@@ -816,6 +816,15 @@ def run_app():
             if multi_rows:
                 st.dataframe(pd.DataFrame(multi_rows), use_container_width=True)
 
+                price_df = pd.DataFrame({
+                    "Actual": results_test["actual_close"].values,
+                    "ML Pred": results_test["predicted_price"].values,
+                    "GBM Median": results_test["gbm_med_price"].values,
+                    "GBM P05": results_test["gbm_p05_price"].values,
+                    "GBM P95": results_test["gbm_p95_price"].values,
+                }, index=results_test["date"])
+                st.linechart(price_df)
+
     # ===================== TAB 3: Backtest =====================
     with tab_backtest:
         st.header("📊 Single-Stock Backtest")
