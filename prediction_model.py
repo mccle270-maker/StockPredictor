@@ -647,23 +647,46 @@ def prune_weak_features(model, X, y, threshold=0.01):
 def select_features_elasticnet_timeseries(
     X: np.ndarray,
     y: np.ndarray,
-    featurenames: list[str],
-    dates: pd.DatetimeIndex,
-    horizon: int,
+    featurenames: list[str] | None = None,
+    dates: pd.DatetimeIndex | None = None,
+    horizon: int = 1,
     nsplits: int = 5,
     l1ratio: float = 0.5,
     minfeatures: int = 8,
     randomstate: int = 42,
     pctembargo: float = 0.01,
+    # aliases (so any call style works)
+    feature_names: list[str] | None = None,
+    n_splits: int | None = None,
+    l1_ratio: float | None = None,
+    min_features: int | None = None,
+    random_state: int | None = None,
+    pct_embargo: float | None = None,
 ):
+    if featurenames is None and feature_names is not None:
+        featurenames = feature_names
+    if n_splits is not None:
+        nsplits = n_splits
+    if l1_ratio is not None:
+        l1ratio = l1_ratio
+    if min_features is not None:
+        minfeatures = min_features
+    if random_state is not None:
+        randomstate = random_state
+    if pct_embargo is not None:
+        pctembargo = pct_embargo
+
+    if featurenames is None or dates is None:
+        raise ValueError("featurenames(feature_names) and dates are required")
+
     if ElasticNetCV is None or Pipeline is None or StandardScaler is None:
         raise RuntimeError("scikit-learn not available for ElasticNetCV/StandardScaler/Pipeline")
 
     nsplits = int(max(3, nsplits))
-    nsplits = int(min(nsplits, max(3, len(y) // 50 if len(y) > 200 else nsplits)))
+    nsplits = int(min(nsplits, max(3, len(y) // 50)))
 
     Xdf = pd.DataFrame(X, index=pd.DatetimeIndex(dates), columns=featurenames)
-    t1 = make_t1_from_horizon(Xdf.index, horizon)
+    t1 = make_t1_from_horizon(Xdf.index, horizon)  # use YOUR old helper name in the file
     cv = PurgedKFold(nsplits=nsplits, t1=t1, pctembargo=pctembargo)
 
     pipe = Pipeline(
@@ -674,7 +697,7 @@ def select_features_elasticnet_timeseries(
                 alphas=None,
                 cv=cv.split(Xdf),
                 n_jobs=-1,
-                random_state=randomstate,
+                random_state=int(randomstate),
                 max_iter=5000,
             )),
         ]
