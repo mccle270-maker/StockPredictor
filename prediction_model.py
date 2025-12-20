@@ -1555,17 +1555,6 @@ def backtest_compare_one_ticker(ticker="AAPL", period="10y", test_years=1, thres
 
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
-def predict_next_for_ticker(ticker, period="5y", modeltype="rf", horizon=1,
-                            usevolscaledtarget=False, autooptimize=True, rungaf=False):
-    return predict_next_for_ticker(
-        ticker=ticker,
-        period=period,
-        modeltype=modeltype,
-        horizon=horizon,
-        usevolscaledtarget=usevolscaledtarget,
-        autooptimize=autooptimize,
-        rungaf=rungaf,
-    )
 
 
 if __name__ == "__main__":
