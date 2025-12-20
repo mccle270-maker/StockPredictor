@@ -1,9 +1,28 @@
 {
-  "GXO": {
+  "AAPL": {
     "asset": "stock",
-    "action": "SELL",
+    "action": "BUY",
     "qty": 1,
-    "pred_next_ret": -0.01700222032481491,
+    "pred_next_ret": 0.006875499103243158,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "NVDA": {
+    "asset": "option",
+    "strategy": "BULL_CALL_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "\ud83d\udcc8 BULLISH: Buy Calls or Bull Call Spread",
+    "pred_next_ret": 0.023349929423634373,
+    "last_close": 175.02000427246094,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,

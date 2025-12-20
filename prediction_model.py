@@ -156,6 +156,8 @@ def make_t1_from_horizon(index: pd.DatetimeIndex, horizon: int) -> pd.Series:
 
 class PurgedKFold:
     def __init__(self, n_splits: int, t1: pd.Series, pct_embargo: float = 0.01):
+        if n_splits is not None:
+            nsplits=n_splits
         self.n_splits = int(n_splits)
         self.t1 = t1
         self.pct_embargo = float(pct_embargo)
