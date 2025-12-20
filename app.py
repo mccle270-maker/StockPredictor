@@ -684,6 +684,8 @@ def run_app():
                         model_type=model_type,
                         horizon=display_horizon,
                     )
+                    st.session_state["results_test"] = results_test
+                    st.session_state["accuracy"] = accuracy
                     if results_test.empty:
                         st.warning("Not enough data to test accuracy.")
                         st.stop()
@@ -824,6 +826,8 @@ def run_app():
                     "GBM P95": results_test["gbm_p95_price"].values,
                 }, index=results_test["date"])
                 st.line_chart(price_df)
+            else:
+                st.info("Run Accuracy Test first to generate the prediction-vs-actual chart.")
 
     # ===================== TAB 3: Backtest =====================
     with tab_backtest:
