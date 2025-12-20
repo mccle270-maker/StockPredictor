@@ -689,8 +689,8 @@ def select_features_elasticnet_timeseries(
         mask = np.zeros_like(mask, dtype=bool)
         mask[keep] = True
 
-    selectednames = [featurenames[i] for i, m in enumerate(mask) if m]
-    return X[:, mask], selectednames, mask
+    selected_names = [featurenames[i] for i, m in enumerate(mask) if m]
+    return X[:, mask], selected_names, mask
 
 
 
@@ -856,6 +856,8 @@ def predict_next_for_ticker(
                 X=X_en_train,
                 y=y_en_train,
                 feature_names=list(feat_cols),
+                dates=dates[:train_end_for_en],
+                horizon=horizon,
                 n_splits=ELASTICNET_CV_FOLDS,
                 l1_ratio=ELASTICNET_L1_RATIO,
                 min_features=10,
@@ -1552,6 +1554,18 @@ def backtest_compare_one_ticker(ticker="AAPL", period="10y", test_years=1, thres
         )
 
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
+
+def predict_next_for_ticker(ticker, period="5y", modeltype="rf", horizon=1,
+                            usevolscaledtarget=False, autooptimize=True, rungaf=False):
+    return predict_next_for_ticker(
+        ticker=ticker,
+        period=period,
+        modeltype=modeltype,
+        horizon=horizon,
+        usevolscaledtarget=usevolscaledtarget,
+        autooptimize=autooptimize,
+        rungaf=rungaf,
+    )
 
 
 if __name__ == "__main__":
