@@ -2,7 +2,7 @@ import os, datetime as dt, requests
 import numpy as np
 import pandas as pd
 import yfinance as yf
-
+from scipy.stats import norm
 # ---- SPX cache (avoid repeated yf.download("^GSPC") per ticker) ----
 _SPX_CACHE = {}
 
@@ -451,31 +451,27 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
 
     # NEW features requested...
     ret_1d_raw = close.pct_change()
-    # ---- GBM features (lagged, no leakage) ----
+    from scipy.stats import norm
+
+# ---- GBM features (lagged; uses log returns) ----
     logret_1d = np.log(close).diff()
 
-    # rolling daily drift/vol estimates (window can be 60; tune later)
     mu_d_60 = logret_1d.rolling(60).mean().shift(1)
     sig_d_60 = logret_1d.rolling(60).std(ddof=1).shift(1)
 
     hist["gbm_mu_60d"] = mu_d_60
     hist["gbm_sig_60d"] = sig_d_60
 
-    # horizon-aware GBM distribution features (use your model horizon if available; for now compute for 1/5 days)
     for h in [1, 5]:
         T = h / 252.0
         m = (mu_d_60 - 0.5 * sig_d_60**2) * T
         s = sig_d_60 * np.sqrt(T)
 
-    # P(S_{t+h} > S_t) = P(log(S_{t+h}/S_t) > 0) = Phi(m/s)
     hist[f"gbm_prob_up_{h}d"] = norm.cdf(m / (s + 1e-12))
+    hist[f"gbm_exp_ret_{h}d"]  = np.exp(mu_d_60 * T) - 1.0
+    hist[f"gbm_p05_ret_{h}d"]  = np.exp(m + s * norm.ppf(0.05)) - 1.0
+    hist[f"gbm_p95_ret_{h}d"]  = np.exp(m + s * norm.ppf(0.95)) - 1.0
 
-    # expected return under GBM: E[S_T/S_0 - 1] = exp(mu*T) - 1
-    hist[f"gbm_exp_ret_{h}d"] = np.exp(mu_d_60 * T) - 1.0
-
-    # uncertainty bounds (returns)
-    hist[f"gbm_p05_ret_{h}d"] = np.exp(m + s * norm.ppf(0.05)) - 1.0
-    hist[f"gbm_p95_ret_{h}d"] = np.exp(m + s * norm.ppf(0.95)) - 1.0
 
     hist["ret_1d"] = ret_1d_raw.shift(1)
     hist["ret_3d"] = close.pct_change(3).shift(1)
@@ -841,6 +837,8 @@ def build_features_and_target(
             hist = add_price_features(hist)
             missing = [c for c in (FEATURE_COLUMNS + MACRO_COLUMNS) if c not in hist.columns]
             print("Missing:", missing[:30])
+            print("GBM cols present:", [c for c in hist.columns if c.startswith("gbm_")][:20])
+
 
 
             macro_df = get_macro_df(symbol="^GSPC", period=per)
