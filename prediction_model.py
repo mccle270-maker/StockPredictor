@@ -834,11 +834,14 @@ def predict_next_for_ticker(
     ticker="^GSPC",
     period="5y",
     model_type="rf",
+    modeltype=None,
     horizon=1,
     use_vol_scaled_target: bool = False,
     auto_optimize: bool = True,
     run_gaf: bool = False,
 ):
+    if modeltype is not None:
+        model_type = modeltype
     X, y, x_last, last_close, last_vol_20d, prob_up_gaf, dates = build_features_and_target(
         ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target, run_gaf=run_gaf,
     )
