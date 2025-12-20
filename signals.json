@@ -1,9 +1,9 @@
 {
   "AAPL": {
     "asset": "stock",
-    "action": "BUY",
+    "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.007079727375049727,
+    "pred_next_ret": 0.003372929586732753,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -21,7 +21,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udcc8 BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.023138667654254236,
+    "pred_next_ret": 0.023379787435435628,
     "last_close": 175.02000427246094,
     "execution": {
       "delay_days": 1,

@@ -823,7 +823,7 @@ def run_app():
                     "GBM P05": results_test["gbm_p05_price"].values,
                     "GBM P95": results_test["gbm_p95_price"].values,
                 }, index=results_test["date"])
-                st.linechart(price_df)
+                st.line_chart(price_df,x="date")
 
     # ===================== TAB 3: Backtest =====================
     with tab_backtest:
