@@ -159,6 +159,7 @@ class PurgedKFold:
         if n_splits is not None:
             nsplits = n_splits
         self.nsplits = int(nsplits)
+        self.n_splits = self.nsplits
         self.t1 = t1
         self.pctembargo = float(pctembargo)
 
