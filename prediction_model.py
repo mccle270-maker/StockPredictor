@@ -1555,7 +1555,7 @@ def backtest_compare_one_ticker(ticker="AAPL", period="10y", test_years=1, thres
 
     return {"rf": rf_res, "gbrt": gbrt_res, "xgb": xgb_res}
 
-
+predictnextforticker = predict_next_for_ticker
 
 if __name__ == "__main__":
     print("=" * 60)
