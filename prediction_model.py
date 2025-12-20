@@ -426,8 +426,16 @@ FEATURE_COLUMNS = [
     "gap_ret_1d", "intraday_ret_1d", "body_to_range", "upper_wick_to_range", "lower_wick_to_range",
     "adx_14",
     "beta_60_spx", "corr_20_spx", "corr_60_spx",
-    "vol_20d_std", "gbm_mu_60d", "gbm_sig_60d", "gbm_prob_up_1d", "gbm_exp_ret_1d", "gbm_p05_ret_1d", "gbm_p95_ret_1d"
-    "gbm_prob_up_5d", "gbm_exp_ret_5d", "gbm_p05_ret_5d", "gbm_p95_ret_5d",
+    "vol_20d_std", "gbm_mu_60d",
+    "gbm_sig_60d",
+    "gbm_prob_up_1d",
+    "gbm_exp_ret_1d",
+    "gbm_p05_ret_1d",
+    "gbm_p95_ret_1d",
+    "gbm_prob_up_5d",
+    "gbm_exp_ret_5d",
+    "gbm_p05_ret_5d",
+    "gbm_p95_ret_5d",
     "dist_from_high_20", "dist_from_low_20", "up_days_5", "down_days_5",
 ]
 
@@ -831,6 +839,9 @@ def build_features_and_target(
                 raise ValueError(f"No raw history for {ticker} with period={per}")
 
             hist = add_price_features(hist)
+            missing = [c for c in (FEATURE_COLUMNS + MACRO_COLUMNS) if c not in hist.columns]
+            print("Missing:", missing[:30])
+
 
             macro_df = get_macro_df(symbol="^GSPC", period=per)
             hist = hist.join(macro_df, how="left")
