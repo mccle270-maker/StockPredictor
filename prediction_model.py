@@ -142,6 +142,71 @@ except Exception as e:
     print(f"[GAF-CNN] TensorFlow/Keras not available or failed to load model: {e}. probup_gaf will be None.")
     gafcnn = None
 
+def make_t1_from_horizon(index: pd.DatetimeIndex, horizon: int) -> pd.Series:
+    t1 = pd.Series(index=index, dtype="datetime64[ns]")
+    if horizon <= 0:
+        t1[:] = index
+        return t1
+    if len(index) <= horizon:
+        t1[:] = index[-1]
+        return t1
+    t1.iloc[:-horizon] = index[horizon:]
+    t1.iloc[-horizon:] = index[-1]
+    return t1
+
+class PurgedKFold:
+    def __init__(self, n_splits: int, t1: pd.Series, pct_embargo: float = 0.01):
+        self.n_splits = int(n_splits)
+        self.t1 = t1
+        self.pct_embargo = float(pct_embargo)
+
+    def split(self, X: pd.DataFrame, y=None):
+        if not X.index.equals(self.t1.index):
+            raise ValueError("X.index must equal t1.index")
+        n = len(X)
+        fold_sizes = np.full(self.n_splits, n // self.n_splits, dtype=int)
+        fold_sizes[: n % self.n_splits] += 1
+        test_starts = np.cumsum(fold_sizes) - fold_sizes
+        embargo = int(np.ceil(n * self.pct_embargo))
+
+        all_idx = np.arange(n)
+        for k in range(self.n_splits):
+            t0 = test_starts[k]
+            t1i = t0 + fold_sizes[k] - 1
+            test_idx = np.arange(t0, t1i + 1)
+
+            emb_start = t1i + 1
+            emb_end = min(n, t1i + 1 + embargo)
+            embargo_idx = np.arange(emb_start, emb_end)
+
+            test_start_time = X.index[t0]
+            test_end_time = X.index[t1i]
+
+            train_idx = np.setdiff1d(all_idx, np.concatenate([test_idx, embargo_idx]))
+
+            train_start_times = X.index[train_idx]
+            train_end_times = self.t1.iloc[train_idx].values
+            overlaps = (train_start_times <= test_end_time) & (train_end_times >= test_start_time)
+            train_idx = train_idx[~overlaps]
+
+            yield train_idx, test_idx
+
+def sharpe_from_returns(r: pd.Series, periods_per_year: int = 252) -> float | None:
+    r = r.dropna()
+    if len(r) < 10 or r.std(ddof=1) == 0:
+        return None
+    return float(r.mean() / r.std(ddof=1) * np.sqrt(periods_per_year))
+
+def max_drawdown_from_returns(r: pd.Series) -> float | None:
+    r = r.dropna()
+    if len(r) < 2:
+        return None
+    equity = (1 + r).cumprod()
+    dd = equity / equity.cummax() - 1.0
+    return float(dd.min())
+
+def turnover_from_positions(pos: pd.Series) -> float:
+    return float(pos.diff().abs().fillna(0.0).sum())
 
 # Strip timezone so downstream comparisons don't thrash...
 def add_rsi(df, window: int = 14, price_col: str = "Close"):
@@ -579,47 +644,54 @@ def prune_weak_features(model, X, y, threshold=0.01):
     return X[important_features]
 
 
-def select_features_elasticnet_timeseries(
+def selectfeatureselasticnettimeseries(
     X: np.ndarray,
     y: np.ndarray,
-    feature_names: list[str],
-    n_splits: int = 5,
-    l1_ratio: float = 0.5,
-    min_features: int = 8,
-    random_state: int = 42,
+    featurenames: list[str],
+    dates: pd.DatetimeIndex,
+    horizon: int,
+    nsplits: int = 5,
+    l1ratio: float = 0.5,
+    minfeatures: int = 8,
+    randomstate: int = 42,
+    pctembargo: float = 0.01,
 ):
     if ElasticNetCV is None or Pipeline is None or StandardScaler is None:
         raise RuntimeError("scikit-learn not available for ElasticNetCV/StandardScaler/Pipeline")
 
-    n_splits = int(max(3, n_splits))
-    n_splits = int(min(n_splits, max(3, len(y) // 50 if len(y) > 200 else n_splits)))
+    nsplits = int(max(3, nsplits))
+    nsplits = int(min(nsplits, max(3, len(y) // 50 if len(y) > 200 else nsplits)))
 
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+    Xdf = pd.DataFrame(X, index=pd.DatetimeIndex(dates), columns=featurenames)
+    t1 = make_t1_from_horizon(Xdf.index, horizon)
+    cv = PurgedKFold(nsplits=nsplits, t1=t1, pctembargo=pctembargo)
+
     pipe = Pipeline(
         steps=[
             ("scaler", StandardScaler(with_mean=True, with_std=True)),
             ("enet", ElasticNetCV(
-                l1_ratio=float(l1_ratio),
+                l1_ratio=float(l1ratio),
                 alphas=None,
-                cv=tscv,
+                cv=cv.split(Xdf),
                 n_jobs=-1,
-                random_state=random_state,
+                random_state=randomstate,
                 max_iter=5000,
             )),
         ]
     )
-    pipe.fit(X, y)
+    pipe.fit(Xdf.values, y)
 
     coefs = pipe.named_steps["enet"].coef_
     mask = np.abs(coefs) > 1e-10
-    if mask.sum() < min_features:
+    if mask.sum() < minfeatures:
         idx = np.argsort(np.abs(coefs))[::-1]
-        keep = idx[:min_features]
+        keep = idx[:minfeatures]
         mask = np.zeros_like(mask, dtype=bool)
         mask[keep] = True
 
-    selected_names = [feature_names[i] for i, m in enumerate(mask) if m]
-    return X[:, mask], selected_names, mask
+    selectednames = [featurenames[i] for i, m in enumerate(mask) if m]
+    return X[:, mask], selectednames, mask
+
 
 
 def get_fundamental_features(ticker: str) -> dict:
@@ -723,7 +795,9 @@ def build_features_and_target(
             last_close = hist.loc[df.index[-1], "Close"]
             last_vol_20d = last_row["vol_20d"]
 
-            return X, y, last_row_features, last_close, last_vol_20d, prob_up_gaf
+            dates=df.index
+
+            return X, y, last_row_features, last_close, last_vol_20d, prob_up_gaf, dates
 
         except Exception as e:
             last_error = e
@@ -765,7 +839,7 @@ def predict_next_for_ticker(
     auto_optimize: bool = True,
     run_gaf: bool = False,
 ):
-    X, y, x_last, last_close, last_vol_20d, prob_up_gaf = build_features_and_target(
+    X, y, x_last, last_close, last_vol_20d, prob_up_gaf, dates = build_features_and_target(
         ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target, run_gaf=run_gaf,
     )
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
@@ -938,6 +1012,8 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
                     X=Xtrain,
                     y=ytrain,
                     feature_names=list(feat_cols),
+                    dates=train_df.index,
+                    horizon=horizon,
                     n_splits=ELASTICNET_CV_FOLDS,
                     l1_ratio=ELASTICNET_L1_RATIO,
                     min_features=10,
@@ -1017,6 +1093,8 @@ def backtest_one_ticker(ticker="AAPL", period="10y", test_years=1, threshold=0.0
                 X=Xtrain,
                 y=ytrain,
                 feature_names=list(feat_cols),
+                dates=train_df.index,
+                horizon=horizon,
                 n_splits=ELASTICNET_CV_FOLDS,
                 l1_ratio=ELASTICNET_L1_RATIO,
                 min_features=10,
@@ -1109,6 +1187,8 @@ def backtest_one_ticker_auto_optimized(
                 X=Xtrain,
                 y=ytrain,
                 feature_names=list(feat_cols),
+                dates=train_df.index,
+                horizon=horizon,
                 n_splits=ELASTICNET_CV_FOLDS,
                 l1_ratio=ELASTICNET_L1_RATIO,
                 min_features=10,
@@ -1394,15 +1474,14 @@ def walk_forward_backtest(
         # ... your existing: fit model, predict, simulate trades, compute metrics ...
         # fold_metrics.append({...})
 
-        # IMPORTANT: advance by stride (smaller stride => more folds)
-        start += step_days
-
         if USE_ELASTICNET_SELECT:
             try:
                 Xtrain_sel, fold_feats, fold_mask = select_features_elasticnet_timeseries(
                     X=Xtrain,
                     y=ytrain,
                     feature_names=list(feat_cols),
+                    dates=train_df.index,
+                    horizon=horizon,
                     n_splits=ELASTICNET_CV_FOLDS,
                     l1_ratio=ELASTICNET_L1_RATIO,
                     min_features=10,
