@@ -644,7 +644,7 @@ def prune_weak_features(model, X, y, threshold=0.01):
     return X[important_features]
 
 
-def selectfeatureselasticnettimeseries(
+def select_features_elasticnet_timeseries(
     X: np.ndarray,
     y: np.ndarray,
     featurenames: list[str],
