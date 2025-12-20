@@ -818,16 +818,21 @@ def run_app():
             if multi_rows:
                 st.dataframe(pd.DataFrame(multi_rows), use_container_width=True)
 
-                price_df = pd.DataFrame({
-                    "Actual": results_test["actual_close"].values,
-                    "ML Pred": results_test["predicted_price"].values,
-                    "GBM Median": results_test["gbm_med_price"].values,
-                    "GBM P05": results_test["gbm_p05_price"].values,
-                    "GBM P95": results_test["gbm_p95_price"].values,
-                }, index=results_test["date"])
+                rt = st.session_state.get("results_test")
+            if rt is not None and not rt.empty:
+                price_df = pd.DataFrame(
+                    {
+                        "Actual": rt["actual_close"].values,
+                        "ML Pred": rt["predicted_price"].values,
+                        "GBM Median": rt["gbm_med_price"].values,
+                        "GBM P05": rt["gbm_p05_price"].values,
+                        "GBM P95": rt["gbm_p95_price"].values,
+                    },
+                    index=rt["date"],
+                )
                 st.line_chart(price_df)
             else:
-                st.info("Run Accuracy Test first to generate the prediction-vs-actual chart.")
+                st.info("Run Accuracy Test first.")
 
     # ===================== TAB 3: Backtest =====================
     with tab_backtest:
