@@ -155,13 +155,14 @@ def make_t1_from_horizon(index: pd.DatetimeIndex, horizon: int) -> pd.Series:
     return t1
 
 class PurgedKFold:
-    def __init__(self, nsplits: int = 5, t1: pd.Series = None, pct_embargo: float = 0.01, n_splits: int = None):
+    def __init__(self, nsplits: int = 5, t1: pd.Series = None, pctembargo: float = 0.01, n_splits: int = None):
         if n_splits is not None:
             nsplits = n_splits
         self.nsplits = int(nsplits)
         self.n_splits = self.nsplits
         self.t1 = t1
-        self.pct_embargo = float(pct_embargo)
+        self.pctembargo = float(pctembargo)
+        self.pct_embargo = self.pctembargo
 
     def split(self, X: pd.DataFrame, y=None):
         if not X.index.equals(self.t1.index):
