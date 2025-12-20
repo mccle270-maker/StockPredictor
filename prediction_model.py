@@ -90,31 +90,41 @@ def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     return params_by_ticker.get(ticker.upper())
 
 from scipy.stats import norm
+
 TRADING_DAYS = 252
 
-def add_gbm_features(hist: pd.DataFrame, window: int = 60, horizon: int = 5):
+def add_gbm_features(hist: pd.DataFrame, window: int = 60, horizons=(1, 5)) -> pd.DataFrame:
+    """
+    Adds GBM-based distribution features for each horizon in `horizons`.
+    Produces columns:
+      gbm_mu_{window}d, gbm_sig_{window}d
+      gbm_prob_up_{h}d, gbm_exp_ret_{h}d, gbm_p05_ret_{h}d, gbm_p95_ret_{h}d
+    """
+    hist = hist.copy()
+
     close = hist["Close"].astype(float)
     logret = np.log(close).diff()
 
-    mu_d = logret.rolling(window).mean().shift(1)          # lag
-    sig_d = logret.rolling(window).std(ddof=1).shift(1)    # lag
+    # lagged rolling estimates (no leakage)
+    mu_d = logret.rolling(window).mean().shift(1)
+    sig_d = logret.rolling(window).std(ddof=1).shift(1)
 
-    T = horizon / TRADING_DAYS
-    m = (mu_d - 0.5 * sig_d**2) * T
-    s = sig_d * np.sqrt(T)
+    # base params (your FEATURECOLUMNS uses gbm_mu_60d / gbm_sig_60d)
+    hist[f"gbm_mu_{window}d"] = mu_d
+    hist[f"gbm_sig_{window}d"] = sig_d
 
-    # return distribution implied by GBM:
-    # S_T/S_0 = exp(m + sZ)
-    # ret = exp(m + sZ) - 1
-    hist[f"gbm_mu{window}"] = mu_d
-    hist[f"gbm_sig{window}"] = sig_d
-    hist[f"gbm_prob_up_{horizon}d"] = norm.cdf(m / (s + 1e-12))
-    hist[f"gbm_exp_ret_{horizon}d"] = np.exp(mu_d * T) - 1.0
+    for h in horizons:
+        T = h / TRADING_DAYS
+        m = (mu_d - 0.5 * sig_d**2) * T
+        s = sig_d * np.sqrt(T)
 
-    hist[f"gbm_p05_ret_{horizon}d"] = np.exp(m + s * norm.ppf(0.05)) - 1.0
-    hist[f"gbm_p95_ret_{horizon}d"] = np.exp(m + s * norm.ppf(0.95)) - 1.0
+        hist[f"gbm_prob_up_{h}d"] = norm.cdf(m / (s + 1e-12))
+        hist[f"gbm_exp_ret_{h}d"] = np.exp(mu_d * T) - 1.0
+        hist[f"gbm_p05_ret_{h}d"] = np.exp(m + s * norm.ppf(0.05)) - 1.0
+        hist[f"gbm_p95_ret_{h}d"] = np.exp(m + s * norm.ppf(0.95)) - 1.0
 
     return hist
+
 
 
 # Strip timezone so downstream comparisons don't thrash...
@@ -444,6 +454,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist = hist.copy()
 
     close = hist["Close"]
+    hist = add_gbm_features(hist, window=60, horizons=(1, 5))
     high = hist["High"]
     low = hist["Low"]
     open_ = hist["Open"] if "Open" in hist.columns else close
