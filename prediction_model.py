@@ -891,7 +891,7 @@ def build_features_and_target(
     periods_to_try = [period] + [p for p in fallback_periods if p != period] if period in fallback_periods else [period] + fallback_periods
 
     last_error = None
-    min_rows = 100
+    min_rows = 60
 
     for per in periods_to_try:
         try:
@@ -1767,7 +1767,7 @@ def walkforward_cross_sectional(
         usevolscaledtarget=False,
     )
 
-    featcols = FEATURECOLUMNS + MACROCOLUMNS
+    featcols = FEATURE_COLUMNS + MACRO_COLUMNS
     df = panel.dropna(subset=featcols + ["target"]).copy()
     df = df.sort_index()
 
@@ -1807,7 +1807,7 @@ def walkforward_cross_sectional(
         Xtest = testdf[featcols].values
         ytest = testdf["target"].values
 
-        model = makemodel(modeltype, randomstate=42, task="reg")
+        model = make_model(modeltype, randomstate=42, task="reg")
         model.fit(Xtrain, ytrain)
         ypred = model.predict(Xtest)
 
@@ -1835,7 +1835,7 @@ def walkforward_cross_sectional(
         )
 
         port_rets = (W * rets_df).sum(axis=1)
-        sharpe = sharpefromreturns(port_rets)
+        sharpe = sharpe_from_returns(port_rets)
         hitrate = float(
             np.mean(np.sign(ypred) * np.sign(ytest) > 0)
         ) if len(ypred) else None
