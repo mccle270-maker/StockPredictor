@@ -210,7 +210,7 @@ def run_app():
     st.session_state.setdefault("last_trader_rc", None)
 
     tab_pred, tab_acc, tab_backtest, tab_comp, tab_wf, tab_wfx = st.tabs([
-        "📈 Predictions & Options", "✅ Accuracy", "📊 Backtest", "🔬 Comprehensive Test", "🚀 Walk-Forward", "Portfolio WF",
+        "📈 Predictions & Options", "✅ Accuracy", "📊 Backtest", "🔬 Comprehensive Test", "🚀 Walk-Forward", "Portfolio Walk-Forward",
     ])
 
     # ===================== SIDEBAR (clean) =====================
@@ -1021,21 +1021,19 @@ def run_app():
     with tab_wfx:
         st.header("🚀 Portfolio Walk-Forward (Cross-Sectional)")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        universe_text = st.text_input("Universe tickers (comma separated)", 
-                                    value="AAPL,NVDA,MSFT,GOOGL,TSLA")
-        horizon = st.selectbox("Horizon (days ahead)", [1,3,5], index=1)
-        model_type = st.selectbox("Model", ["rf", "xgb", "gbrt"])
-        train_years = st.slider("Train window (years)", 1, 5, 3)
-        test_years = st.slider("Test window (years)", 0.5, 2, 1)
-    
-    with col2:
-        top_long = st.slider("Top percentile long", 0.01, 0.20, 0.05, 0.01)
-        top_short = st.slider("Top percentile short", 0.10, 0.50, 0.30, 0.01)
-    
-    if st.button("Run Portfolio Walk-Forward", type="primary"):
-        tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+        col1, col2 = st.columns(2)
+        with col1:
+                universe = st.text_input("Universe", value="AAPL,NVDA,MSFT,GOOGL")
+                horizon = st.selectbox("Horizon", [1,3,5])
+                model_type = st.selectbox("Model", ["rf","xgb"])
+                train_years = st.slider("Train years", 1, 5, 3)
+                test_years = st.slider("Test years", 1, 2, 1)  # FIXED: all int
+        with col2:
+                top_long = st.slider("Top % long", 0.01, 0.20, 0.05)
+                top_short = st.slider("Top % short", 0.10, 0.50, 0.30)
+            
+        if st.button("Run Portfolio WF"):
+                tickers = [t.strip().upper() for t in universe.split(",")]
         
         try:
             with st.spinner("Running cross-sectional WF..."):
