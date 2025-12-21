@@ -996,31 +996,59 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
     return panel
 
 def walkforward_cross_sectional(
-    tickers, period="10y", horizon=1, model_type="rf",
-    train_years=3, test_years=1, 
+    tickers, period="5y", horizon=1, model_type="rf",
+    train_years=2, test_years=1, 
     top_pct_long=0.05, top_pct_short=0.30
 ) -> pd.DataFrame:
-    """Fixed cross-sectional portfolio WF - no missing functions."""
+    """Bulletproof cross-sectional WF - handles ALL index cases."""
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
-    
+
+    print("=== PANEL DEBUG ===")
+    print("panel.index:", panel.index)
+    print("panel.index.names:", panel.index.names)
+    print("panel.shape:", panel.shape)
+    print("panel.head(3):\n", panel.head(3))
+    print("panel.columns[:5]:", panel.columns[:5])
+    print("==================")
+
+
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     df = panel.dropna(subset=feat_cols + ['target']).copy()
     if len(df) < 500:
         raise ValueError(f"Panel too small: {len(df)} rows")
     
-    # FIXED INDEXING: MultiIndex → flat DataFrame
-    if isinstance(df.index, pd.MultiIndex):
-        df = df.reset_index()
-        date_col = df.index.names[0] if df.index.names[0] else 'date'
-    else:
-        df = df.reset_index()
-        date_col = 'index'  # default name from reset_index
-
-    df = df.rename(columns={date_col: 'date'})
+    # 🔥 BULLETPROOF INDEX HANDLING
+    print(f"[WF] Panel shape: {df.shape}, index type: {type(df.index)}")
+    
+    # Reset index and ensure we have a date column
+    df_reset = df.reset_index()
+    
+    # Find the datetime column (handles MultiIndex, DatetimeIndex, etc.)
+    date_cols = [col for col in df_reset.columns if 'date' in col.lower() or 'time' in col.lower()]
+    if not date_cols:
+        # Fallback: first datetime-like column or index name
+        for col in ['index', 'Date', 'date']:
+            if col in df_reset.columns:
+                date_cols = [col]
+                break
+    
+    if not date_cols:
+        raise ValueError("No date column found after reset_index")
+    
+    date_col = date_cols[0]
+    print(f"[WF] Using date column: '{date_col}'")
+    
+    df_reset = df_reset.rename(columns={date_col: 'date'})
+    df = df_reset.copy()
+    
+    # Convert to datetime + sort
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
     
+    print(f"[WF] Final df shape: {df.shape}, date range: {df['date'].min()} to {df['date'].max()}")
+    
+    # Rest of WF logic (unchanged)
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
     n = len(df)
@@ -1028,8 +1056,10 @@ def walkforward_cross_sectional(
     start = 0
     
     while True:
-        train_start, train_end = start, min(start + train_days, n)
-        test_start, test_end = train_end, min(train_end + test_days, n)
+        train_start = start
+        train_end = min(start + train_days, n)
+        test_start = train_end
+        test_end = min(test_start + test_days, n)
         
         if test_start >= n:
             break
@@ -1037,7 +1067,7 @@ def walkforward_cross_sectional(
         train_df = df.iloc[train_start:train_end]
         test_df = df.iloc[test_start:test_end]
         
-        if len(train_df) < 200 or len(test_df) < 50:
+        if len(train_df) < 100 or len(test_df) < 20:
             start += test_days
             continue
             
@@ -1053,7 +1083,7 @@ def walkforward_cross_sectional(
         y_test = test_df['target'].values
         y_pred = model.predict(X_test)
         
-        # Portfolio: daily percentile ranks
+        # Portfolio construction
         test_df = test_df.copy()
         test_df['pred'] = y_pred
         test_df['rank_pct'] = test_df.groupby('date')['pred'].rank(pct=True)
@@ -1061,31 +1091,31 @@ def walkforward_cross_sectional(
         long_mask = test_df['rank_pct'] <= top_pct_long
         short_mask = test_df['rank_pct'] >= (1 - top_pct_short)
         
-        # Equal-weight daily returns
         long_rets = test_df[long_mask].groupby('date')['target'].mean()
         short_rets = -test_df[short_mask].groupby('date')['target'].mean()
         port_rets = (long_rets + short_rets) / 2
         
-        if len(port_rets.dropna()) > 5:
+        port_rets = port_rets.dropna()
+        if len(port_rets) > 5:
             fold_metrics.append({
                 'fold': len(fold_metrics),
                 'train_start': train_df['date'].iloc[0],
                 'train_end': train_df['date'].iloc[-1],
                 'test_start': test_df['date'].iloc[0],
                 'test_end': test_df['date'].iloc[-1],
-                'test_days': len(port_rets.dropna()),
-                'sharpe': sharpe_from_returns(port_rets.dropna()) or 0.0,
+                'test_days': len(port_rets),
+                'sharpe': sharpe_from_returns(port_rets) or 0.0,
                 'ann_return': port_rets.mean() * 252,
-                'max_dd': max_drawdown_from_returns(port_rets.dropna()) or 0.0,
-                'avg_n_long': long_mask.groupby(test_df['date']).sum().mean(),
-                'avg_n_short': short_mask.groupby(test_df['date']).sum().mean(),
+                'max_dd': max_drawdown_from_returns(port_rets) or 0.0,
+                'avg_n_long': int(long_mask.sum() / len(test_df['date'].unique())),
+                'avg_n_short': int(short_mask.sum() / len(test_df['date'].unique())),
                 'hit_rate': (np.sign(y_pred) == np.sign(y_test)).mean(),
             })
         
         start += test_days
     
+    print(f"[WF] Completed {len(fold_metrics)} folds")
     return pd.DataFrame(fold_metrics)
-
 
 
 

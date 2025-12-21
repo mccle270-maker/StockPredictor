@@ -21,7 +21,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udcc8 BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.023379782059559137,
+    "pred_next_ret": 0.02337978205955914,
     "last_close": 175.02000427246094,
     "execution": {
       "delay_days": 1,
