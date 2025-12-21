@@ -1029,7 +1029,7 @@ def run_app():
         st.subheader("📊 Portfolio Settings")
         universe_text = st.text_input(
             "Universe (comma-separated)", 
-            value="AAPL,NVDA,MSFT,GOOGL,TSLA,AMZN,META",
+            value="AAPL,NVDA,MSFT",
             help="Start small (3-5 tickers) for fast testing"
         )
         horizon = st.selectbox("Prediction Horizon", [1,3,5], 
@@ -1037,11 +1037,9 @@ def run_app():
         
         c1, c2 = st.columns(2)
         with c1:
-            train_years = st.slider("Train Window", 1, 4, 2, 
-                                  help="Longer = more stable but less recent")
+            train_years = st.slider("Train Window", 1, 4, 2)
         with c2:
-            test_years = st.slider("Test Window", 0, 2, 1, 
-                                 help="Shorter = more folds")
+            test_years = st.slider("Test Window", 0, 2, 1)
     
     with col2:
         st.subheader("⚖️ Portfolio Construction")
@@ -1049,50 +1047,65 @@ def run_app():
         top_short = st.slider("Short: Bottom %", 0.10, 0.40, 0.25, 0.01)
         model_type = st.selectbox("Model", ["rf", "xgb", "gbrt"])
     
-    # === RUN BUTTON + PROGRESS ===
+    # === RUN BUTTON ===
     col1, col2 = st.columns([3,1])
     with col1:
-        if st.button("🚀 Run Cross-Sectional Backtest", type="primary"):
+        if st.button("🚀 Run Cross-Sectional Backtest", type="primary", use_container_width=True):
             tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+            
+            if len(tickers) > 10:
+                st.warning("⚠️ Large universe (>10) will be slow.")
+            
+            try:
+                with st.spinner(f"Running {len(tickers)} tickers..."):
+                    results_df = walkforward_cross_sectional(
+                        tickers=tickers,
+                        period="5y",
+                        horizon=horizon,
+                        model_type=model_type,
+                        train_years=train_years,
+                        test_years=test_years,
+                        top_pct_long=top_long,
+                        top_pct_short=top_short
+                    )
+                
+                # 🔥 SAFETY CHECKS HERE
+                if not results_df.empty:
+                    st.success(f"✅ {len(results_df)} folds completed!")
+                    
+                    # Safe metrics (check columns exist)
+                    col1, col2, col3, col4 = st.columns(4)
+                    if 'sharpe' in results_df.columns:
+                        with col1: st.metric("📈 Median Sharpe", f"{results_df['sharpe'].median():.2f}")
+                    if 'ann_return' in results_df.columns:
+                        with col2: st.metric("💰 Ann. Return", f"{results_df['ann_return'].mean()*100:.1f}%")
+                    if 'max_dd' in results_df.columns:
+                        with col3: st.metric("📉 Worst DD", f"{results_df['max_dd'].min():.1%}")
+                    if 'hit_rate' in results_df.columns:
+                        with col4: st.metric("⚡ Hit Rate", f"{results_df['hit_rate'].mean()*100:.0f}%")
+                    
+                    st.dataframe(results_df.round(3), use_container_width=True)
+                    
+                    # Safe chart
+                    if len(results_df) > 1 and 'sharpe' in results_df.columns:
+                        fig, ax = plt.subplots(figsize=(8,4))
+                        results_df['sharpe'].hist(bins=min(12, len(results_df)), ax=ax, alpha=0.7, edgecolor='black')
+                        ax.axvline(results_df['sharpe'].median(), color='red', lw=2, ls='--', label='Median')
+                        ax.set_xlabel('Sharpe Ratio'); ax.set_ylabel('Fold Count')
+                        ax.legend(); ax.grid(True, alpha=0.3)
+                        st.pyplot(fig)
+                else:
+                    st.warning("❌ No folds completed. Try:")
+                    st.markdown("- Smaller universe (3-5 tickers)")
+                    st.markdown("- Train=2y, Test=1y")
+                    st.markdown("- Check console for debug info")
+                
+            except Exception as e:
+                st.error(f"❌ {str(e)}")
+                st.exception(e)
     
-    if len(tickers) > 10:
-        st.warning("⚠️ Large universe (>10) will be slow. Consider SPY500 subset.")
-    
-    try:
-        with st.spinner(f"Building panel for {len(tickers)} tickers..."):
-            results_df = walkforward_cross_sectional(
-                tickers=tickers,
-                period="5y",  # Don't use 10y+15y - too much data!
-                horizon=horizon,
-                model_type=model_type,
-                train_years=train_years,
-                test_years=test_years,
-                top_pct_long=top_long,
-                top_pct_short=top_short
-            )
-        
-        # === BEAUTIFUL RESULTS ===
-        st.success(f"✅ {len(results_df)} folds completed!")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        with col1: st.metric("📈 Median Sharpe", f"{results_df['sharpe'].median():.2f}")
-        with col2: st.metric("💰 Ann. Return", f"{results_df['ann_return'].mean()*100:.1f}%")
-        with col3: st.metric("📉 Worst DD", f"{results_df['max_dd'].min():.1%}")
-        with col4: st.metric("⚡ Win Rate", f"{results_df['hit_rate'].mean()*100:.0f}%")
-        
-        st.dataframe(results_df.round(3), use_container_width=True)
-        
-        # Sharpe histogram
-        fig, ax = plt.subplots(figsize=(8,4))
-        results_df['sharpe'].hist(bins=12, ax=ax, alpha=0.7, edgecolor='black')
-        ax.axvline(results_df['sharpe'].median(), color='red', lw=2, ls='--', label='Median')
-        ax.set_xlabel('Sharpe Ratio'); ax.set_ylabel('Fold Count')
-        ax.legend(); ax.grid(True, alpha=0.3)
-        st.pyplot(fig)
-        
-    except Exception as e:
-        st.error(f"❌ {str(e)}")
-        st.exception(e)
+    with col2:
+        st.info(f"📊 Est. time: ~{len(universe_text.split(',')) * train_years * 0.3:.0f}s")
 
 
 if __name__ == "__main__":
