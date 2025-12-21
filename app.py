@@ -1047,7 +1047,7 @@ def run_app():
         top_short = st.slider("Short: Bottom %", 0.10, 0.40, 0.25, 0.01)
         model_type = st.selectbox("Model", ["rf", "xgb", "gbrt"])
     
-    # === RUN BUTTON ===
+    # === RUN BUTTON + EST TIME ===
     col1, col2 = st.columns([3,1])
     with col1:
         if st.button("🚀 Run Cross-Sectional Backtest", type="primary", use_container_width=True):
@@ -1055,6 +1055,8 @@ def run_app():
             
             if len(tickers) > 10:
                 st.warning("⚠️ Large universe (>10) will be slow.")
+            elif len(tickers) < 2:
+                st.warning("⚠️ Need 2+ tickers for cross-sectional ranking.")
             
             try:
                 with st.spinner(f"Running {len(tickers)} tickers..."):
@@ -1069,43 +1071,79 @@ def run_app():
                         top_pct_short=top_short
                     )
                 
-                # 🔥 SAFETY CHECKS HERE
+                # 🔥 FULL RESULTS DISPLAY
                 if not results_df.empty:
                     st.success(f"✅ {len(results_df)} folds completed!")
                     
-                    # Safe metrics (check columns exist)
+                    # === SUMMARY METRICS ===
+                    st.markdown("### 📊 Portfolio Performance")
                     col1, col2, col3, col4 = st.columns(4)
-                    if 'sharpe' in results_df.columns:
-                        with col1: st.metric("📈 Median Sharpe", f"{results_df['sharpe'].median():.2f}")
-                    if 'ann_return' in results_df.columns:
-                        with col2: st.metric("💰 Ann. Return", f"{results_df['ann_return'].mean()*100:.1f}%")
-                    if 'max_dd' in results_df.columns:
-                        with col3: st.metric("📉 Worst DD", f"{results_df['max_dd'].min():.1%}")
-                    if 'hit_rate' in results_df.columns:
-                        with col4: st.metric("⚡ Hit Rate", f"{results_df['hit_rate'].mean()*100:.0f}%")
                     
+                    if 'sharpe' in results_df.columns:
+                        median_sharpe = results_df['sharpe'].median()
+                        col1.metric("📈 Median Sharpe", f"{median_sharpe:.2f}", 
+                                  delta=f"{results_df['sharpe'].mean():+.2f}" if len(results_df)>1 else None)
+                    
+                    if 'ann_return' in results_df.columns:
+                        avg_return = results_df['ann_return'].mean() * 100
+                        col2.metric("💰 Avg Ann Return", f"{avg_return:.1f}%", 
+                                  delta=f"{results_df['ann_return'].std()*100:.1f}% σ")
+                    
+                    if 'max_dd' in results_df.columns:
+                        worst_dd = results_df['max_dd'].min()
+                        col3.metric("📉 Worst Drawdown", f"{worst_dd:.1%}")
+                    
+                    if 'hit_rate' in results_df.columns:
+                        avg_hit = results_df['hit_rate'].mean() * 100
+                        col4.metric("⚡ Avg Hit Rate", f"{avg_hit:.0f}%")
+                    
+                    # === SIGNAL STATUS ===
+                    st.markdown("### 🚦 Live Signal")
+                    recent_sharpe = results_df['sharpe'].tail(3).mean() if 'sharpe' in results_df.columns else 0
+                    if recent_sharpe > 1.0:
+                        st.success(f"🚀 **DEPLOY**: Recent Sharpe {recent_sharpe:.2f} > 1.0")
+                    elif recent_sharpe > 0.3:
+                        st.info(f"✅ **MARGINAL EDGE**: Recent Sharpe {recent_sharpe:.2f}")
+                    else:
+                        st.warning(f"⏸️ **STANDBY**: Recent Sharpe {recent_sharpe:.2f}")
+                    
+                    # === DATA TABLE ===
+                    st.markdown("### 📋 Fold Results")
                     st.dataframe(results_df.round(3), use_container_width=True)
                     
-                    # Safe chart
+                    # === SHARPE DISTRIBUTION ===
                     if len(results_df) > 1 and 'sharpe' in results_df.columns:
-                        fig, ax = plt.subplots(figsize=(8,4))
+                        st.markdown("### 📊 Sharpe Distribution")
+                        fig, ax = plt.subplots(figsize=(10,6))
                         results_df['sharpe'].hist(bins=min(12, len(results_df)), ax=ax, alpha=0.7, edgecolor='black')
-                        ax.axvline(results_df['sharpe'].median(), color='red', lw=2, ls='--', label='Median')
+                        ax.axvline(results_df['sharpe'].median(), color='green', lw=3, ls='--', 
+                                 label=f'Median: {results_df["sharpe"].median():.2f}')
+                        ax.axvline(1.0, color='orange', ls=':', alpha=0.7, label='Sharpe=1.0')
+                        ax.axvline(0, color='red', ls=':', alpha=0.7, label='Sharpe=0')
                         ax.set_xlabel('Sharpe Ratio'); ax.set_ylabel('Fold Count')
                         ax.legend(); ax.grid(True, alpha=0.3)
                         st.pyplot(fig)
+                    
+                    # === RECENT FOLD TABLE ===
+                    if len(results_df) >= 5:
+                        st.markdown("### 🔍 Recent 5 Folds")
+                        st.dataframe(results_df.tail().round(3), use_container_width=True)
+                
                 else:
                     st.warning("❌ No folds completed. Try:")
-                    st.markdown("- Smaller universe (3-5 tickers)")
-                    st.markdown("- Train=2y, Test=1y")
-                    st.markdown("- Check console for debug info")
+                    st.markdown("• **Smaller universe**: AAPL,NVDA,MSFT")
+                    st.markdown("• **Shorter windows**: Train=1-2y, Test=0.5-1y")
+                    st.markdown("• **Check browser console** for `[WF DEBUG]` logs")
                 
             except Exception as e:
                 st.error(f"❌ {str(e)}")
                 st.exception(e)
     
     with col2:
-        st.info(f"📊 Est. time: ~{len(universe_text.split(',')) * train_years * 0.3:.0f}s")
+        n_tickers = len([t for t in universe_text.split(",") if t.strip()])
+        est_time = n_tickers * train_years * 0.4
+        st.info(f"⏱️ **Est. time**: ~{est_time:.0f}s")
+        st.caption(f"Tickers: {n_tickers} | Train: {train_years}y | Test: {test_years}y")
 
 
 if __name__ == "__main__":
