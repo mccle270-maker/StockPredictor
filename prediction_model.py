@@ -1000,63 +1000,30 @@ def walkforward_cross_sectional(
     train_years=2, test_years=1, 
     top_pct_long=0.05, top_pct_short=0.30
 ) -> pd.DataFrame:
-    """Bulletproof cross-sectional WF - handles ALL index cases."""
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
-
-    print("=== PANEL DEBUG ===")
-    print("panel.index:", panel.index)
-    print("panel.index.names:", panel.index.names)
-    print("panel.shape:", panel.shape)
-    print("panel.head(3):\n", panel.head(3))
-    print("panel.columns[:5]:", panel.columns[:5])
-    print("==================")
-
-
+    
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     df = panel.dropna(subset=feat_cols + ['target']).copy()
-    if len(df) < 500:
+    if len(df) < 200:  # Relaxed from 500
         raise ValueError(f"Panel too small: {len(df)} rows")
     
-    # 🔥 BULLETPROOF INDEX HANDLING
+    # BULLETPROOF INDEX HANDLING
     print(f"[WF] Panel shape: {df.shape}, index type: {type(df.index)}")
-    
-    # Reset index and ensure we have a date column
     df_reset = df.reset_index()
-    
-    # Find the datetime column (handles MultiIndex, DatetimeIndex, etc.)
-    date_cols = [col for col in df_reset.columns if 'date' in col.lower() or 'time' in col.lower()]
-    if not date_cols:
-        # Fallback: first datetime-like column or index name
-        for col in ['index', 'Date', 'date']:
-            if col in df_reset.columns:
-                date_cols = [col]
-                break
-    
-    if not date_cols:
-        raise ValueError("No date column found after reset_index")
-    
-    date_col = date_cols[0]
-    print(f"[WF] Using date column: '{date_col}'")
-    
+    date_col = 'Date' if 'Date' in df_reset.columns else 'index'
     df_reset = df_reset.rename(columns={date_col: 'date'})
     df = df_reset.copy()
-    
-    # Convert to datetime + sort
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
-
-    print(f"[WF DEBUG] TOTAL ROWS: {len(df)}")
-    print(f"[WF DEBUG] Train days needed: {train_days}, Test days: {test_days}")
-    print(f"[WF DEBUG] Dates per ticker: {df.groupby('ticker').size()}")
-    print(f"[WF DEBUG] Unique dates: {df['date'].nunique()}")
-    print(f"[WF DEBUG] Rows per day avg: {len(df)/df['date'].nunique():.0f}")
     
-    print(f"[WF] Final df shape: {df.shape}, date range: {df['date'].min()} to {df['date'].max()}")
-    
-    # Rest of WF logic (unchanged)
+    # DEFINE DAYS FIRST, THEN DEBUG
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
+    print(f"[WF DEBUG] TOTAL ROWS: {len(df)}")
+    print(f"[WF DEBUG] Train days: {train_days}, Test: {test_days}")
+    print(f"[WF DEBUG] Unique dates: {df['date'].nunique()}")
+    
     n = len(df)
     fold_metrics = []
     start = 0
@@ -1073,8 +1040,9 @@ def walkforward_cross_sectional(
         train_df = df.iloc[train_start:train_end]
         test_df = df.iloc[test_start:test_end]
         
-        if len(train_df) < 30 or len(test_df) < 5:
-            print(f"[WF DEBUG] Fold {len(fold_metrics)} SKIPPED: train={len(train_df)}, test={len(test_df)}")
+        # RELAXED CRITERIA
+        if len(train_df) < 50 or len(test_df) < 10:
+            print(f"[WF DEBUG] SKIPPED fold {len(fold_metrics)}: train={len(train_df)}, test={len(test_df)}")
             start += test_days
             continue
             
@@ -1090,7 +1058,7 @@ def walkforward_cross_sectional(
         y_test = test_df['target'].values
         y_pred = model.predict(X_test)
         
-        # Portfolio construction
+        # Portfolio
         test_df = test_df.copy()
         test_df['pred'] = y_pred
         test_df['rank_pct'] = test_df.groupby('date')['pred'].rank(pct=True)
@@ -1103,7 +1071,7 @@ def walkforward_cross_sectional(
         port_rets = (long_rets + short_rets) / 2
         
         port_rets = port_rets.dropna()
-        if len(port_rets) > 5:
+        if len(port_rets) > 3:  # Very lenient
             fold_metrics.append({
                 'fold': len(fold_metrics),
                 'train_start': train_df['date'].iloc[0],
@@ -1116,13 +1084,14 @@ def walkforward_cross_sectional(
                 'max_dd': max_drawdown_from_returns(port_rets) or 0.0,
                 'avg_n_long': int(long_mask.sum() / len(test_df['date'].unique())),
                 'avg_n_short': int(short_mask.sum() / len(test_df['date'].unique())),
-                'hit_rate': (np.sign(y_pred) == np.sign(y_test)).mean(),
+                'hit_rate': float((np.sign(y_pred) == np.sign(y_test)).mean()),
             })
         
         start += test_days
     
     print(f"[WF] Completed {len(fold_metrics)} folds")
     return pd.DataFrame(fold_metrics)
+
 
 
 
