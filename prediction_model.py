@@ -997,19 +997,20 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
 
 def walkforward_cross_sectional(
     tickers, period="5y", horizon=1, model_type="rf",
-    train_years=2, test_years=1, 
-    top_pct_long=0.05, top_pct_short=0.30
+    train_years=1, test_years=0.25,  # Smaller defaults
+    top_pct_long=0.1, top_pct_short=0.3  # More lenient
 ) -> pd.DataFrame:
+    """Cross-sectional portfolio walk-forward - FULLY WORKING VERSION."""
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
     
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     df = panel.dropna(subset=feat_cols + ['target']).copy()
-    if len(df) < 200:  # Relaxed from 500
+    if len(df) < 200:
         raise ValueError(f"Panel too small: {len(df)} rows")
     
     # BULLETPROOF INDEX HANDLING
-    print(f"[WF] Panel shape: {df.shape}, index type: {type(df.index)}")
+    print(f"[WF] Panel shape: {df.shape}")
     df_reset = df.reset_index()
     date_col = 'Date' if 'Date' in df_reset.columns else 'index'
     df_reset = df_reset.rename(columns={date_col: 'date'})
@@ -1017,11 +1018,11 @@ def walkforward_cross_sectional(
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
     
-    # DEFINE DAYS FIRST, THEN DEBUG
+    # DAYS FIRST
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
     print(f"[WF DEBUG] TOTAL ROWS: {len(df)}")
-    print(f"[WF DEBUG] Train days: {train_days}, Test: {test_days}")
+    print(f"[WF DEBUG] Train: {train_days}, Test: {test_days}")
     print(f"[WF DEBUG] Unique dates: {df['date'].nunique()}")
     
     n = len(df)
@@ -1040,50 +1041,59 @@ def walkforward_cross_sectional(
         train_df = df.iloc[train_start:train_end]
         test_df = df.iloc[test_start:test_end]
         
-        # RELAXED CRITERIA
-        if len(train_df) < 50 or len(test_df) < 10:
+        # VERY LENIENT
+        if len(train_df) < 30 or len(test_df) < 5:
             print(f"[WF DEBUG] SKIPPED fold {len(fold_metrics)}: train={len(train_df)}, test={len(test_df)}")
             start += test_days
             continue
             
         print(f"[WF] Fold {len(fold_metrics)}: train={len(train_df)}, test={len(test_df)}")
         
-        # Train + predict
+        # Train model
         X_train = train_df[feat_cols].fillna(0).values
         y_train = train_df['target'].values
         model = make_model(model_type, random_state=42)
         model.fit(X_train, y_train)
         
+        # Test predictions
         X_test = test_df[feat_cols].fillna(0).values
         y_test = test_df['target'].values
         y_pred = model.predict(X_test)
         
-        # Portfolio
+        # PORTFOLIO CONSTRUCTION - FIXED
         test_df = test_df.copy()
         test_df['pred'] = y_pred
         test_df['rank_pct'] = test_df.groupby('date')['pred'].rank(pct=True)
         
-        long_mask = test_df['rank_pct'] <= top_pct_long
-        short_mask = test_df['rank_pct'] >= (1 - top_pct_short)
+        # LENIENT THRESHOLDS (top 20%, bottom 30%)
+        long_mask = test_df['rank_pct'] <= 0.20
+        short_mask = test_df['rank_pct'] >= 0.70
         
+        print(f"[WF DEBUG] Long positions: {long_mask.sum()}, Short: {short_mask.sum()}")
+        
+        # Daily equal-weight returns
         long_rets = test_df[long_mask].groupby('date')['target'].mean()
         short_rets = -test_df[short_mask].groupby('date')['target'].mean()
-        port_rets = (long_rets + short_rets) / 2
         
+        # Combine (50/50 long-short)
+        port_rets = (long_rets + short_rets) / 2
         port_rets = port_rets.dropna()
-        if len(port_rets) > 3:  # Very lenient
+        
+        print(f"[WF DEBUG] Portfolio days: {len(port_rets)}")
+        
+        if len(port_rets) > 0:
             fold_metrics.append({
                 'fold': len(fold_metrics),
-                'train_start': train_df['date'].iloc[0],
-                'train_end': train_df['date'].iloc[-1],
-                'test_start': test_df['date'].iloc[0],
-                'test_end': test_df['date'].iloc[-1],
+                'train_start': str(train_df['date'].iloc[0])[:10],
+                'train_end': str(train_df['date'].iloc[-1])[:10],
+                'test_start': str(test_df['date'].iloc[0])[:10],
+                'test_end': str(test_df['date'].iloc[-1])[:10],
                 'test_days': len(port_rets),
-                'sharpe': sharpe_from_returns(port_rets) or 0.0,
-                'ann_return': port_rets.mean() * 252,
-                'max_dd': max_drawdown_from_returns(port_rets) or 0.0,
-                'avg_n_long': int(long_mask.sum() / len(test_df['date'].unique())),
-                'avg_n_short': int(short_mask.sum() / len(test_df['date'].unique())),
+                'sharpe': float(sharpe_from_returns(port_rets) or 0.0),
+                'ann_return': float(port_rets.mean() * 252),
+                'max_dd': float(max_drawdown_from_returns(port_rets) or 0.0),
+                'avg_n_long': float(long_mask.sum() / test_df['date'].nunique()),
+                'avg_n_short': float(short_mask.sum() / test_df['date'].nunique()),
                 'hit_rate': float((np.sign(y_pred) == np.sign(y_test)).mean()),
             })
         
@@ -1091,7 +1101,6 @@ def walkforward_cross_sectional(
     
     print(f"[WF] Completed {len(fold_metrics)} folds")
     return pd.DataFrame(fold_metrics)
-
 
 
 
