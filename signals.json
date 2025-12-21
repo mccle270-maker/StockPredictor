@@ -3,7 +3,7 @@
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.0034509535484667296,
+    "pred_next_ret": 0.0033696388282151955,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -21,7 +21,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udcc8 BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.023379785295707098,
+    "pred_next_ret": 0.023379784281772616,
     "last_close": 175.02000427246094,
     "execution": {
       "delay_days": 1,

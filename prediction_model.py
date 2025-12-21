@@ -1030,149 +1030,171 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
     return panel
 
 def walkforward_cross_sectional(
-    tickers, period="5y", horizon=1, model_type="rf",
-    train_years=1, test_years=0.25, 
-    top_pct_long=0.15, top_pct_short=0.35, vix_filter=None  # EVEN MORE LENIENT
+    tickers,
+    period: str = "5y",
+    horizon: int = 1,
+    model_type: str = "rf",
+    train_years: float = 1,
+    test_years: float = 0.25,
+    top_pct_long: float = 0.15,
+    top_pct_short: float = 0.35,
+    vix_filter: float | None = None,
 ) -> pd.DataFrame:
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
-    
+
     feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
-    df = panel.dropna(subset=feat_cols + ['target']).copy()
-    
+    df = panel.dropna(subset=feat_cols + ["target"]).copy()
+
     # INDEX HANDLING
     df_reset = df.reset_index()
-    date_col = 'Date' if 'Date' in df_reset.columns else 'index'
-    df_reset = df_reset.rename(columns={date_col: 'date'})
+    date_col = "Date" if "Date" in df_reset.columns else "index"
+    df_reset = df_reset.rename(columns={date_col: "date"})
     df = df_reset.copy()
-    df['date'] = pd.to_datetime(df['date'])
-    df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values(["date", "ticker"]).reset_index(drop=True)
 
-    if vix_filter and 'vix' in df.columns:
+    # VIX regime filter
+    if vix_filter and "vix" in df.columns:
         orig_rows = len(df)
-        df = df[df['vix'] < vix_filter]
+        df = df[df["vix"] < vix_filter].copy()
         print(f"[VIX] Kept {len(df)}/{orig_rows} rows (VIX<{vix_filter})")
-    
+
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
     print(f"[WF DEBUG] Rows: {len(df)}, Train: {train_days}, Test: {test_days}")
-    
+
     n = len(df)
-    fold_metrics = []
+    fold_metrics: list[dict] = []
     start = 0
-    
+
     while True:
         train_start = start
         train_end = min(start + train_days, n)
         test_start = train_end
         test_end = min(test_start + test_days, n)
-        
+
         if test_start >= n:
             break
-            
+
         train_df = df.iloc[train_start:train_end]
         test_df = df.iloc[test_start:test_end]
-        
+
         if len(train_df) < 30 or len(test_df) < 5:
             start += test_days
             continue
-            
-        print(f"[WF] Fold {len(fold_metrics)}: train={len(train_df)}, test={len(test_df)}")
-        
-        # FIXED MODEL TRAINING
+
+        fold_idx = len(fold_metrics)
+        print(f"[WF] Fold {fold_idx}: train={len(train_df)}, test={len(test_df)}")
+
+        # MODEL TRAINING
         X_train = train_df[feat_cols].fillna(0).values
-        y_train = train_df['target'].values
-        
-        # ADD NOISE TO BREAK TIES
+        y_train = train_df["target"].values
+
         np.random.seed(42)
-        X_train += np.random.normal(0, 1e-8, X_train.shape)
-        
+        X_train = X_train + np.random.normal(0, 1e-8, X_train.shape)
+
         model = make_model(model_type, random_state=42)
         model.fit(X_train, y_train)
-        
-        # Predictions
+
+        # PREDICTION
         X_test = test_df[feat_cols].fillna(0).values
-        X_test += np.random.normal(0, 1e-8, X_test.shape)  # Tiny noise
-        y_test = test_df['target'].values
+        X_test = X_test + np.random.normal(0, 1e-8, X_test.shape)
+        y_test = test_df["target"].values
         y_pred = model.predict(X_test)
-        
+
         print(f"[DEBUG] Pred stats: mean={y_pred.mean():.4f}, std={y_pred.std():.4f}")
-        
-        # PORTFOLIO - ULTRA LENIENT
+
         test_df = test_df.copy()
-        test_df['pred'] = y_pred
-        test_df['rank_pct'] = test_df.groupby('date')['pred'].rank(pct=True, method='average')
-        
-        # TOP/BOTTOM 30% - GUARANTEED POSITIONS
-        long_mask = test_df['rank_pct'] <= 0.30
-        short_mask = test_df['rank_pct'] >= 0.70
-        
-        n_long = long_mask.sum()
-        n_short = short_mask.sum()
-        print(f"[WF] Long: {n_long}, Short: {n_short}")
-        
-        # FORCE POSITIONS EVEN IF EMPTY
-        if n_long == 0:
-            long_mask = test_df['rank_pct'] <= 0.50  # Top half
-        if n_short == 0:
-            short_mask = test_df['rank_pct'] >= 0.50  # Bottom half
-            
-        # VOL TARGETED PORTFOLIO (FINAL)
-        test_df['vol_weight'] = vol_target_position_size(1.0, test_df['vol_20d'], target_vol=0.15)
+        test_df["pred"] = y_pred
+        test_df["rank_pct"] = test_df.groupby("date")["pred"].rank(
+            pct=True, method="average"
+        )
 
-        long_mask = test_df['rank_pct'] <= top_pct_long
-        short_mask = test_df['rank_pct'] >= (1 - top_pct_short)
+        # INITIAL VERY LENIENT MASKS JUST TO AVOID EMPTY DAYS
+        base_long_mask = test_df["rank_pct"] <= 0.30
+        base_short_mask = test_df["rank_pct"] >= 0.70
+        print(
+            f"[WF] Base Long: {base_long_mask.sum()}, Base Short: {base_short_mask.sum()}"
+        )
 
-        print(f"[WF] Long: {long_mask.sum()}, Short: {short_mask.sum()} (vol-targeted)")
+        # FINAL MASKS USING USER THRESHOLDS
+        long_mask = test_df["rank_pct"] <= top_pct_long
+        short_mask = test_df["rank_pct"] >= (1 - top_pct_short)
+        print(
+            f"[WF] Final Long: {long_mask.sum()}, Final Short: {short_mask.sum()}"
+        )
+
+        # VOL-TARGETED WEIGHTS (15% target vol)
+        test_df["vol_weight"] = vol_target_position_size(
+            1.0, test_df["vol_20d"], target_vol=0.15
+        )
 
         # VOL-WEIGHTED RETURNS
-        long_rets = test_df[long_mask].groupby('date').apply(
-            lambda x: (x['target'] * x['vol_weight']).mean()
+        long_rets = test_df[long_mask].groupby("date").apply(
+            lambda x: (x["target"] * x["vol_weight"]).mean()
         )
-        short_rets = -test_df[short_mask].groupby('date').apply(
-            lambda x: (x['target'] * x['vol_weight']).mean()
+        short_rets = -test_df[short_mask].groupby("date").apply(
+            lambda x: (x["target"] * x["vol_weight"]).mean()
         )
+
+        # HANDLE EMPTY SERIES
+        if long_rets.empty and short_rets.empty:
+            print("[WF] WARNING: empty long/short rets; skipping fold")
+            start += test_days
+            continue
+        if long_rets.empty:
+            long_rets = pd.Series(0.0, index=short_rets.index)
+        if short_rets.empty:
+            short_rets = pd.Series(0.0, index=long_rets.index)
 
         port_rets = (long_rets + short_rets) / 2
         port_rets = port_rets.dropna()
 
         print(f"[WF] Portfolio: {len(port_rets)} days (15% target vol)")
 
+        if len(port_rets) == 0:
+            start += test_days
+            continue
 
-        
-        # HANDLE EMPTY SERIES
-        if long_rets.empty:
-            long_rets = pd.Series(0.0, index=short_rets.index)
-        if short_rets.empty:
-            short_rets = pd.Series(0.0, index=long_rets.index)
-            
-        port_rets = (long_rets + short_rets) / 2
-        port_rets = port_rets.dropna()
-        
-        print(f"[WF] Portfolio: {len(port_rets)} days")
-        
-        if len(port_rets) > 0:
-            fold_metrics.append({
-                'fold': len(fold_metrics),
-                'train_start': str(train_df['date'].iloc[0])[:10],
-                'train_end': str(train_df['date'].iloc[-1])[:10],
-                'test_start': str(test_df['date'].iloc[0])[:10],
-                'test_end': str(test_df['date'].iloc[-1])[:10],
-                'test_days': len(port_rets),
-                'sharpe': float(sharpe_from_returns(port_rets) or 0.0),
-                'ann_return': float(port_rets.mean() * 252),
-                'max_dd': float(max_drawdown_from_returns(port_rets) or 0.0),
-                'avg_n_long': float(long_mask.sum() / test_df['date'].nunique()),
-                'avg_n_short': float(short_mask.sum() / test_df['date'].nunique()),
-                'hit_rate': float((np.sign(y_pred) == np.sign(y_test)).mean()),
-            })
-        
+        # STORE PER-TICKER SIGNALS FOR LATEST FOLD (for options overlay)
+        per_ticker = (
+            test_df.assign(long=long_mask, short=short_mask)
+            .groupby("ticker")
+            .agg(
+                avg_pred=("pred", "mean"),
+                any_long=("long", "any"),
+                any_short=("short", "any"),
+            )
+            .reset_index()
+        )
+        per_ticker["fold"] = fold_idx
+        per_ticker.to_json(f"fold_signals_{fold_idx}.json", orient="records")
+
+        # FOLD METRICS
+        fold_metrics.append(
+            {
+                "fold": fold_idx,
+                "train_start": str(train_df["date"].iloc[0])[:10],
+                "train_end": str(train_df["date"].iloc[-1])[:10],
+                "test_start": str(test_df["date"].iloc[0])[:10],
+                "test_end": str(test_df["date"].iloc[-1])[:10],
+                "test_days": int(len(port_rets)),
+                "sharpe": float(sharpe_from_returns(port_rets) or 0.0),
+                "ann_return": float(port_rets.mean() * 252),
+                "max_dd": float(max_drawdown_from_returns(port_rets) or 0.0),
+                "avg_n_long": float(long_mask.sum() / test_df["date"].nunique()),
+                "avg_n_short": float(short_mask.sum() / test_df["date"].nunique()),
+                "hit_rate": float(
+                    (np.sign(y_pred) == np.sign(y_test)).mean()
+                ),
+            }
+        )
+
         start += test_days
-    
+
     print(f"[WF] Completed {len(fold_metrics)} folds")
     return pd.DataFrame(fold_metrics)
-
-
 
 
 def build_features_and_direction_target(ticker="^GSPC", period="5y", horizon=1):

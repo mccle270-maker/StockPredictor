@@ -56,6 +56,26 @@ def write_signals_json_atomic(signals: dict, path: str = "signals.json"):
         except Exception:
             pass
 
+def build_signals_from_results(results_df: pd.DataFrame, universe_text: str) -> dict:
+    """Convert portfolio backtest → simple BUY/SELL/HOLD signals for auto trader."""
+    if results_df.empty:
+        return {}
+
+    recent_sharpe = results_df["sharpe"].tail(3).mean()
+    if recent_sharpe > 1.0:
+        action = "BUY"
+    elif recent_sharpe < -0.5:
+        action = "SELL"
+    else:
+        action = "HOLD"
+
+    tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+    return {
+        t: {"asset": "stock", "action": action, "qty": 1}
+        for t in tickers
+    }
+
+
 # Make FRED_API_KEY available to prediction_model via environment variable
 if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
@@ -1021,30 +1041,22 @@ def run_app():
                     import traceback
                     st.code(traceback.format_exc())
 
-    def build_signals_from_results(results_df, universe_text):
-        """Convert backtest → signals.json for auto trader."""
-        recent_sharpe = results_df['sharpe'].tail(3).mean()
-        if recent_sharpe > 1.0: action = "BUY"
-        elif recent_sharpe < -0.5: action = "SELL"
-        else: action = "HOLD"
-        
-        tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
-        return {ticker: {"asset": "stock", "action": action, "qty": 1} for ticker in tickers}
-
     with tab_wfx:
         st.header("🚀 Portfolio Walk-Forward")
         st.markdown("**Production ML Portfolio Engine**")
-    
+
     # === CONTROLS ===
-    col1, col2 = st.columns([2,1])
+    col1, col2 = st.columns([2, 1])
     with col1:
         st.subheader("📊 Settings")
         universe_text = st.text_input("Universe", value="AAPL,NVDA,MSFT")
-        horizon = st.selectbox("Horizon", [1,3,5], format_func=lambda x: f"{x}D")
+        horizon = st.selectbox("Horizon", [1, 3, 5], format_func=lambda x: f"{x}D")
         c1, c2 = st.columns(2)
-        with c1: train_years = st.slider("Train", 1, 4, 2)
-        with c2: test_years = st.slider("Test", 0, 2, 1)
-    
+        with c1:
+            train_years = st.slider("Train", 1, 4, 2)
+        with c2:
+            test_years = st.slider("Test", 0, 2, 1)
+
     with col2:
         st.subheader("⚖️ Portfolio")
         top_long = st.slider("Long %", 0.01, 0.20, 0.10, 0.01)
@@ -1052,132 +1064,159 @@ def run_app():
         model_type = st.selectbox("Model", ["rf", "xgb", "gbrt"])
         use_vix_filter = st.checkbox("🚨 VIX Filter", value=True)
         vix_threshold = st.slider("VIX Max", 15, 35, 25) if use_vix_filter else None
-    
-    # === SP500 QUICK LOAD (NO RERUN!) ===
-    col1, col2, col3 = st.columns(3)
-    col1_1, col1_2 = st.columns(2)
-    if col1_1.button("📈 SP500 Top 10"):
-        st.session_state.quick_universe = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
-    if col1_2.button("🏆 Mag 7"):
-        st.session_state.quick_universe = "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
-    
-    # Use quick universe if set
-    if hasattr(st.session_state, 'quick_universe'):
+
+    # === QUICK UNIVERSE LOAD (NO RERUN) ===
+    q1, q2, q3 = st.columns(3)
+    with q1:
+        if st.button("📈 SP500 Top 10"):
+            st.session_state.quick_universe = (
+                "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
+            )
+    with q2:
+        if st.button("🏆 Mag 7"):
+            st.session_state.quick_universe = (
+                "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
+            )
+
+    if hasattr(st.session_state, "quick_universe"):
         universe_text = st.session_state.quick_universe
-        st.info(f"🔥 Quick load: {universe_text[:30]}...")
-    
-    # === RUN + EXPORT ===
-    col1, col2 = st.columns([3,1])
-    with col1:
+        st.info(f"🔥 Quick load: {universe_text}")
+
+    # === RUN BACKTEST ===
+    run_col, est_col = st.columns([3, 1])
+    with run_col:
         if st.button("🚀 Run Backtest", type="primary", use_container_width=True):
             tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
-            
+
             with st.spinner(f"Running {len(tickers)} tickers..."):
                 results_df = walkforward_cross_sectional(
-                    tickers=tickers, period="5y", horizon=horizon,
-                    model_type=model_type, train_years=train_years, 
-                    test_years=test_years, top_pct_long=top_long, 
+                    tickers=tickers,
+                    period="5y",
+                    horizon=horizon,
+                    model_type=model_type,
+                    train_years=train_years,
+                    test_years=test_years,
+                    top_pct_long=top_long,
                     top_pct_short=top_short,
-                    vix_filter=vix_threshold if use_vix_filter else None
+                    vix_filter=vix_threshold if use_vix_filter else None,
                 )
-            
+
             if not results_df.empty:
-                st.session_state.results = results_df  # Store locally
-                st.session_state.portfolio_tickers = tickers  # Store tickers
-                st.rerun()  # Refresh SAME tab
-    
-    # === RESULTS (only show if computed) ===
-    if 'results' in st.session_state and not st.session_state.results.empty:
+                st.session_state.results = results_df
+                st.session_state.portfolio_tickers = tickers
+                st.rerun()
+
+    with est_col:
+        n_tickers = len([t for t in universe_text.split(",") if t.strip()])
+        st.info(f"⏱️ Est: ~{n_tickers * train_years * 0.4:.0f}s")
+
+    # === RESULTS ===
+    if "results" in st.session_state and not st.session_state.results.empty:
         results_df = st.session_state.results
         st.success(f"✅ {len(results_df)} folds complete!")
-        
-        # === PRODUCTION METRICS ===
-        median_sharpe = results_df['sharpe'].median()
-        avg_return = results_df['ann_return'].mean() * 100
-        worst_dd = results_df['max_dd'].min()
-        avg_hit = results_df['hit_rate'].mean() * 100
-        recent_sharpe = results_df['sharpe'].tail(3).mean()
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            col1a, col1b = st.columns(2)
-            col1a.metric("📈 Sharpe", f"{median_sharpe:.2f}")
-            col1b.metric("⚡ Hit Rate", f"{avg_hit:.0f}%")
-        with col2:
-            col2a, col2b = st.columns(2)
-            col2a.metric("💰 Ann Return", f"{avg_return:.1f}%")
-            col2b.metric("📉 Max DD", f"{worst_dd:.1%}")
-        
-        # === LIVE SIGNAL ===
+
+        median_sharpe = results_df["sharpe"].median()
+        avg_return = results_df["ann_return"].mean() * 100
+        worst_dd = results_df["max_dd"].min()
+        avg_hit = results_df["hit_rate"].mean() * 100
+        recent_sharpe = results_df["sharpe"].tail(3).mean()
+
+        # Summary metrics
+        st.markdown("### 📊 Summary")
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Sharpe (Median)", f"{median_sharpe:.2f}")
+        with m2:
+            st.metric("Hit Rate", f"{avg_hit:.0f}%")
+        with m3:
+            st.metric("Ann Return", f"{avg_return:.1f}%")
+        with m4:
+            st.metric("Max Drawdown", f"{worst_dd:.1%}")
+
+        # Live signal
         st.markdown("---")
+        st.markdown("### 🚦 Live Signal")
         if recent_sharpe > 1.0:
             st.balloons()
-            st.success(f"🚀 **LIVE: DEPLOY** | Recent Sharpe {recent_sharpe:.2f}")
+            st.success(f"🚀 **DEPLOY** – recent Sharpe {recent_sharpe:.2f}")
         elif recent_sharpe > 0.3:
-            st.info(f"✅ **LIVE: EDGE** | Recent Sharpe {recent_sharpe:.2f}")
+            st.info(f"✅ **EDGE** – recent Sharpe {recent_sharpe:.2f}")
         else:
-            st.warning(f"⏸️ **LIVE: STANDBY** | Recent Sharpe {recent_sharpe:.2f}")
-        
-        # === TABLES + CHARTS ===
-        st.markdown("### 📋 Results")
-        st.dataframe(results_df.round(3), use_container_width=True)
-        
-        st.markdown("### 📊 Sharpe Distribution")
-        fig, ax = plt.subplots(figsize=(10,6))
-        results_df['sharpe'].hist(bins=12, ax=ax, alpha=0.7, edgecolor='black')
-        ax.axvline(median_sharpe, color='green', lw=3, ls='--', label=f'Median: {median_sharpe:.2f}')
-        ax.axvline(1.0, color='orange', ls=':', label='Target: 1.0')
-        ax.axvline(0, color='red', ls=':', label='Breakeven')
-        ax.legend(); ax.grid(True, alpha=0.3)
-        st.pyplot(fig)
-        
-        st.markdown("### 🔍 Recent Folds")
-        st.dataframe(results_df.tail().round(3), use_container_width=True)
-        
-        # === OPTIONS OVERLAY ===
-        with st.expander("📈 Options Overlay"):
-            st.info("🎯 Buy ATM calls/puts on top signals")
-            if st.button("🔥 Generate Options Trades"):
-                top_long = results_df.nlargest(3, 'sharpe')
-                st.success("**CALLS** (Top 3):")
-                for i, row in top_long.iterrows():
-                    st.write(f"• Fold {row['fold']}: Sharpe {row['sharpe']:.2f}")
-        
-        # === EXPORT + PAPER TRADING ===
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            if st.button("💾 Write signals.json", use_container_width=True):
-                # BUILD YOUR TRADER SIGNALS
-                signals = {}
-                if recent_sharpe > 1.0:
-                    action = "BUY"
-                elif recent_sharpe < -0.5:
-                    action = "SELL"
+            st.warning(f"⏸️ **STANDBY** – recent Sharpe {recent_sharpe:.2f}")
+
+        st.markdown("---")
+        left, right = st.columns([2, 1])
+
+        # LEFT: table + histogram
+        with left:
+            st.markdown("### 📋 Fold Results")
+            st.dataframe(results_df.round(3), use_container_width=True, height=320)
+
+            st.markdown("### 📊 Sharpe Distribution")
+            fig, ax = plt.subplots(figsize=(6, 4))
+            results_df["sharpe"].hist(bins=12, ax=ax, alpha=0.7, edgecolor="black")
+            ax.axvline(median_sharpe, color="green", lw=2, ls="--", label="Median")
+            ax.axvline(0, color="red", lw=1, ls=":", label="0")
+            ax.legend()
+            ax.grid(True, alpha=0.3)
+            st.pyplot(fig)
+
+        # RIGHT: options overlay + trading
+        with right:
+            # Options overlay (per ticker)
+            with st.expander("📈 Options Overlay (Per Ticker)", expanded=True):
+                st.info("Per-ticker ATM calls/puts using latest fold's long/short signals.")
+                latest_fold = int(results_df["fold"].iloc[-1])
+                fold_file = Path.cwd() / f"fold_signals_{latest_fold}.json"
+
+                if fold_file.exists():
+                    fold_signals = pd.read_json(fold_file)
+
+                    long_names = (
+                        fold_signals[fold_signals["any_long"]]
+                        .sort_values("avg_pred", ascending=False)
+                    )
+                    short_names = (
+                        fold_signals[fold_signals["any_short"]]
+                        .sort_values("avg_pred", ascending=True)
+                    )
+
+                    oc1, oc2 = st.columns(2)
+                    with oc1:
+                        st.subheader("📗 Calls (Bullish)")
+                        if long_names.empty:
+                            st.write("No long signals.")
+                        else:
+                            for _, row in long_names.head(5).iterrows():
+                                t = row["ticker"]
+                                strength = row["avg_pred"]
+                                st.write(f"• {t}: {strength:.2%} → ATM Call, 7–14 DTE")
+                    with oc2:
+                        st.subheader("📕 Puts (Bearish)")
+                        if short_names.empty:
+                            st.write("No short signals.")
+                        else:
+                            for _, row in short_names.head(5).iterrows():
+                                t = row["ticker"]
+                                strength = row["avg_pred"]
+                                st.write(f"• {t}: {strength:.2%} → ATM Put, 7–14 DTE")
                 else:
-                    action = "HOLD"
-                
-                tickers = st.session_state.portfolio_tickers
-                for ticker in tickers:
-                    signals[ticker] = {"asset": "stock", "action": action, "qty": 1}
-                
-                import json
-                from pathlib import Path
-                BASE_DIR = Path.cwd()
-                SIGNALS_PATH = BASE_DIR / "signals.json"
+                    st.warning(
+                        f"No per-ticker signal file found for fold {latest_fold}. Run backtest again."
+                    )
+
+            st.markdown("### 🤖 Trading")
+            st.write("1. Write **signals.json** from the latest results.")
+            st.write("2. Run `python auto_options_trader.py` in your terminal.")
+
+            if st.button("💾 Write signals.json", use_container_width=True):
+                signals = build_signals_from_results(results_df, universe_text)
+                SIGNALS_PATH = Path(__file__).resolve().parent / "signals.json"
                 SIGNALS_PATH.write_text(json.dumps(signals, indent=2))
                 st.success(f"✅ signals.json → {len(signals)} signals")
                 st.json(signals)
-        
-        with col2:
-            st.info("🚀 Run trader:")
-            st.code("python auto_options_trader.py")
-        
-        with col3:
+
             st.metric("📊 Latest Sharpe", f"{results_df['sharpe'].iloc[-1]:.2f}")
-    
-    with col2:
-        n_tickers = len([t for t in universe_text.split(",") if t.strip()])
-        st.info(f"⏱️ Est: ~{n_tickers*train_years*0.4:.0f}s")
 
 
 if __name__ == "__main__":
