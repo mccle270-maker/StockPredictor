@@ -63,10 +63,22 @@ from pyts.image import GramianAngularField
 import matplotlib.pyplot as plt
 
 def vol_target_position_size(signal, vol_20d, target_vol=0.15):
-    """Size positions inversely to volatility."""
-    if vol_20d == 0 or pd.isna(vol_20d): 
-        return signal
-    return signal * (target_vol / vol_20d)
+    """Vectorized: handles scalars OR pandas Series."""
+    # Handle scalar inputs
+    if not hasattr(vol_20d, '__len__'):
+        if vol_20d == 0 or pd.isna(vol_20d): 
+            return signal
+        return signal * (target_vol / vol_20d)
+    
+    # Handle Series inputs (vectorized)
+    weights = pd.Series(np.ones_like(vol_20d), index=vol_20d.index)
+    valid_mask = (vol_20d != 0) & (~pd.isna(vol_20d))
+    weights[valid_mask] = target_vol / vol_20d[valid_mask]
+    
+    if hasattr(signal, '__len__'):
+        return signal * weights
+    return signal * weights.iloc[0]
+
 
 def env_bool(name: str, default: bool = False) -> bool:
     v = os.environ.get(name)
@@ -1095,6 +1107,7 @@ def walkforward_cross_sectional(
         short_rets = -test_df[short_mask].groupby('date').apply(
         lambda x: (x['target'] * x['vol_weight']).mean()
     )
+
         
         # HANDLE EMPTY SERIES
         if long_rets.empty:
