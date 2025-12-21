@@ -63,12 +63,29 @@ from pyts.image import GramianAngularField
 import matplotlib.pyplot as plt
 
 def vol_target_position_size(signal, vol_20d, target_vol=0.15):
-    """Vectorized: handles scalars OR pandas Series."""
+    """Vectorized volatility targeting - FIXED."""
+    import numpy as np
+    
     # Handle scalar inputs
-    if not hasattr(vol_20d, '__len__'):
+    if isinstance(vol_20d, (int, float)):
         if vol_20d == 0 or pd.isna(vol_20d): 
             return signal
         return signal * (target_vol / vol_20d)
+    
+    # Vectorized Series/DataFrame (FIXED)
+    if pd.isna(vol_20d).all():
+        return pd.Series(np.ones_like(vol_20d), index=vol_20d.index) * signal
+    
+    # Safe division: replace 0/NaN with 1.0
+    safe_vol = vol_20d.copy()
+    safe_vol = safe_vol.replace([0, np.nan], 1.0)
+    weights = target_vol / safe_vol
+    
+    # Broadcast signal if scalar
+    if isinstance(signal, (int, float)):
+        return signal * weights
+    return signal * weights
+
     
     # Handle Series inputs (vectorized)
     weights = pd.Series(np.ones_like(vol_20d), index=vol_20d.index)
