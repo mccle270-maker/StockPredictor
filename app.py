@@ -35,6 +35,9 @@ try:
 except ImportError:
     sq = None
 
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent
+SIGNALS_PATH = BASE_DIR / "signals.json"
 
 BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_OUT_PATH = BASE_DIR / "signals.json"
@@ -1018,133 +1021,165 @@ def run_app():
                     import traceback
                     st.code(traceback.format_exc())
 
+    def build_signals_from_results(results_df, universe_text):
+        """Convert backtest → signals.json for auto trader."""
+        recent_sharpe = results_df['sharpe'].tail(3).mean()
+        if recent_sharpe > 1.0: action = "BUY"
+        elif recent_sharpe < -0.5: action = "SELL"
+        else: action = "HOLD"
+        
+        tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+        return {ticker: {"asset": "stock", "action": action, "qty": 1} for ticker in tickers}
+
     with tab_wfx:
         st.header("🚀 Portfolio Walk-Forward")
-        st.markdown("**Test cross-sectional alpha stability across rolling periods**")
+        st.markdown("**Production ML Portfolio Engine**")
     
-    # === CLEAN 2-COLUMN LAYOUT ===
+    # === CONTROLS ===
     col1, col2 = st.columns([2,1])
-    
     with col1:
-        st.subheader("📊 Portfolio Settings")
-        universe_text = st.text_input(
-            "Universe (comma-separated)", 
-            value="AAPL,NVDA,MSFT",
-            help="Start small (3-5 tickers) for fast testing"
-        )
-        horizon = st.selectbox("Prediction Horizon", [1,3,5], 
-                              format_func=lambda x: f"{x}-Day")
-        
+        st.subheader("📊 Settings")
+        universe_text = st.text_input("Universe", value="AAPL,NVDA,MSFT")
+        horizon = st.selectbox("Horizon", [1,3,5], format_func=lambda x: f"{x}D")
         c1, c2 = st.columns(2)
-        with c1:
-            train_years = st.slider("Train Window", 1, 4, 2)
-        with c2:
-            test_years = st.slider("Test Window", 0, 2, 1)
+        with c1: train_years = st.slider("Train", 1, 4, 2)
+        with c2: test_years = st.slider("Test", 0, 2, 1)
     
     with col2:
-        st.subheader("⚖️ Portfolio Construction")
-        top_long = st.slider("Long: Top %", 0.01, 0.15, 0.05, 0.01)
-        top_short = st.slider("Short: Bottom %", 0.10, 0.40, 0.25, 0.01)
+        st.subheader("⚖️ Portfolio")
+        top_long = st.slider("Long %", 0.01, 0.20, 0.10, 0.01)
+        top_short = st.slider("Short %", 0.20, 0.50, 0.30, 0.01)
         model_type = st.selectbox("Model", ["rf", "xgb", "gbrt"])
+        use_vix_filter = st.checkbox("🚨 VIX Filter", value=True)
+        vix_threshold = st.slider("VIX Max", 15, 35, 25) if use_vix_filter else None
     
-    # === RUN BUTTON + EST TIME ===
+    # === SP500 QUICK LOAD ===
+    col1, col2, col3 = st.columns(3)
+    if col1.button("📈 SP500 Top 10", use_container_width=True):
+        universe_text = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
+        st.rerun()
+    if col2.button("🏆 Mag 7", use_container_width=True):
+        universe_text = "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
+        st.rerun()
+    
+    # === RUN + EXPORT ===
     col1, col2 = st.columns([3,1])
     with col1:
-        if st.button("🚀 Run Cross-Sectional Backtest", type="primary", use_container_width=True):
+        if st.button("🚀 Run Backtest", type="primary", use_container_width=True):
             tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
             
-            if len(tickers) > 10:
-                st.warning("⚠️ Large universe (>10) will be slow.")
-            elif len(tickers) < 2:
-                st.warning("⚠️ Need 2+ tickers for cross-sectional ranking.")
+            with st.spinner(f"Running {len(tickers)} tickers..."):
+                results_df = walkforward_cross_sectional(
+                    tickers=tickers, period="5y", horizon=horizon,
+                    model_type=model_type, train_years=train_years, 
+                    test_years=test_years, top_pct_long=top_long, 
+                    top_pct_short=top_short,
+                    vix_filter=vix_threshold if use_vix_filter else None  # ← VIX FILTER
+                )
             
-            try:
-                with st.spinner(f"Running {len(tickers)} tickers..."):
-                    results_df = walkforward_cross_sectional(
-                        tickers=tickers,
-                        period="5y",
-                        horizon=horizon,
-                        model_type=model_type,
-                        train_years=train_years,
-                        test_years=test_years,
-                        top_pct_long=top_long,
-                        top_pct_short=top_short
-                    )
+            if not results_df.empty:
+                st.session_state.results = results_df
+                st.success(f"✅ {len(results_df)} folds complete!")
                 
-                # 🔥 FULL RESULTS DISPLAY
-                if not results_df.empty:
-                    st.success(f"✅ {len(results_df)} folds completed!")
-                    
-                    # === SUMMARY METRICS ===
-                    st.markdown("### 📊 Portfolio Performance")
-                    col1, col2, col3, col4 = st.columns(4)
-                    
-                    if 'sharpe' in results_df.columns:
-                        median_sharpe = results_df['sharpe'].median()
-                        col1.metric("📈 Median Sharpe", f"{median_sharpe:.2f}", 
-                                  delta=f"{results_df['sharpe'].mean():+.2f}" if len(results_df)>1 else None)
-                    
-                    if 'ann_return' in results_df.columns:
-                        avg_return = results_df['ann_return'].mean() * 100
-                        col2.metric("💰 Avg Ann Return", f"{avg_return:.1f}%", 
-                                  delta=f"{results_df['ann_return'].std()*100:.1f}% σ")
-                    
-                    if 'max_dd' in results_df.columns:
-                        worst_dd = results_df['max_dd'].min()
-                        col3.metric("📉 Worst Drawdown", f"{worst_dd:.1%}")
-                    
-                    if 'hit_rate' in results_df.columns:
-                        avg_hit = results_df['hit_rate'].mean() * 100
-                        col4.metric("⚡ Avg Hit Rate", f"{avg_hit:.0f}%")
-                    
-                    # === SIGNAL STATUS ===
-                    st.markdown("### 🚦 Live Signal")
-                    recent_sharpe = results_df['sharpe'].tail(3).mean() if 'sharpe' in results_df.columns else 0
-                    if recent_sharpe > 1.0:
-                        st.success(f"🚀 **DEPLOY**: Recent Sharpe {recent_sharpe:.2f} > 1.0")
-                    elif recent_sharpe > 0.3:
-                        st.info(f"✅ **MARGINAL EDGE**: Recent Sharpe {recent_sharpe:.2f}")
-                    else:
-                        st.warning(f"⏸️ **STANDBY**: Recent Sharpe {recent_sharpe:.2f}")
-                    
-                    # === DATA TABLE ===
-                    st.markdown("### 📋 Fold Results")
-                    st.dataframe(results_df.round(3), use_container_width=True)
-                    
-                    # === SHARPE DISTRIBUTION ===
-                    if len(results_df) > 1 and 'sharpe' in results_df.columns:
-                        st.markdown("### 📊 Sharpe Distribution")
-                        fig, ax = plt.subplots(figsize=(10,6))
-                        results_df['sharpe'].hist(bins=min(12, len(results_df)), ax=ax, alpha=0.7, edgecolor='black')
-                        ax.axvline(results_df['sharpe'].median(), color='green', lw=3, ls='--', 
-                                 label=f'Median: {results_df["sharpe"].median():.2f}')
-                        ax.axvline(1.0, color='orange', ls=':', alpha=0.7, label='Sharpe=1.0')
-                        ax.axvline(0, color='red', ls=':', alpha=0.7, label='Sharpe=0')
-                        ax.set_xlabel('Sharpe Ratio'); ax.set_ylabel('Fold Count')
-                        ax.legend(); ax.grid(True, alpha=0.3)
-                        st.pyplot(fig)
-                    
-                    # === RECENT FOLD TABLE ===
-                    if len(results_df) >= 5:
-                        st.markdown("### 🔍 Recent 5 Folds")
-                        st.dataframe(results_df.tail().round(3), use_container_width=True)
+                # === PRODUCTION METRICS ===
+                median_sharpe = results_df['sharpe'].median()
+                avg_return = results_df['ann_return'].mean() * 100
+                worst_dd = results_df['max_dd'].min()
+                avg_hit = results_df['hit_rate'].mean() * 100
+                recent_sharpe = results_df['sharpe'].tail(3).mean()
                 
+                col1, col2 = st.columns(2)
+                with col1:
+                    col1a, col1b = st.columns(2)
+                    col1a.metric("📈 Sharpe", f"{median_sharpe:.2f}")
+                    col1b.metric("⚡ Hit Rate", f"{avg_hit:.0f}%")
+                with col2:
+                    col2a, col2b = st.columns(2)
+                    col2a.metric("💰 Ann Return", f"{avg_return:.1f}%")
+                    col2b.metric("📉 Max DD", f"{worst_dd:.1%}")
+                
+                # === LIVE SIGNAL ===
+                st.markdown("---")
+                if recent_sharpe > 1.0:
+                    st.balloons()
+                    st.success(f"🚀 **LIVE: DEPLOY** | Recent Sharpe {recent_sharpe:.2f}")
+                elif recent_sharpe > 0.3:
+                    st.info(f"✅ **LIVE: EDGE** | Recent Sharpe {recent_sharpe:.2f}")
                 else:
-                    st.warning("❌ No folds completed. Try:")
-                    st.markdown("• **Smaller universe**: AAPL,NVDA,MSFT")
-                    st.markdown("• **Shorter windows**: Train=1-2y, Test=0.5-1y")
-                    st.markdown("• **Check browser console** for `[WF DEBUG]` logs")
+                    st.warning(f"⏸️ **LIVE: STANDBY** | Recent Sharpe {recent_sharpe:.2f}")
                 
-            except Exception as e:
-                st.error(f"❌ {str(e)}")
-                st.exception(e)
+                # === TABLES + CHARTS ===
+                st.markdown("### 📋 Results")
+                st.dataframe(results_df.round(3), use_container_width=True)
+                
+                st.markdown("### 📊 Sharpe Distribution")
+                fig, ax = plt.subplots(figsize=(10,6))
+                results_df['sharpe'].hist(bins=12, ax=ax, alpha=0.7, edgecolor='black')
+                ax.axvline(median_sharpe, color='green', lw=3, ls='--', label=f'Median: {median_sharpe:.2f}')
+                ax.axvline(1.0, color='orange', ls=':', label='Target: 1.0')
+                ax.axvline(0, color='red', ls=':', label='Breakeven')
+                ax.legend(); ax.grid(True, alpha=0.3)
+                st.pyplot(fig)
+                
+                st.markdown("### 🔍 Recent Folds")
+                st.dataframe(results_df.tail().round(3), use_container_width=True)
+    
+    # === OPTIONS OVERLAY ===
+    with st.expander("📈 Options Overlay (Top Signals)"):
+        st.info("🎯 Buy ATM calls/puts on highest conviction signals")
+        if st.button("🔥 Generate Options Trades") and 'results' in st.session_state:
+            results_df = st.session_state.results
+            st.success("**CALLS** (Top 3 Long Signals):")
+            for i, row in results_df.nlargest(3, 'sharpe').iterrows():
+                st.write(f"• Fold {row['fold']}: Sharpe {row['sharpe']:.2f} → **AAPL Call**")
+            st.error("**PUTS** (Top 3 Short Signals):")
+            for i, row in results_df.nsmallest(3, 'sharpe').iterrows():
+                st.write(f"• Fold {row['fold']}: Sharpe {row['sharpe']:.2f} → **NVDA Put**")
+    
+    # === EXPORT + PAPER TRADING (UPGRADED FOR YOUR AUTO TRADER) ===
+if 'results' in st.session_state and not st.session_state.results.empty:
+    results_df = st.session_state.results
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("💾 Write signals.json", use_container_width=True):
+            # BUILD SIGNALS COMPATIBLE WITH YOUR AUTO TRADER
+            signals = {}
+            recent_sharpe = results_df['sharpe'].tail(3).mean()
+            
+            # Simple directional signal from recent performance
+            if recent_sharpe > 1.0:
+                action = "BUY"
+            elif recent_sharpe < -0.5:
+                action = "SELL"
+            else:
+                action = "HOLD"
+            
+            # Apply to universe tickers
+            tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+            for ticker in tickers:
+                signals[ticker] = {
+                    "asset": "stock",
+                    "action": action,
+                    "qty": 1
+                }
+            
+            # Write to YOUR trader's expected path
+            import json
+            from pathlib import Path
+            BASE_DIR = Path(__file__).resolve().parent
+            SIGNALS_PATH = BASE_DIR / "signals.json"
+            SIGNALS_PATH.write_text(json.dumps(signals, indent=2))
+            
+            st.success(f"✅ signals.json written! ({len(signals)} signals)")
+            st.json(signals)  # Show what was written
     
     with col2:
-        n_tickers = len([t for t in universe_text.split(",") if t.strip()])
-        est_time = n_tickers * train_years * 0.4
-        st.info(f"⏱️ **Est. time**: ~{est_time:.0f}s")
-        st.caption(f"Tickers: {n_tickers} | Train: {train_years}y | Test: {test_years}y")
-
+        st.info("🚀 Run your trader:")
+        st.code("python auto_options_trader.py", language="bash")
+    
+    with col3:
+        st.metric("📊 Latest Sharpe", f"{results_df['sharpe'].iloc[-1]:.2f}")
 
 if __name__ == "__main__":
     run_app()

@@ -62,6 +62,11 @@ from pyts.image import GramianAngularField
 
 import matplotlib.pyplot as plt
 
+def vol_target_position_size(signal, vol_20d, target_vol=0.15):
+    """Size positions inversely to volatility."""
+    if vol_20d == 0 or pd.isna(vol_20d): 
+        return signal
+    return signal * (target_vol / vol_20d)
 
 def env_bool(name: str, default: bool = False) -> bool:
     v = os.environ.get(name)
@@ -998,7 +1003,7 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
 def walkforward_cross_sectional(
     tickers, period="5y", horizon=1, model_type="rf",
     train_years=1, test_years=0.25, 
-    top_pct_long=0.15, top_pct_short=0.35  # EVEN MORE LENIENT
+    top_pct_long=0.15, top_pct_short=0.35, vix_filter=None  # EVEN MORE LENIENT
 ) -> pd.DataFrame:
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
@@ -1013,6 +1018,11 @@ def walkforward_cross_sectional(
     df = df_reset.copy()
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
+
+    if vix_filter and 'vix' in df.columns:
+        orig_rows = len(df)
+        df = df[df['vix'] < vix_filter]
+        print(f"[VIX] Kept {len(df)}/{orig_rows} rows (VIX<{vix_filter})")
     
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
@@ -1078,8 +1088,13 @@ def walkforward_cross_sectional(
         if n_short == 0:
             short_mask = test_df['rank_pct'] >= 0.50  # Bottom half
             
-        long_rets = test_df[long_mask].groupby('date')['target'].mean()
-        short_rets = -test_df[short_mask].groupby('date')['target'].mean()
+        test_df['vol_weight'] = vol_target_position_size(test_df['pred'], test_df['vol_20d'])
+        long_rets = test_df[long_mask].groupby('date').apply(
+        lambda x: (x['target'] * x['vol_weight']).mean()
+    )
+        short_rets = -test_df[short_mask].groupby('date').apply(
+        lambda x: (x['target'] * x['vol_weight']).mean()
+    )
         
         # HANDLE EMPTY SERIES
         if long_rets.empty:

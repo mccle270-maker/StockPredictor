@@ -3,7 +3,7 @@
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.00345095354846673,
+    "pred_next_ret": 0.0034509535484667287,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
