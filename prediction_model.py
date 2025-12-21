@@ -1117,13 +1117,27 @@ def walkforward_cross_sectional(
         if n_short == 0:
             short_mask = test_df['rank_pct'] >= 0.50  # Bottom half
             
-        test_df['vol_weight'] = vol_target_position_size(test_df['pred'], test_df['vol_20d'])
+        # VOL TARGETED PORTFOLIO (FINAL)
+        test_df['vol_weight'] = vol_target_position_size(1.0, test_df['vol_20d'], target_vol=0.15)
+
+        long_mask = test_df['rank_pct'] <= top_pct_long
+        short_mask = test_df['rank_pct'] >= (1 - top_pct_short)
+
+        print(f"[WF] Long: {long_mask.sum()}, Short: {short_mask.sum()} (vol-targeted)")
+
+        # VOL-WEIGHTED RETURNS
         long_rets = test_df[long_mask].groupby('date').apply(
-        lambda x: (x['target'] * x['vol_weight']).mean()
-    )
+            lambda x: (x['target'] * x['vol_weight']).mean()
+        )
         short_rets = -test_df[short_mask].groupby('date').apply(
-        lambda x: (x['target'] * x['vol_weight']).mean()
-    )
+            lambda x: (x['target'] * x['vol_weight']).mean()
+        )
+
+        port_rets = (long_rets + short_rets) / 2
+        port_rets = port_rets.dropna()
+
+        print(f"[WF] Portfolio: {len(port_rets)} days (15% target vol)")
+
 
         
         # HANDLE EMPTY SERIES
