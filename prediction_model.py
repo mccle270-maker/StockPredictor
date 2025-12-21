@@ -1045,6 +1045,12 @@ def walkforward_cross_sectional(
     # Convert to datetime + sort
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
+
+    print(f"[WF DEBUG] TOTAL ROWS: {len(df)}")
+    print(f"[WF DEBUG] Train days needed: {train_days}, Test days: {test_days}")
+    print(f"[WF DEBUG] Dates per ticker: {df.groupby('ticker').size()}")
+    print(f"[WF DEBUG] Unique dates: {df['date'].nunique()}")
+    print(f"[WF DEBUG] Rows per day avg: {len(df)/df['date'].nunique():.0f}")
     
     print(f"[WF] Final df shape: {df.shape}, date range: {df['date'].min()} to {df['date'].max()}")
     
@@ -1067,7 +1073,8 @@ def walkforward_cross_sectional(
         train_df = df.iloc[train_start:train_end]
         test_df = df.iloc[test_start:test_end]
         
-        if len(train_df) < 100 or len(test_df) < 20:
+        if len(train_df) < 30 or len(test_df) < 5:
+            print(f"[WF DEBUG] Fold {len(fold_metrics)} SKIPPED: train={len(train_df)}, test={len(test_df)}")
             start += test_days
             continue
             
