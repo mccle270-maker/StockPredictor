@@ -928,7 +928,9 @@ def build_features_and_target(
             print("df rows:", len(df), "range:", df.index.min(), "-", df.index.max())
 
             if df.empty or len(df) < min_rows:
-                raise ValueError(f"Only {len(df)} usable rows for {ticker} with period={per}")
+                print(f"[build_features_and_target] WARNING: only {len(df)} usable rows for {ticker} with period={per}")
+                last_error = ValueError(f"Only {len(df)} usable rows for {ticker} with period={per}")
+                continue
 
             # -------- NEW: compute GAF-CNN prob on SAME usable rows --------
             prob_up_gaf = None
@@ -974,13 +976,7 @@ def build_panel_features_and_target(
     dfs = []
     for tk in tickers:
         try:
-            X, y, _, _, _, _, dates = build_features_and_target(
-                ticker=tk,
-                period=period,
-                horizon=horizon,
-                usevolscaledtarget=usevolscaledtarget,
-                rungaf=False,
-            )
+            X, y, _, _, _, _, dates = build_features_and_target(...)
         except Exception as e:
             print(f"build_panel_features_and_target: skipping {tk} error={e}")
             continue
