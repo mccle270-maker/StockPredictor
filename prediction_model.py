@@ -1169,8 +1169,7 @@ def walkforward_cross_sectional(
             .reset_index()
         )
         per_ticker["fold"] = fold_idx
-        per_ticker.to_json(f"fold_signals_{fold_idx}.json", orient="records")
-
+        
         # FOLD METRICS
         fold_metrics.append(
             {
