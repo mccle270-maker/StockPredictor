@@ -1010,7 +1010,14 @@ def walkforward_cross_sectional(
         raise ValueError(f"Panel too small: {len(df)} rows")
     
     # FIXED INDEXING: MultiIndex → flat DataFrame
-    df = df.reset_index().rename(columns={'index': 'date'})
+    if isinstance(df.index, pd.MultiIndex):
+        df = df.reset_index()
+        date_col = df.index.names[0] if df.index.names[0] else 'date'
+    else:
+        df = df.reset_index()
+        date_col = 'index'  # default name from reset_index
+
+    df = df.rename(columns={date_col: 'date'})
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values(['date', 'ticker']).reset_index(drop=True)
     
