@@ -1,9 +1,88 @@
 {
   "AAPL": {
     "asset": "stock",
+    "action": "BUY",
+    "qty": 1,
+    "pred_next_ret": 0.006010712590068579,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "MSFT": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.018327821046113968,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "JPM": {
+    "asset": "stock",
+    "action": "BUY",
+    "qty": 1,
+    "pred_next_ret": 0.00771712651476264,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "CRM": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.009006106294691563,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "AMZN": {
+    "asset": "stock",
+    "action": "BUY",
+    "qty": 1,
+    "pred_next_ret": 0.01694156788289547,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "BAC": {
+    "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.0033729295867327537,
+    "pred_next_ret": -0.003436165861785412,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "PLTR": {
+    "asset": "option",
+    "strategy": "BULL_CALL_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "\ud83d\udcc8 BULLISH: Buy Calls or Bull Call Spread",
+    "pred_next_ret": 0.07216271013021469,
+    "last_close": 183.57000732421875,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -21,8 +100,89 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "\ud83d\udcc8 BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.02337978743543563,
+    "pred_next_ret": 0.05309464409947395,
     "last_close": 175.02000427246094,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "NET": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "\ud83d\udd3b BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.050099097192287445,
+    "last_close": 202.44000244140625,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "AMD": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.015853168442845345,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "TSLA": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "\ud83d\udcc9 BEARISH: Buy Puts (low protection in market)",
+    "pred_next_ret": -0.029985832050442696,
+    "last_close": 458.9599914550781,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "COIN": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "\u2696\ufe0f NEUTRAL: Sell Iron Condor or Straddle (high IV)",
+    "pred_next_ret": -0.009058015421032906,
+    "last_close": 267.4599914550781,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "IWM": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.01988936960697174,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,

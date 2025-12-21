@@ -19,7 +19,9 @@ from prediction_model import (
     walk_forward_backtest,
     analyze_feature_significance,
     make_gaf_image_from_returns,
+    walkforward_cross_sectional,
 )
+
 from stock_screener import screen_stocks
 from data_fetch import get_history_cached, get_history_intraday_cached, get_option_snapshot_features, get_news_for_ticker, get_atm_greeks
 from yfinance.exceptions import YFRateLimitError
@@ -206,8 +208,8 @@ def run_app():
     st.session_state.setdefault("last_trader_stderr", "")
     st.session_state.setdefault("last_trader_rc", None)
 
-    tab_pred, tab_acc, tab_backtest, tab_comp, tab_wf = st.tabs([
-        "📈 Predictions & Options", "✅ Accuracy", "📊 Backtest", "🔬 Comprehensive Test", "🚀 Walk-Forward",
+    tab_pred, tab_acc, tab_backtest, tab_comp, tab_wf, tab_wfx = st.tabs([
+        "📈 Predictions & Options", "✅ Accuracy", "📊 Backtest", "🔬 Comprehensive Test", "🚀 Walk-Forward", "Portfolio WF",
     ])
 
     # ===================== SIDEBAR (clean) =====================
@@ -1014,6 +1016,110 @@ def run_app():
                     st.error(f"Error: {e}")
                     import traceback
                     st.code(traceback.format_exc())
+
+    with tab_wfx:
+        st.header("Portfolio Walk-Forward (Cross-Sectional)")
+        st.caption("Build a daily portfolio across multiple tickers and test stability across folds.")
+
+        universe_text = st.text_input(
+            "Universe tickers (comma separated)",
+            value="AAPL, NVDA, MSFT, AMZN, META",
+            key="wfx_universe",
+        )
+        universe = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+
+        wfx_horizon = st.selectbox(
+            "Horizon (days ahead)",
+            [1, 2, 3, 4, 5],
+            index=2,
+            key="wfx_horizon",
+        )
+
+        wfx_model = st.selectbox(
+            "Model",
+            ["rf", "xgb"],
+            index=0,
+            key="wfx_model",
+        )
+
+        wfx_train_years = st.selectbox(
+            "Train window (years)",
+            [2, 3, 4, 5],
+            index=1,
+            key="wfx_train_years",
+        )
+        wfx_test_years = st.selectbox(
+            "Test window (years)",
+            [1, 2],
+            index=0,
+            key="wfx_test_years",
+        )
+
+        col1, col2 = st.columns(2)
+        with col1:
+            wfx_top_pct = st.slider(
+                "Top percentile long",
+                min_value=0.05,
+                max_value=0.3,
+                value=0.1,
+                step=0.05,
+            )
+        with col2:
+            use_longshort = st.checkbox("Use long-short (also short bottom percentile)", value=False)
+            wfx_bottom_pct = (
+                st.slider(
+                    "Bottom percentile short",
+                    min_value=0.05,
+                    max_value=0.3,
+                    value=0.1,
+                    step=0.05,
+                )
+                if use_longshort
+                else None
+            )
+
+        if st.button("Run Portfolio Walk-Forward", key="run_wfx"):
+            if not universe:
+                st.error("Please enter at least one ticker in the universe.")
+                st.stop()
+            with st.spinner("Running portfolio walk-forward..."):
+                try:
+                    folds = walkforward_cross_sectional(
+                        tickers=universe,
+                        period="5y",
+                        horizon=int(wfx_horizon),
+                        modeltype=wfx_model,
+                        trainyears=int(wfx_train_years),
+                        testyears=int(wfx_test_years),
+                        top_pct=float(wfx_top_pct),
+                        bottom_pct=float(wfx_bottom_pct) if use_longshort else None,
+                    )
+                    if not folds:
+                        st.warning("No folds produced; not enough data or settings too strict.")
+                        st.stop()
+
+                    sharpes = [f.get("sharpe") for f in folds if f.get("sharpe") is not None]
+                    avg_sh = np.mean(sharpes) if sharpes else None
+                    med_sh = np.median(sharpes) if sharpes else None
+                    worst_sh = np.min(sharpes) if sharpes else None
+                    pos_pct = np.mean([s > 1.0 for s in sharpes]) if sharpes else None
+
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Avg Sharpe", "NA" if avg_sh is None else f"{avg_sh:.2f}")
+                    c2.metric("Median Sharpe", "NA" if med_sh is None else f"{med_sh:.2f}")
+                    c3.metric("Worst Sharpe", "NA" if worst_sh is None else f"{worst_sh:.2f}")
+                    c4.metric(
+                        "% folds Sharpe > 1",
+                        "NA" if pos_pct is None else f"{100.0 * pos_pct:.1f}",
+                    )
+
+                    df_folds = pd.DataFrame(folds)
+                    st.subheader("Fold metrics")
+                    st.dataframe(df_folds, use_container_width=True)
+
+                except Exception as e:
+                    st.error(f"Error running portfolio walk-forward: {e}")
+
 
 if __name__ == "__main__":
     run_app()

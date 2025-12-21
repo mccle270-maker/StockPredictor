@@ -238,6 +238,60 @@ def sharpe_from_returns(r: pd.Series, periods_per_year: int = 252) -> float | No
         return None
     return float(r.mean() / r.std(ddof=1) * np.sqrt(periods_per_year))
 
+def build_cross_sectional_portfolio(
+    dates,
+    tickers,
+    preds,
+    top_pct: float = 0.1,
+    bottom_pct: float | None = None,
+) -> pd.DataFrame:
+    """
+    Build daily cross-sectional portfolio weights from predictions.
+    Returns DataFrame indexed by date, columns=tickers, entries=weights.
+    """
+    df = pd.DataFrame(
+        {"date": pd.DatetimeIndex(dates), "ticker": tickers, "pred": preds}
+    ).dropna(subset=["date", "ticker", "pred"])
+    df = df.sort_values(["date", "pred"])
+
+    weights = []
+
+    for d, grp in df.groupby("date"):
+        n = len(grp)
+        if n == 0:
+            continue
+        k_top = max(1, int(n * top_pct))
+
+        if bottom_pct:
+            k_bot = max(1, int(n * bottom_pct))
+            long = grp.tail(k_top)
+            short = grp.head(k_bot)
+            w = (
+                pd.concat(
+                    [
+                        pd.Series(1.0 / k_top, index=long["ticker"]),
+                        pd.Series(-1.0 / k_bot, index=short["ticker"]),
+                    ]
+                )
+                .groupby(level=0)
+                .sum()
+            )
+        else:
+            long = grp.tail(k_top)
+            w = pd.Series(1.0 / k_top, index=long["ticker"])
+
+        w.name = d
+        weights.append(w)
+
+    if not weights:
+        raise ValueError("No portfolio weights generated.")
+
+    W = pd.DataFrame(weights).fillna(0.0)
+    W.index = pd.DatetimeIndex(W.index)
+    W.index.name = "date"
+    return W
+
+
 def max_drawdown_from_returns(r: pd.Series) -> float | None:
     r = r.dropna()
     if len(r) < 2:
@@ -906,6 +960,49 @@ def build_features_and_target(
 
     raise ValueError(f"No usable history for {ticker} after trying periods={periods_to_try}. Last error={last_error}")
 
+def build_panel_features_and_target(
+    tickers,
+    period: str = "5y",
+    horizon: int = 3,
+    usevolscaledtarget: bool = False,
+) -> pd.DataFrame:
+    """
+    Build a cross-sectional panel of features and targets for multiple tickers.
+    Returns a DataFrame indexed by date with columns:
+    all FEATURECOLUMNS + MACROCOLUMNS + ["target", "ticker"].
+    """
+    dfs = []
+    for tk in tickers:
+        try:
+            X, y, _, _, _, _, dates = build_features_and_target(
+                ticker=tk,
+                period=period,
+                horizon=horizon,
+                usevolscaledtarget=usevolscaledtarget,
+                rungaf=False,
+            )
+        except Exception as e:
+            print(f"build_panel_features_and_target: skipping {tk} error={e}")
+            continue
+
+        if X is None or y is None or dates is None:
+            continue
+
+        featcols = FEATURE_COLUMNS + MACRO_COLUMNS
+        if X.shape[1] != len(featcols):
+            print(f"{tk}: X.shape[1]={X.shape[1]} != len(featcols)={len(featcols)}")
+            continue
+
+        df = pd.DataFrame(X, index=pd.DatetimeIndex(dates), columns=featcols)
+        df["target"] = y
+        df["ticker"] = tk
+        dfs.append(df)
+
+    if not dfs:
+        raise ValueError("No usable panel data for any ticker.")
+
+    panel = pd.concat(dfs).sort_index()
+    return panel
 
 
 def build_features_and_direction_target(ticker="^GSPC", period="5y", horizon=1):
@@ -1648,6 +1745,117 @@ def walk_forward_backtest(
         start += step_days
 
     return fold_metrics
+
+def walkforward_cross_sectional(
+    tickers,
+    period: str = "5y",
+    horizon: int = 3,
+    modeltype: str = "rf",
+    trainyears: int = 3,
+    testyears: int = 1,
+    top_pct: float = 0.1,
+    bottom_pct: float | None = None,
+) -> list[dict]:
+    """
+    Walk-forward validation on a cross-sectional portfolio built from model predictions.
+    Returns list of dicts with per-fold metrics.
+    """
+    panel = build_panel_features_and_target(
+        tickers=tickers,
+        period=period,
+        horizon=horizon,
+        usevolscaledtarget=False,
+    )
+
+    featcols = FEATURECOLUMNS + MACROCOLUMNS
+    df = panel.dropna(subset=featcols + ["target"]).copy()
+    df = df.sort_index()
+
+    if df.empty:
+        raise ValueError("walkforward_cross_sectional: no usable rows after dropna.")
+
+    # convert to deterministic row index for simple slicing
+    df = df.reset_index().rename(columns={"index": "date"})
+    df["date"] = pd.to_datetime(df["date"])
+    df = df.sort_values("date").reset_index(drop=True)
+
+    traindays = 252 * trainyears
+    testdays = 252 * testyears
+
+    n = len(df)
+    foldmetrics = []
+    start = 0
+
+    while True:
+        train_start = start
+        train_end = train_start + traindays
+        test_start = train_end
+        test_end = test_start + testdays
+
+        if test_end >= n:
+            break
+
+        traindf = df.iloc[train_start:train_end]
+        testdf = df.iloc[test_start:test_end]
+
+        if len(traindf) < 500 or len(testdf) < 100:
+            start += testdays
+            continue
+
+        Xtrain = traindf[featcols].values
+        ytrain = traindf["target"].values
+        Xtest = testdf[featcols].values
+        ytest = testdf["target"].values
+
+        model = makemodel(modeltype, randomstate=42, task="reg")
+        model.fit(Xtrain, ytrain)
+        ypred = model.predict(Xtest)
+
+        dates = pd.DatetimeIndex(testdf["date"].values)
+        tickers_test = testdf["ticker"].values
+
+        W = build_cross_sectional_portfolio(
+            dates=dates,
+            tickers=tickers_test,
+            preds=ypred,
+            top_pct=top_pct,
+            bottom_pct=bottom_pct,
+        )
+
+        # build matrix of realized future returns aligned to dates,tickers
+        mt = pd.MultiIndex.from_arrays(
+            [dates, tickers_test], names=["date", "ticker"]
+        )
+        rets_series = pd.Series(ytest, index=mt)
+        rets_df = (
+            rets_series.unstack("ticker")
+            .reindex(W.index)
+            .reindex(columns=W.columns)
+            .fillna(0.0)
+        )
+
+        port_rets = (W * rets_df).sum(axis=1)
+        sharpe = sharpefromreturns(port_rets)
+        hitrate = float(
+            np.mean(np.sign(ypred) * np.sign(ytest) > 0)
+        ) if len(ypred) else None
+
+        foldmetrics.append(
+            {
+                "train_start": traindf["date"].iloc[0],
+                "train_end": traindf["date"].iloc[-1],
+                "test_start": testdf["date"].iloc[0],
+                "test_end": testdf["date"].iloc[-1],
+                "sharpe": float(sharpe) if sharpe is not None else None,
+                "hitrate": hitrate,
+                "testdays": int(len(port_rets)),
+                "numtrades": int((W.abs() > 0).sum().sum()),
+            }
+        )
+
+        start += testdays
+
+    return foldmetrics
 
 
 def backtest_compare_one_ticker(ticker="AAPL", period="10y", test_years=1, threshold=0.002, horizon=1, auto_optimize=True):
