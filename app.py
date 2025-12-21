@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+import matplotlib.pyplot as plt
 try:
     from sklearn.linear_model import ElasticNetCV
 except Exception:
@@ -1018,107 +1019,64 @@ def run_app():
                     st.code(traceback.format_exc())
 
     with tab_wfx:
-        st.header("Portfolio Walk-Forward (Cross-Sectional)")
-        st.caption("Build a daily portfolio across multiple tickers and test stability across folds.")
-
-        universe_text = st.text_input(
-            "Universe tickers (comma separated)",
-            value="AAPL, NVDA, MSFT, AMZN, META",
-            key="wfx_universe",
-        )
-        universe = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
-
-        wfx_horizon = st.selectbox(
-            "Horizon (days ahead)",
-            [1, 2, 3, 4, 5],
-            index=2,
-            key="wfx_horizon",
-        )
-
-        wfx_model = st.selectbox(
-            "Model",
-            ["rf", "xgb"],
-            index=0,
-            key="wfx_model",
-        )
-
-        wfx_train_years = st.selectbox(
-            "Train window (years)",
-            [2, 3, 4, 5],
-            index=1,
-            key="wfx_train_years",
-        )
-        wfx_test_years = st.selectbox(
-            "Test window (years)",
-            [1, 2],
-            index=0,
-            key="wfx_test_years",
-        )
-
-        col1, col2 = st.columns(2)
-        with col1:
-            wfx_top_pct = st.slider(
-                "Top percentile long",
-                min_value=0.05,
-                max_value=0.3,
-                value=0.1,
-                step=0.05,
-            )
-        with col2:
-            use_longshort = st.checkbox("Use long-short (also short bottom percentile)", value=False)
-            wfx_bottom_pct = (
-                st.slider(
-                    "Bottom percentile short",
-                    min_value=0.05,
-                    max_value=0.3,
-                    value=0.1,
-                    step=0.05,
+        st.header("🚀 Portfolio Walk-Forward (Cross-Sectional)")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        universe_text = st.text_input("Universe tickers (comma separated)", 
+                                    value="AAPL,NVDA,MSFT,GOOGL,TSLA")
+        horizon = st.selectbox("Horizon (days ahead)", [1,3,5], index=1)
+        model_type = st.selectbox("Model", ["rf", "xgb", "gbrt"])
+        train_years = st.slider("Train window (years)", 1, 5, 3)
+        test_years = st.slider("Test window (years)", 0.5, 2, 1)
+    
+    with col2:
+        top_long = st.slider("Top percentile long", 0.01, 0.20, 0.05, 0.01)
+        top_short = st.slider("Top percentile short", 0.10, 0.50, 0.30, 0.01)
+    
+    if st.button("Run Portfolio Walk-Forward", type="primary"):
+        tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+        
+        try:
+            with st.spinner("Running cross-sectional WF..."):
+                results_df = walkforward_cross_sectional(
+                    tickers=tickers,
+                    horizon=horizon,
+                    model_type=model_type,
+                    train_years=train_years,
+                    test_years=test_years,
+                    top_pct_long=top_long,
+                    top_pct_short=top_short
                 )
-                if use_longshort
-                else None
-            )
-
-        if st.button("Run Portfolio Walk-Forward", key="run_wfx"):
-            if not universe:
-                st.error("Please enter at least one ticker in the universe.")
-                st.stop()
-            with st.spinner("Running portfolio walk-forward..."):
-                try:
-                    folds = walkforward_cross_sectional(
-                        tickers=universe,
-                        period="5y",
-                        horizon=int(wfx_horizon),
-                        modeltype=wfx_model,
-                        trainyears=int(wfx_train_years),
-                        testyears=int(wfx_test_years),
-                        top_pct=float(wfx_top_pct),
-                        bottom_pct=float(wfx_bottom_pct) if use_longshort else None,
-                    )
-                    if not folds:
-                        st.warning("No folds produced; not enough data or settings too strict.")
-                        st.stop()
-
-                    sharpes = [f.get("sharpe") for f in folds if f.get("sharpe") is not None]
-                    avg_sh = np.mean(sharpes) if sharpes else None
-                    med_sh = np.median(sharpes) if sharpes else None
-                    worst_sh = np.min(sharpes) if sharpes else None
-                    pos_pct = np.mean([s > 1.0 for s in sharpes]) if sharpes else None
-
-                    c1, c2, c3, c4 = st.columns(4)
-                    c1.metric("Avg Sharpe", "NA" if avg_sh is None else f"{avg_sh:.2f}")
-                    c2.metric("Median Sharpe", "NA" if med_sh is None else f"{med_sh:.2f}")
-                    c3.metric("Worst Sharpe", "NA" if worst_sh is None else f"{worst_sh:.2f}")
-                    c4.metric(
-                        "% folds Sharpe > 1",
-                        "NA" if pos_pct is None else f"{100.0 * pos_pct:.1f}",
-                    )
-
-                    df_folds = pd.DataFrame(folds)
-                    st.subheader("Fold metrics")
-                    st.dataframe(df_folds, use_container_width=True)
-
-                except Exception as e:
-                    st.error(f"Error running portfolio walk-forward: {e}")
+            
+            if not results_df.empty:
+                st.success(f"✅ {len(results_df)} folds completed")
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Median Sharpe", f"{results_df['sharpe'].median():.3f}")
+                with col2:
+                    st.metric("Mean Ann Return", f"{results_df['ann_return'].mean()*100:.1f}%")
+                with col3:
+                    st.metric("Worst MDD", f"{results_df['max_dd'].min():.1%}")
+                
+                st.dataframe(results_df.round(3), use_container_width=True)
+                
+                # Sharpe distribution
+                fig, ax = plt.subplots()
+                results_df['sharpe'].hist(bins=10, ax=ax, alpha=0.7)
+                ax.axvline(results_df['sharpe'].median(), color='red', linestyle='--', label='Median')
+                ax.set_xlabel('Sharpe Ratio')
+                ax.set_ylabel('Frequency')
+                ax.legend()
+                st.pyplot(fig)
+                
+            else:
+                st.warning("No folds completed - check data availability")
+                
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            st.exception(e)
 
 
 if __name__ == "__main__":
