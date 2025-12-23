@@ -17,6 +17,10 @@ try:
 except Exception:
     ElasticNetCV = None
 
+from yfinance.exceptions import YFRateLimitError
+from scipy.stats import norm
+
+# ======= Core model entrypoints (DO NOT RENAME) =======
 from prediction_model import (
     predict_next_for_ticker,
     track_predictions,
@@ -28,6 +32,7 @@ from prediction_model import (
     walkforward_cross_sectional,
 )
 
+# ======= Data / options helpers (existing) =======
 from stock_screener import screen_stocks
 from data_fetch import (
     get_history_cached,
@@ -36,16 +41,13 @@ from data_fetch import (
     get_news_for_ticker,
     get_atm_greeks,
 )
-from yfinance.exceptions import YFRateLimitError
 from monte_carlo_pricer import option_mc_ev
-from scipy.stats import norm
 from option_pricing import OptionSpec, HestonParams, PricingModel, price_option
 
 try:
     import squarequant as sq
 except ImportError:
     sq = None
-
 
 BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_OUT_PATH = BASE_DIR / "signals.json"
@@ -57,6 +59,9 @@ if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
 
 
+# ---------------------------
+# Small utilities / contracts
+# ---------------------------
 def write_signals_json_atomic(signals: dict, path: str):
     fd, tmp_path = tempfile.mkstemp(prefix="signals_", suffix=".json")
     try:
@@ -71,29 +76,19 @@ def write_signals_json_atomic(signals: dict, path: str):
             pass
 
 
-def build_signals_from_results(results_df: pd.DataFrame, universe_text: str) -> dict:
-    """Convert portfolio backtest → simple BUY/SELL/HOLD signals for auto trader."""
-    if results_df is None or results_df.empty:
-        return {}
-
-    recent_sharpe = results_df["sharpe"].tail(3).mean()
-    if recent_sharpe > 1.0:
-        action = "BUY"
-    elif recent_sharpe < -0.5:
-        action = "SELL"
-    else:
-        action = "HOLD"
-
-    tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
-    return {t: {"asset": "stock", "action": action, "qty": 1} for t in tickers}
-
-
 def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     params_by_ticker = {
         "AAPL": HestonParams(v0=0.04, theta=0.04, kappa=1.5, sigma=0.3, rho=-0.6),
         "NVDA": HestonParams(v0=0.06, theta=0.05, kappa=1.2, sigma=0.5, rho=-0.7),
     }
     return params_by_ticker.get(ticker.upper())
+
+
+def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per_year: int = 252):
+    daily_excess = daily_returns.dropna() - risk_free
+    if len(daily_excess) < 2 or daily_excess.std() == 0:
+        return None
+    return (daily_excess.mean() / daily_excess.std()) * np.sqrt(periods_per_year)
 
 
 def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: float = 0.0):
@@ -111,13 +106,6 @@ def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: fl
     return float(norm.cdf(z_deflated))
 
 
-def compute_sharpe(daily_returns: pd.Series, risk_free: float = 0.0, periods_per_year: int = 252):
-    daily_excess = daily_returns - risk_free
-    if len(daily_excess) < 2 or daily_excess.std() == 0:
-        return None
-    return (daily_excess.mean() / daily_excess.std()) * np.sqrt(periods_per_year)
-
-
 @dataclass
 class ExecutionModel:
     delay_days: int = 1
@@ -128,7 +116,7 @@ class ExecutionModel:
 
 def apply_latency_delay(df: pd.DataFrame, delay_days: int, pred_col: str = "predicted_return") -> pd.DataFrame:
     out = df.copy()
-    if delay_days and delay_days > 0:
+    if delay_days and delay_days > 0 and pred_col in out.columns:
         out[pred_col] = out[pred_col].shift(delay_days)
     return out
 
@@ -139,9 +127,9 @@ def apply_costs_on_trades(
     actual_ret_col: str = "actual_return",
     pos_col: str = "position",
 ) -> pd.Series:
-    pos = strat_df[pos_col].fillna(0.0)
+    pos = strat_df.get(pos_col, pd.Series(index=strat_df.index, data=0.0)).fillna(0.0)
     pos_change = pos.diff().abs().fillna(0.0)
-    base = strat_df[actual_ret_col].fillna(0.0) * pos
+    base = strat_df.get(actual_ret_col, pd.Series(index=strat_df.index, data=0.0)).fillna(0.0) * pos
     per_trade_cost = (exec_model.half_spread_bps + exec_model.slippage_bps + exec_model.fee_bps) / 10000.0
     costs = per_trade_cost * pos_change
     return base - costs
@@ -185,23 +173,24 @@ def classify_alignment(pred_ret, put_call_oi_ratio):
 
 
 def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
-    pred_pct = pred_ret * 100
-    threshold_multiplier = {1: 1.0, 2: 1.4, 3: 1.7, 4: 2.0, 5: 2.3}.get(horizon, 1.0)
+    pred_pct = float(pred_ret or 0.0) * 100.0
+    threshold_multiplier = {1: 1.0, 2: 1.4, 3: 1.7, 4: 2.0, 5: 2.3}.get(int(horizon), 1.0)
     adjusted_threshold = 1.0 * threshold_multiplier
 
     if abs(pred_pct) > adjusted_threshold:
         if pred_pct > 0:
             if put_call_ratio and put_call_ratio > 1.2:
-                return "🚀 BULLISH: Buy Calls (high put OI suggests potential short squeeze)", "bullish"
-            return "📈 BULLISH: Buy Calls or Bull Call Spread", "bullish"
-        if put_call_ratio and put_call_ratio < 0.8:
-            return "📉 BEARISH: Buy Puts (low protection in market)", "bearish"
-        return "🔻 BEARISH: Buy Puts or Bear Put Spread", "bearish"
+                return "BULLISH: Buy Calls (high put OI suggests potential squeeze)", "bullish"
+            return "BULLISH: Buy Calls or Bull Call Spread", "bullish"
+        else:
+            if put_call_ratio and put_call_ratio < 0.8:
+                return "BEARISH: Buy Puts (low protection)", "bearish"
+            return "BEARISH: Buy Puts or Bear Put Spread", "bearish"
 
-    if abs(pred_pct) < (0.5 * threshold_multiplier) and atm_iv and atm_iv > 0.35:
-        return "⚖️ NEUTRAL: Sell Iron Condor or Straddle (high IV)", "neutral"
+    if abs(pred_pct) < (0.5 * threshold_multiplier) and atm_iv and float(atm_iv) > 0.35:
+        return "NEUTRAL: Sell Iron Condor or Straddle (high IV)", "neutral"
 
-    return "⏸️ NEUTRAL: Wait for clearer signal or diagonal spread", "neutral"
+    return "NEUTRAL: Wait / no-trade", "neutral"
 
 
 def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | None:
@@ -210,13 +199,9 @@ def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | No
         return "BULL_CALL_SPREAD" if prefer_spreads else "BUY_CALL"
     if "bullish" in s and "buy call" in s:
         return "BUY_CALL"
-    if "bullish" in s and "buy calls" in s:
-        return "BUY_CALL"
     if "bearish" in s and "put" in s and "spread" in s:
         return "BEAR_PUT_SPREAD" if prefer_spreads else "BUY_PUT"
     if "bearish" in s and "buy put" in s:
-        return "BUY_PUT"
-    if "bearish" in s and "buy puts" in s:
         return "BUY_PUT"
     if "iron condor" in s:
         return "IRON_CONDOR"
@@ -224,7 +209,7 @@ def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | No
 
 
 def _build_display_df(pred_df: pd.DataFrame, display_horizon: int):
-    display_horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day", 4: "4-Day", 5: "5-Day"}[display_horizon]
+    horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day", 4: "4-Day", 5: "5-Day"}[int(display_horizon)]
     cols_to_show = [
         "ticker",
         "model_type",
@@ -249,10 +234,9 @@ def _build_display_df(pred_df: pd.DataFrame, display_horizon: int):
         if mc_col in pred_df.columns:
             cols_to_show.append(mc_col)
 
-    # tolerate missing columns
     cols_to_show = [c for c in cols_to_show if c in pred_df.columns]
-
     display = pred_df[cols_to_show].copy()
+
     rename_map = {
         "ticker": "Ticker",
         "model_type": "Model",
@@ -262,20 +246,20 @@ def _build_display_df(pred_df: pd.DataFrame, display_horizon: int):
         "livets": "Live As Of",
         "vol_20d": "Vol 20D",
         "pe_ratio": "P/E",
-        "num_features": "# Features Used",
+        "num_features": "# Features",
         "atm_iv": "ATM IV",
-        "iv_minus_realized": "IV - Realized Vol",
-        "put_call_oi_ratio": "Put/Call OI Ratio",
-        "pred_next_ret_pct": f"Predicted {display_horizon_label} Return (%)",
-        "pred_next_price": "Predicted Price",
+        "iv_minus_realized": "IV - Realized",
+        "put_call_oi_ratio": "Put/Call OI",
+        "pred_next_ret_pct": f"Pred {horizon_label} Return (%)",
+        "pred_next_price": "Pred Price",
         "prob_up": "Prob Up",
         "prob_down": "Prob Down",
-        "prob_up_gaf": "GAF-CNN Prob Up",
+        "prob_up_gaf": "GAF Prob Up",
         "opt_exp": "Opt Expiry",
         "theo_atm_call_price": "Theo ATM Call",
-        "signal_alignment": "Signal",
-        "mc_ev": "MC EV (P/L)",
-        "mc_pop_gt0": "MC POP (>0)",
+        "signal_alignment": "Alignment",
+        "mc_ev": "MC EV",
+        "mc_pop_gt0": "MC POP>0",
     }
     display.rename(columns=rename_map, inplace=True)
     return display
@@ -310,11 +294,11 @@ def build_signals_from_pred_df(
             pred_ret=pred,
             put_call_ratio=row.get("put_call_oi_ratio"),
             atm_iv=row.get("atm_iv"),
-            horizon=prediction_horizon,
+            horizon=int(prediction_horizon),
         )
         strategy = normalize_model_option_strategy(strat_text, prefer_spreads=prefer_spreads)
-        use_options = (trade_mode == "Options only") or (trade_mode == "Options if suggested" and strategy is not None)
 
+        use_options = (trade_mode == "Options only") or (trade_mode == "Options if suggested" and strategy is not None)
         if use_options and strategy is not None:
             signals[tk] = {
                 "asset": "option",
@@ -352,22 +336,51 @@ def build_signals_from_pred_df(
     return signals
 
 
-def run_ticker_pipeline(
+def build_signals_from_results(results_df: pd.DataFrame, universe_text: str) -> dict:
+    """Convert portfolio backtest → simple BUY/SELL/HOLD signals for auto trader."""
+    if results_df is None or results_df.empty:
+        return {}
+
+    recent_sharpe = results_df["sharpe"].tail(3).mean()
+    if recent_sharpe > 1.0:
+        action = "BUY"
+    elif recent_sharpe < -0.5:
+        action = "SELL"
+    else:
+        action = "HOLD"
+
+    tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+    return {t: {"asset": "stock", "action": action, "qty": 1} for t in tickers}
+
+
+# ---------------------------
+# Cached wrappers (UI-only)
+# ---------------------------
+@st.cache_data(show_spinner=False, ttl=15 * 60)
+def _cached_screen_stocks(tickers_tuple, ret_thresh, vol_spike_thresh):
+    tickers = list(tickers_tuple)
+    return screen_stocks(tickers, ret_thresh=ret_thresh, vol_spike_thresh=vol_spike_thresh)
+
+
+@st.cache_data(show_spinner=False, ttl=15 * 60)
+def _cached_predict_bundle(
     tk: str,
-    *,
+    period: str,
     model_type: str,
     prediction_horizon: int,
     auto_optimize: bool,
     run_gaf: bool,
-    pricing_model,
+    pricing_model_name: str,
     fetch_live_price: bool,
     run_mc: bool,
-) -> dict:
+):
+    pricing_model = getattr(PricingModel, pricing_model_name)
+
     out = predict_next_for_ticker(
         tk,
-        period="5y",
+        period=period,
         model_type=model_type,
-        horizon=prediction_horizon,
+        horizon=int(prediction_horizon),
         use_vol_scaled_target=False,
         auto_optimize=auto_optimize,
         run_gaf=run_gaf,
@@ -437,7 +450,7 @@ def run_ticker_pipeline(
         try:
             mc_res = option_mc_ev(
                 s0=float(last_close),
-                mu=float(out.get("pred_next_ret")),
+                mu=float(out.get("pred_next_ret") or 0.0),
                 sigma=float(atm_iv),
                 days=int(prediction_horizon),
                 premium=1.0,
@@ -454,54 +467,131 @@ def run_ticker_pipeline(
     return out
 
 
+@st.cache_data(show_spinner=False, ttl=30 * 60)
+def _cached_track_predictions(ticker: str, period: str, model_type: str, horizon: int):
+    return track_predictions(ticker, period=period, model_type=model_type, horizon=int(horizon))
+
+
+@st.cache_data(show_spinner=False, ttl=30 * 60)
+def _cached_walk_forward_backtest(
+    ticker: str,
+    period: str,
+    horizon: int,
+    model_type: str,
+    train_years: int,
+    test_years: int,
+    step_days: int,
+    threshold: float,
+):
+    return walk_forward_backtest(
+        ticker=ticker,
+        period=period,
+        horizon=int(horizon),
+        model_type=model_type,
+        train_years=int(train_years),
+        test_years=int(test_years),
+        step_days=int(step_days),
+        threshold=float(threshold),
+    )
+
+
+@st.cache_data(show_spinner=False, ttl=30 * 60)
+def _cached_walkforward_cross_sectional(
+    tickers_tuple,
+    period: str,
+    horizon: int,
+    model_type: str,
+    train_years: int,
+    test_years: int,
+    top_pct_long: float,
+    top_pct_short: float,
+    vix_filter,
+):
+    return walkforward_cross_sectional(
+        tickers=list(tickers_tuple),
+        period=period,
+        horizon=int(horizon),
+        model_type=model_type,
+        train_years=int(train_years),
+        test_years=int(test_years),
+        top_pct_long=float(top_pct_long),
+        top_pct_short=float(top_pct_short),
+        vix_filter=vix_filter,
+    )
+
+
+# ---------------------------
+# UI helpers
+# ---------------------------
+def _signal_label(pred_ret: float | None, prob_up: float | None) -> str:
+    pr = float(pred_ret or 0.0)
+    pu = None if prob_up is None else float(prob_up)
+    if pu is not None:
+        if pr > 0.015 and pu > 0.60:
+            return "STRONG BUY"
+        if pr > 0.005 and pu > 0.55:
+            return "BUY"
+        if pr < -0.015 and (1 - pu) > 0.60:
+            return "STRONG SELL"
+        if pr < -0.005 and (1 - pu) > 0.55:
+            return "SELL"
+    if pr > 0.005:
+        return "BUY"
+    if pr < -0.005:
+        return "SELL"
+    return "NEUTRAL"
+
+
 def run_app():
     st.set_page_config(page_title="Stock Predictor", layout="wide")
-    st.title("Stock Predictor Dashboard")
+    st.title("Stock Predictor")
 
-    # session state
+    # Session state
     st.session_state.setdefault("pred_df", None)
     st.session_state.setdefault("model_type", "rf")
     st.session_state.setdefault("screener_df", None)
     st.session_state.setdefault("prediction_horizon", 5)
+    st.session_state.setdefault("period", "5y")
     st.session_state.setdefault("auto_optimize", True)
     st.session_state.setdefault("last_signals", None)
     st.session_state.setdefault("last_trader_stdout", "")
     st.session_state.setdefault("last_trader_stderr", "")
     st.session_state.setdefault("last_trader_rc", None)
 
-    # --- Tabs (new layout) ---
+    # Tabs
     tab_dash, tab_research, tab_backtests, tab_port = st.tabs(
-        ["📈 Dashboard", "🔎 Research", "🧪 Backtests", "🚀 Portfolio WF"]
+        ["Dashboard", "Research", "Backtests", "Portfolio WF"]
     )
 
-    # ===================== SIDEBAR (simplified) =====================
+    # ===================== SIDEBAR =====================
     st.sidebar.header("Run")
 
-    watchlist_text = st.sidebar.text_input("Tickers", value="AAPL, NVDA")
+    watchlist_text = st.sidebar.text_input("Tickers (comma-separated)", value="AAPL, NVDA")
     tickers = [t.strip().upper() for t in watchlist_text.split(",") if t.strip()]
+
+    period = st.sidebar.selectbox("Training period", ["2y", "5y", "10y"], index=1)
 
     prediction_horizon = st.sidebar.selectbox("Horizon (days)", [1, 2, 3, 4, 5], index=4)
     horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day", 4: "4-Day", 5: "5-Day"}[prediction_horizon]
 
-    model_label = st.sidebar.selectbox("Model", ["Auto", "Random Forest", "Gradient Boosting", "XGBoost"])
-    if model_label == "Auto":
-        model_type = "xgb" if prediction_horizon == 1 else "rf"
-    else:
-        model_type = {"Random Forest": "rf", "Gradient Boosting": "gbrt", "XGBoost": "xgb"}[model_label]
+    model_label = st.sidebar.selectbox("Model", ["rf", "gbrt", "xgb"], index=0)
+    model_type = model_label
 
     auto_optimize = st.sidebar.checkbox("Auto-optimize features", value=True)
 
     st.sidebar.subheader("Candidate filters")
-    max_tickers = st.sidebar.slider("Max tickers per run", 1, 20, 5)
+    max_tickers = st.sidebar.slider("Max tickers per run", 1, 50, 20)
     ret_thresh = st.sidebar.slider("Min |recent return| (%)", 0.0, 10.0, 3.0, 0.5)
     vol_spike_thresh = st.sidebar.slider("Min volume spike (× avg)", 0.5, 5.0, 1.5, 0.1)
-
     min_move = st.sidebar.slider("Min |predicted return| (%)", 0.0, 5.0, 1.0, 0.1)
     min_iv, max_iv = st.sidebar.slider("ATM IV range", 0.0, 1.0, (0.2, 0.8), 0.05)
     exclude_disagree = st.sidebar.checkbox("Hide 'disagree'", value=True)
 
+    st.sidebar.subheader("Validation")
+    signal_threshold_pct = st.sidebar.slider("Signal threshold (%)", 0.0, 2.0, 0.5, 0.05) / 100.0
+
     with st.sidebar.expander("Advanced", expanded=False):
-        pricing_model_label = st.selectbox("Pricing engine", ["Black-Scholes", "Heston (stochastic vol)"], index=0)
+        pricing_model_label = st.selectbox("Pricing engine", ["Black-Scholes", "Heston"], index=0)
         pricing_model = PricingModel.BLACK_SCHOLES if pricing_model_label == "Black-Scholes" else PricingModel.HESTON
 
         st.markdown("Elastic Net feature selection")
@@ -525,7 +615,6 @@ def run_app():
         bt_half_spread_bps = st.slider("Half-spread (bps)", 0.0, 20.0, 2.0, 0.5)
         bt_slippage_bps = st.slider("Slippage (bps)", 0.0, 30.0, 3.0, 0.5)
         bt_fee_bps = st.slider("Extra fees (bps)", 0.0, 10.0, 0.0, 0.5)
-
         exec_model = ExecutionModel(
             delay_days=int(bt_delay_days),
             half_spread_bps=float(bt_half_spread_bps),
@@ -546,22 +635,15 @@ def run_app():
         prefer_spreads = st.checkbox("Prefer spreads", value=True)
         auto_run_trader = st.checkbox("Auto-run trader after signals.json", value=False)
 
-    # defaults if advanced never opened (Streamlit still runs, but keep safe)
-    if "pricing_model" not in locals():
-        pricing_model_label = "Black-Scholes"
-        pricing_model = PricingModel.BLACK_SCHOLES
-    if "use_elasticnet_select" not in locals():
-        use_elasticnet_select = False
-    if "en_l1_ratio" not in locals():
-        en_l1_ratio = 0.5
-    if "en_cv_folds" not in locals():
-        en_cv_folds = 5
+    # Defaults if Advanced not opened (needed because variables are defined inside the expander block above)
     if "run_gaf" not in locals():
         run_gaf = False
     if "fetch_live_price" not in locals():
         fetch_live_price = False
     if "run_mc" not in locals():
         run_mc = False
+    if "pricing_model" not in locals():
+        pricing_model = PricingModel.BLACK_SCHOLES
     if "exec_model" not in locals():
         exec_model = ExecutionModel()
     if "n_trials" not in locals():
@@ -593,114 +675,123 @@ def run_app():
                 st.error("Please enter at least one ticker.")
                 st.stop()
 
-            with st.spinner("Running screener..."):
-                screener_df = screen_stocks(
-                    tickers,
-                    ret_thresh=ret_thresh / 100.0,
-                    vol_spike_thresh=vol_spike_thresh,
-                )
+            try:
+                with st.spinner("Running screener..."):
+                    screener_df = _cached_screen_stocks(tuple(tickers), ret_thresh / 100.0, vol_spike_thresh)
 
-            with st.expander("Screener results (raw)", expanded=False):
-                st.dataframe(screener_df, use_container_width=True)
+                with st.expander("Screener results (raw)", expanded=False):
+                    st.dataframe(screener_df, use_container_width=True)
 
-            if screener_df.empty:
-                st.warning("No data returned for these tickers.")
-                st.stop()
+                if screener_df is None or screener_df.empty:
+                    st.warning("No screener data returned.")
+                    st.stop()
 
-            if "flag" in screener_df.columns:
-                flagged = screener_df.loc[screener_df["flag"] == True, "ticker"].tolist()
-            else:
-                flagged = []
-
-            if not flagged:
-                flagged = tickers
-
-            if len(flagged) > max_tickers:
-                st.warning(f"Limiting to first {max_tickers} tickers to avoid rate limits.")
-                flagged = flagged[:max_tickers]
-
-            st.info(f"Running {horizon_label} predictions on: {', '.join(flagged)}")
-
-            progress_bar = st.progress(0.0)
-            status_text = st.empty()
-            results = []
-
-            for i, tk in enumerate(flagged):
-                progress_bar.progress((i + 1) / len(flagged))
-                status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
-
-                if i > 0:
-                    time.sleep(1)
-
-                try:
-                    out = run_ticker_pipeline(
-                        tk,
-                        model_type=model_type,
-                        prediction_horizon=prediction_horizon,
-                        auto_optimize=auto_optimize,
-                        run_gaf=run_gaf,
-                        pricing_model=pricing_model,
-                        fetch_live_price=fetch_live_price,
-                        run_mc=run_mc,
-                    )
-                    results.append(out)
-                except YFRateLimitError:
-                    st.error("Yahoo Finance rate limiting. Try later and/or use fewer tickers.")
-                    break
-                except Exception as e:
-                    st.warning(f"{tk}: ERROR {e}")
-
-            progress_bar.empty()
-            status_text.empty()
-
-            if not results:
-                st.warning("No predictions generated.")
-                st.session_state.pred_df = None
-                st.stop()
-
-            pred_df = pd.DataFrame(results)
-            if "pred_next_ret" in pred_df.columns:
-                pred_df["pred_next_ret_pct"] = pred_df["pred_next_ret"] * 100.0
-
-            st.session_state.pred_df = pred_df
-            st.session_state.model_type = model_type
-            st.session_state.screener_df = screener_df
-            st.session_state.prediction_horizon = prediction_horizon
-            st.session_state.auto_optimize = auto_optimize
-
-            signals = build_signals_from_pred_df(
-                pred_df,
-                prediction_horizon=prediction_horizon,
-                trade_mode=trade_mode,
-                prefer_spreads=prefer_spreads,
-                dte_min=dte_min,
-                dte_max=dte_max,
-                max_strike=max_strike,
-                max_premium=max_premium,
-                width_pct=width_pct,
-                exec_model=exec_model,
-            )
-            write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
-            st.session_state.last_signals = signals
-            st.success(f"Wrote signals.json to: {SIGNALS_OUT_PATH}")
-
-            st.session_state.last_trader_stdout = ""
-            st.session_state.last_trader_stderr = ""
-            st.session_state.last_trader_rc = None
-
-            if auto_run_trader:
-                if not TRADER_PATH.exists():
-                    st.error(f"Trader script not found: {TRADER_PATH}")
+                if "flag" in screener_df.columns:
+                    flagged = screener_df.loc[screener_df["flag"] == True, "ticker"].tolist()
                 else:
-                    res = subprocess.run(
-                        [sys.executable, str(TRADER_PATH)],
-                        cwd=str(BASE_DIR),
-                        capture_output=True,
-                        text=True,
-                    )
-                    st.session_state.last_trader_stdout = res.stdout or ""
-                    st.session_state.last_trader_stderr = res.stderr or ""
-                    st.session_state.last_trader_rc = res.returncode
+                    flagged = []
+
+                if not flagged:
+                    flagged = tickers
+
+                if len(flagged) > max_tickers:
+                    st.warning(f"Limiting to first {max_tickers} tickers to avoid rate limits.")
+                    flagged = flagged[:max_tickers]
+
+                st.info(f"Running {horizon_label} predictions on: {', '.join(flagged)}")
+
+                progress_bar = st.progress(0.0)
+                status_text = st.empty()
+
+                results = []
+                for i, tk in enumerate(flagged):
+                    progress_bar.progress((i + 1) / len(flagged))
+                    status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
+                    try:
+                        out = _cached_predict_bundle(
+                            tk=tk,
+                            period=period,
+                            model_type=model_type,
+                            prediction_horizon=prediction_horizon,
+                            auto_optimize=auto_optimize,
+                            run_gaf=run_gaf,
+                            pricing_model_name=pricing_model.name,
+                            fetch_live_price=fetch_live_price,
+                            run_mc=run_mc,
+                        )
+                        results.append(out)
+                    except YFRateLimitError:
+                        st.error("Yahoo Finance rate limiting. Try later and/or use fewer tickers.")
+                        break
+                    except Exception as e:
+                        st.warning(f"{tk}: ERROR {e}")
+
+                progress_bar.empty()
+                status_text.empty()
+
+                if not results:
+                    st.warning("No predictions generated.")
+                    st.session_state.pred_df = None
+                    st.stop()
+
+                pred_df = pd.DataFrame(results)
+                if "pred_next_ret" in pred_df.columns:
+                    pred_df["pred_next_ret_pct"] = pred_df["pred_next_ret"] * 100.0
+
+                # Add convenience columns for ranking
+                if "vol_20d" in pred_df.columns and "pred_next_ret" in pred_df.columns:
+                    pred_df["vol_adjusted_edge"] = pred_df["pred_next_ret"] / pred_df["vol_20d"].replace(0, np.nan)
+
+                if "pred_next_ret" in pred_df.columns:
+                    pred_df["signal_label"] = [
+                        _signal_label(r.get("pred_next_ret"), r.get("prob_up"))
+                        for _, r in pred_df.iterrows()
+                    ]
+
+                st.session_state.pred_df = pred_df
+                st.session_state.model_type = model_type
+                st.session_state.screener_df = screener_df
+                st.session_state.prediction_horizon = prediction_horizon
+                st.session_state.period = period
+                st.session_state.auto_optimize = auto_optimize
+
+                signals = build_signals_from_pred_df(
+                    pred_df,
+                    prediction_horizon=prediction_horizon,
+                    trade_mode=trade_mode,
+                    prefer_spreads=prefer_spreads,
+                    dte_min=dte_min,
+                    dte_max=dte_max,
+                    max_strike=max_strike,
+                    max_premium=max_premium,
+                    width_pct=width_pct,
+                    exec_model=exec_model,
+                )
+                write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
+                st.session_state.last_signals = signals
+                st.success(f"Wrote signals.json to: {SIGNALS_OUT_PATH}")
+
+                st.session_state.last_trader_stdout = ""
+                st.session_state.last_trader_stderr = ""
+                st.session_state.last_trader_rc = None
+
+                if auto_run_trader:
+                    if not TRADER_PATH.exists():
+                        st.error(f"Trader script not found: {TRADER_PATH}")
+                    else:
+                        res = subprocess.run(
+                            [sys.executable, str(TRADER_PATH)],
+                            cwd=str(BASE_DIR),
+                            capture_output=True,
+                            text=True,
+                        )
+                        st.session_state.last_trader_stdout = res.stdout or ""
+                        st.session_state.last_trader_stderr = res.stderr or ""
+                        st.session_state.last_trader_rc = res.returncode
+
+            except Exception as e:
+                st.error(f"Run failed: {e}")
+                st.stop()
 
         if st.session_state.pred_df is None:
             st.info("Run the model to populate the dashboard.")
@@ -710,59 +801,77 @@ def run_app():
         display_horizon = st.session_state.get("prediction_horizon", 1)
         display_horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day", 4: "4-Day", 5: "5-Day"}[display_horizon]
 
-        # Top stats
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Tickers", len(pred_df))
         c2.metric("Horizon", display_horizon_label)
         c3.metric("Model", st.session_state.model_type.upper())
-        c4.metric("Auto-opt", "ON" if st.session_state.get("auto_optimize", True) else "OFF")
+        c4.metric("Period", st.session_state.get("period", "5y"))
 
-        # Full predictions visible by default
-        st.subheader("Full predictions")
-        display = _build_display_df(pred_df, display_horizon)
-        st.dataframe(display, use_container_width=True)
-
-        # A small chart (optional)
-        pred_col = f"Predicted {display_horizon_label} Return (%)"
-        if pred_col in display.columns:
-            st.subheader(f"{pred_col} by ticker")
-            st.bar_chart(display.set_index("Ticker")[pred_col])
-
-        # Candidate subset (still useful)
-        if "pred_next_ret_pct" in pred_df.columns and "atm_iv" in pred_df.columns:
-            cand_df = pred_df.copy()
-            cand_df["abs_pred_pct"] = cand_df["pred_next_ret_pct"].abs()
-            mask = (cand_df["abs_pred_pct"] >= min_move) & cand_df["atm_iv"].between(min_iv, max_iv)
-            if exclude_disagree and "signal_alignment" in cand_df.columns:
-                mask &= cand_df["signal_alignment"] != "disagree"
-            cand_df = cand_df[mask].sort_values("abs_pred_pct", ascending=False)
-        else:
-            cand_df = pred_df.copy()
-
+        # Default view: candidates + drilldown
         st.subheader("Top candidates (filtered)")
-        if not cand_df.empty:
-            cols = [c for c in ["ticker", "pred_next_ret_pct", "pred_next_price", "num_features", "atm_iv", "put_call_oi_ratio", "signal_alignment", "prob_up", "prob_up_gaf"] if c in cand_df.columns]
-            st.dataframe(cand_df[cols], use_container_width=True)
-        else:
-            st.write("No candidates matched your filters.")
+        cand_df = pred_df.copy()
 
-        # Ticker drilldown (clean)
+        if "pred_next_ret_pct" in cand_df.columns:
+            cand_df["abs_pred_pct"] = cand_df["pred_next_ret_pct"].abs()
+        else:
+            cand_df["abs_pred_pct"] = np.nan
+
+        if "atm_iv" in cand_df.columns:
+            mask = cand_df["atm_iv"].between(min_iv, max_iv)
+        else:
+            mask = pd.Series(True, index=cand_df.index)
+
+        if "abs_pred_pct" in cand_df.columns:
+            mask &= (cand_df["abs_pred_pct"] >= min_move)
+
+        if exclude_disagree and "signal_alignment" in cand_df.columns:
+            mask &= (cand_df["signal_alignment"] != "disagree")
+
+        cand_df = cand_df[mask].copy()
+
+        sort_col = "vol_adjusted_edge" if "vol_adjusted_edge" in cand_df.columns else "abs_pred_pct"
+        if sort_col in cand_df.columns:
+            cand_df = cand_df.sort_values(sort_col, ascending=False)
+
+        if cand_df.empty:
+            st.write("No candidates matched your filters.")
+            detail_universe = pred_df["ticker"].tolist()
+        else:
+            cols = [c for c in [
+                "ticker",
+                "signal_label",
+                "pred_next_ret_pct",
+                "prob_up",
+                "vol_20d",
+                "vol_adjusted_edge",
+                "atm_iv",
+                "put_call_oi_ratio",
+                "signal_alignment",
+                "pred_next_price",
+                "num_features",
+                "prob_up_gaf",
+            ] if c in cand_df.columns]
+            st.dataframe(cand_df[cols], use_container_width=True, height=280)
+            detail_universe = cand_df["ticker"].tolist()
+
         st.subheader("Ticker details")
-        detail_universe = cand_df["ticker"].tolist() if ("ticker" in cand_df.columns and not cand_df.empty) else pred_df["ticker"].tolist()
         selected = st.selectbox("Select ticker", detail_universe, key="dash_selected_ticker")
         row = pred_df[pred_df["ticker"] == selected].iloc[0]
 
-        left, right = st.columns([1.2, 1])
-
+        left, right = st.columns([1.25, 1])
         with left:
             st.markdown("### Model")
             if row.get("pred_next_ret") is not None:
-                st.write(f"{display_horizon_label} prediction: {float(row['pred_next_ret'])*100:.2f}%")
+                st.write(f"{display_horizon_label} prediction: {float(row['pred_next_ret']) * 100:.2f}%")
+            st.write(f"Last close: {row.get('last_close')}")
             st.write(f"Predicted price: {row.get('pred_next_price')}")
-            st.write(f"Prob up (RF/XGB): {row.get('prob_up')}")
-            st.write(f"Prob up (GAF): {row.get('prob_up_gaf')}")
-            st.write(f"Signal alignment: {row.get('signal_alignment')}")
+            st.write(f"Prob up: {row.get('prob_up')}")
+            if "prob_up_gaf" in row:
+                st.write(f"GAF prob up: {row.get('prob_up_gaf')}")
             st.write(f"Features used: {row.get('num_features')}")
+            st.write(f"Alignment: {row.get('signal_alignment')}")
+            if "vol_adjusted_edge" in row:
+                st.write(f"Vol-adjusted edge: {row.get('vol_adjusted_edge')}")
 
         with right:
             st.markdown("### Options")
@@ -780,15 +889,24 @@ def run_app():
 
             load_slow = st.checkbox("Load Greeks + News (slow)", value=False, key="dash_load_slow")
             if load_slow:
+                greeks_info = None
                 try:
                     greeks_info = get_atm_greeks(selected)
-                except YFRateLimitError:
+                except Exception:
                     greeks_info = None
 
                 if greeks_info:
-                    cg, pg = greeks_info["call_greeks"], greeks_info["put_greeks"]
-                    st.write(f"Call Δ {cg['delta']:.2f} Γ {cg['gamma']:.4f} Vega {cg['vega']:.2f} Θ {cg['theta']:.2f}")
-                    st.write(f"Put  Δ {pg['delta']:.2f} Γ {pg['gamma']:.4f} Vega {pg['vega']:.2f} Θ {pg['theta']:.2f}")
+                    cg, pg = greeks_info.get("call_greeks"), greeks_info.get("put_greeks")
+                    if cg:
+                        st.write(
+                            f"Call Δ {cg.get('delta'):.2f} Γ {cg.get('gamma'):.4f} "
+                            f"Vega {cg.get('vega'):.2f} Θ {cg.get('theta'):.2f}"
+                        )
+                    if pg:
+                        st.write(
+                            f"Put Δ {pg.get('delta'):.2f} Γ {pg.get('gamma'):.4f} "
+                            f"Vega {pg.get('vega'):.2f} Θ {pg.get('theta'):.2f}"
+                        )
                 else:
                     st.write("Greeks: N/A")
 
@@ -796,15 +914,22 @@ def run_app():
                 if detect_big_news(news):
                     st.warning("Recent BIG news/headlines detected.")
                 if news:
-                    st.markdown("Headlines")
-                    for art in news:
-                        title = art.get("title") or "No title"
-                        url = art.get("url")
-                        st.markdown(f"- [{title}]({url})" if url else f"- {title}")
+                    with st.expander("Headlines", expanded=True):
+                        for art in news:
+                            title = art.get("title") or "No title"
+                            url = art.get("url")
+                            st.markdown(f"- [{title}]({url})" if url else f"- {title}")
                 else:
                     st.write("News: none / not configured")
 
-        # Signals preview + trader output (kept, but not noisy)
+        with st.expander("Full predictions (all tickers)", expanded=False):
+            display = _build_display_df(pred_df, display_horizon)
+            st.dataframe(display, use_container_width=True)
+            pred_col = f"Pred {display_horizon_label} Return (%)"
+            if pred_col in display.columns:
+                st.subheader(f"{pred_col} by ticker")
+                st.bar_chart(display.set_index("Ticker")[pred_col])
+
         with st.expander("Signals + trader output", expanded=False):
             st.write(f"signals.json path: {SIGNALS_OUT_PATH}")
             if st.session_state.last_signals:
@@ -845,132 +970,107 @@ def run_app():
     # ===================== TAB: Research =====================
     with tab_research:
         st.header("Research")
-
         if st.session_state.pred_df is None:
             st.warning("Run Dashboard first so this tab can reuse tickers/model/horizon.")
             st.stop()
 
         pred_df = st.session_state.pred_df
-        model_type = st.session_state.model_type
         display_horizon = st.session_state.get("prediction_horizon", 1)
-        display_horizon_label = {1: "1-Day", 2: "2-Day", 3: "3-Day", 4: "4-Day", 5: "5-Day"}[display_horizon]
-        display = _build_display_df(pred_df, display_horizon)
+        period = st.session_state.get("period", "5y")
+        model_type = st.session_state.get("model_type", model_type)
 
-        st.subheader("Accuracy test")
-        test_ticker = st.selectbox("Ticker", display["Ticker"], key="research_test_ticker")
+        tickers_for_select = pred_df["ticker"].tolist()
+        test_ticker = st.selectbox("Ticker", tickers_for_select, key="research_test_ticker")
 
         if st.button("Run Accuracy Test", key="research_run_acc"):
-            with st.spinner(f"Testing {test_ticker} {display_horizon_label} predictions..."):
-                try:
-                    results_test, accuracy = track_predictions(
-                        test_ticker,
-                        period="5y",
-                        model_type=model_type,
-                        horizon=display_horizon,
+            try:
+                with st.spinner(f"Testing {test_ticker}..."):
+                    results_test, accuracy = _cached_track_predictions(
+                        test_ticker, period=period, model_type=model_type, horizon=display_horizon
                     )
-                    st.session_state["results_test"] = results_test
-                    st.session_state["accuracy"] = accuracy
+                if results_test is None or results_test.empty:
+                    st.warning("Not enough data to test accuracy.")
+                    st.stop()
 
-                    if results_test.empty:
-                        st.warning("Not enough data to test accuracy.")
-                        st.stop()
+                st.metric("Directional accuracy", f"{accuracy * 100:.1f}%")
 
-                    st.metric(f"Direction Accuracy ({display_horizon_label})", f"{accuracy*100:.1f}%")
+                baseline_returns = results_test["actual_return"].dropna()
+                results_exec = apply_latency_delay(results_test, delay_days=exec_model.delay_days, pred_col="predicted_return")
 
-                    baseline_returns = results_test["actual_return"].dropna()
-                    results_exec = apply_latency_delay(results_test, delay_days=exec_model.delay_days, pred_col="predicted_return")
+                strat = results_exec.copy()
+                strat["position"] = np.where(strat["predicted_return"] > signal_threshold_pct, 1.0, 0.0)
+                strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
+                strat["strategy_ret_with_cost"] = apply_costs_on_trades(strat, exec_model)
 
-                    conf_thresh = 0.01
-                    strat = results_exec.copy()
-                    strat["position"] = np.where(strat["predicted_return"] > conf_thresh, 1.0, 0.0)
-                    strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
-                    strat["strategy_ret_with_cost"] = apply_costs_on_trades(strat, exec_model)
+                sharpe_baseline = compute_sharpe(baseline_returns)
+                sharpe_signal_no_cost = compute_sharpe(strat["strategy_ret_no_cost"])
+                sharpe_signal_with_cost = compute_sharpe(strat["strategy_ret_with_cost"])
+                dsr_baseline = deflated_sharpe_ratio(baseline_returns, n_trials)
+                dsr_signal_with_cost = deflated_sharpe_ratio(strat["strategy_ret_with_cost"], n_trials)
 
-                    sharpe_baseline = compute_sharpe(baseline_returns)
-                    sharpe_signal_no_cost = compute_sharpe(strat["strategy_ret_no_cost"].dropna())
-                    sharpe_signal_with_cost = compute_sharpe(strat["strategy_ret_with_cost"].dropna())
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Sharpe (B&H)", "N/A" if sharpe_baseline is None else f"{sharpe_baseline:.2f}")
+                c2.metric("Sharpe (Signal, no cost)", "N/A" if sharpe_signal_no_cost is None else f"{sharpe_signal_no_cost:.2f}")
+                c3.metric("Sharpe (Signal, w/ cost)", "N/A" if sharpe_signal_with_cost is None else f"{sharpe_signal_with_cost:.2f}")
+                st.write(f"DSR (B&H): {'N/A' if dsr_baseline is None else f'{dsr_baseline:.2f}'} (trials≈{n_trials})")
+                st.write(f"DSR (Signal): {'N/A' if dsr_signal_with_cost is None else f'{dsr_signal_with_cost:.2f}'} (trials≈{n_trials})")
 
-                    dsr_baseline = deflated_sharpe_ratio(baseline_returns, n_trials)
-                    dsr_signal_with_cost = deflated_sharpe_ratio(strat["strategy_ret_with_cost"], n_trials)
-
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Sharpe (B&H)", "N/A" if sharpe_baseline is None else f"{sharpe_baseline:.2f}")
-                    c2.metric("Sharpe (Signal, no cost)", "N/A" if sharpe_signal_no_cost is None else f"{sharpe_signal_no_cost:.2f}")
-                    c3.metric("Sharpe (Signal, w/ cost)", "N/A" if sharpe_signal_with_cost is None else f"{sharpe_signal_with_cost:.2f}")
-
-                    st.write(f"DSR (B&H): {'N/A' if dsr_baseline is None else f'{dsr_baseline:.2f}'} (trials≈{n_trials})")
-                    st.write(f"DSR (Signal): {'N/A' if dsr_signal_with_cost is None else f'{dsr_signal_with_cost:.2f}'} (trials≈{n_trials})")
-
-                    recent_df = results_test[["date", "predicted_return", "actual_return", "predicted_price", "actual_close", "correct_direction"]].copy()
+                with st.expander("Raw results table", expanded=False):
+                    recent_df = results_test[
+                        ["date", "predicted_return", "actual_return", "predicted_price", "actual_close", "correct_direction"]
+                    ].copy()
                     recent_df["predicted_return"] *= 100
                     recent_df["actual_return"] *= 100
-                    recent_df.rename(
-                        columns={
-                            "date": "Date",
-                            "predicted_return": f"Pred {display_horizon_label} Return (%)",
-                            "actual_return": f"Actual {display_horizon_label} Return (%)",
-                            "predicted_price": "Pred Price",
-                            "actual_close": "Actual Price",
-                            "correct_direction": "Correct?",
-                        },
-                        inplace=True,
-                    )
                     st.dataframe(recent_df, use_container_width=True)
 
-                    chart_df = pd.DataFrame(
-                        {"Predicted": results_test["predicted_return"].values * 100, "Actual": results_test["actual_return"].values * 100},
-                        index=results_test["date"],
-                    )
-                    st.line_chart(chart_df)
+                chart_df = pd.DataFrame(
+                    {
+                        "Predicted (%)": results_test["predicted_return"].values * 100,
+                        "Actual (%)": results_test["actual_return"].values * 100,
+                    },
+                    index=results_test["date"],
+                )
+                st.line_chart(chart_df)
 
-                    if sq is not None:
-                        try:
-                            sq_report = sq.performance_summary(
-                                strat["strategy_ret_with_cost"].dropna(),
-                                benchmark=baseline_returns.loc[strat["strategy_ret_with_cost"].dropna().index],
-                            )
-                            with st.expander("SquareQuant summary", expanded=False):
-                                st.dataframe(sq_report, use_container_width=True)
-                        except Exception as e:
-                            st.info(f"SquareQuant error: {e}")
+                if sq is not None:
+                    try:
+                        sq_report = sq.performance_summary(
+                            strat["strategy_ret_with_cost"].dropna(),
+                            benchmark=baseline_returns.loc[strat["strategy_ret_with_cost"].dropna().index],
+                        )
+                        with st.expander("SquareQuant summary", expanded=False):
+                            st.dataframe(sq_report, use_container_width=True)
+                    except Exception as e:
+                        st.info(f"SquareQuant error: {e}")
 
-                except Exception as e:
-                    st.error(f"Error testing accuracy: {e}")
+            except Exception as e:
+                st.error(f"Error testing accuracy: {e}")
 
         with st.expander("Feature significance + diagnostics", expanded=False):
-            fs_ticker = st.selectbox("Feature significance ticker", display["Ticker"], key="fs_ticker_select")
+            fs_ticker = st.selectbox("Feature significance ticker", tickers_for_select, key="fs_ticker_select")
             if st.button("Analyze Feature Significance", key="research_sig_btn"):
-                with st.spinner(f"Running OLS feature significance for {fs_ticker}..."):
-                    try:
+                try:
+                    with st.spinner("Running OLS feature significance..."):
                         _ols_model, sig_df = analyze_feature_significance(
                             ticker=fs_ticker,
-                            period="5y",
+                            period=period,
                             horizon=display_horizon,
                             use_vol_scaled_target=False,
                         )
-                        st.dataframe(sig_df.head(25), use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Error computing feature significance: {e}")
+                    st.dataframe(sig_df.head(25), use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error computing feature significance: {e}")
 
-            chosen = st.selectbox("Diagnostics ticker", display["Ticker"], key="price_history_selector")
+            chosen = st.selectbox("Diagnostics ticker", tickers_for_select, key="price_history_selector")
             hist = get_history_cached(chosen, period="3mo", interval="1d")
-            if hist is not None and not hist.empty:
+            if hist is not None and not hist.empty and "Close" in hist.columns:
                 prices = hist["Close"].copy()
-                last_date = prices.index[-1]
-                row = pred_df[pred_df["ticker"] == chosen].iloc[0]
-                pred_price = row.get("pred_next_price")
-                if pred_price is not None:
-                    extra_point = pd.Series([pred_price], index=[last_date + pd.Timedelta(days=display_horizon)])
-                    st.line_chart(pd.concat([prices, extra_point]))
-                else:
-                    st.line_chart(prices)
+                st.line_chart(prices)
 
                 rets = hist["Close"].pct_change()
                 fig_gaf, _ax = make_gaf_image_from_returns(rets, window=60, image_size=30)
                 if fig_gaf is not None:
                     st.pyplot(fig_gaf)
-            else:
-                st.warning(f"No recent price data for {chosen}.")
 
     # ===================== TAB: Backtests =====================
     with tab_backtests:
@@ -980,98 +1080,101 @@ def run_app():
             bt_ticker = st.text_input("Ticker", "NVDA", key="backtest_ticker")
             bt_horizon = st.selectbox("Horizon (days)", [1, 2, 3, 4, 5], index=4, key="bt_horizon")
             bt_model = st.selectbox("Model", ["rf", "xgb", "gbrt"], index=0, key="bt_model")
+            bt_period = st.selectbox("Period", ["2y", "5y", "10y"], index=1, key="bt_period")
 
             if st.button("Run Backtest", key="run_backtest"):
-                with st.spinner(f"Running backtest for {bt_ticker}..."):
-                    try:
-                        results_test, accuracy = track_predictions(bt_ticker, period="5y", model_type=bt_model, horizon=bt_horizon)
-                        if results_test.empty:
-                            st.warning("Not enough data to backtest.")
-                            st.stop()
+                try:
+                    with st.spinner("Running backtest..."):
+                        results_test, accuracy = _cached_track_predictions(
+                            bt_ticker, period=bt_period, model_type=bt_model, horizon=bt_horizon
+                        )
+                    if results_test is None or results_test.empty:
+                        st.warning("Not enough data to backtest.")
+                        st.stop()
 
-                        baseline_returns = results_test["actual_return"].dropna()
-                        results_exec = apply_latency_delay(results_test, delay_days=exec_model.delay_days, pred_col="predicted_return")
+                    baseline_returns = results_test["actual_return"].dropna()
+                    results_exec = apply_latency_delay(results_test, delay_days=exec_model.delay_days, pred_col="predicted_return")
 
-                        conf_thresh = 0.002
-                        strat = results_exec.copy()
-                        strat["position"] = np.where(strat["predicted_return"] > conf_thresh, 1.0, 0.0)
-                        strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
-                        strat["strategy_ret_with_cost"] = apply_costs_on_trades(strat, exec_model)
+                    strat = results_exec.copy()
+                    strat["position"] = np.where(strat["predicted_return"] > signal_threshold_pct, 1.0, 0.0)
+                    strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
+                    strat["strategy_ret_with_cost"] = apply_costs_on_trades(strat, exec_model)
 
-                        sharpe_baseline = compute_sharpe(baseline_returns)
-                        sharpe_strategy_no_cost = compute_sharpe(strat["strategy_ret_no_cost"].dropna())
-                        sharpe_strategy_with_cost = compute_sharpe(strat["strategy_ret_with_cost"].dropna())
+                    sharpe_baseline = compute_sharpe(baseline_returns)
+                    sharpe_strategy_with_cost = compute_sharpe(strat["strategy_ret_with_cost"])
 
-                        total_return_baseline = (1 + baseline_returns).prod() - 1
-                        total_return_strategy_no_cost = (1 + strat["strategy_ret_no_cost"].dropna()).prod() - 1
-                        total_return_strategy_with_cost = (1 + strat["strategy_ret_with_cost"].dropna()).prod() - 1
+                    total_return_baseline = (1 + baseline_returns).prod() - 1
+                    total_return_strategy_with_cost = (1 + strat["strategy_ret_with_cost"].dropna()).prod() - 1
+                    num_trades = strat["position"].diff().abs().sum() / 2
 
-                        num_trades = strat["position"].diff().abs().sum() / 2
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Sharpe (with cost)", "N/A" if sharpe_strategy_with_cost is None else f"{sharpe_strategy_with_cost:.2f}")
+                    c2.metric("Hit rate", f"{accuracy * 100:.1f}%")
+                    c3.metric("Total return (with cost)", f"{total_return_strategy_with_cost * 100:.1f}%")
+                    c4.metric("Trades", int(num_trades))
 
-                        c1, c2, c3, c4 = st.columns(4)
-                        c1.metric("Sharpe (with cost)", "N/A" if sharpe_strategy_with_cost is None else f"{sharpe_strategy_with_cost:.2f}")
-                        c2.metric("Hit Rate", f"{accuracy*100:.1f}%")
-                        c3.metric("Total Return (with cost)", f"{total_return_strategy_with_cost*100:.1f}%")
-                        c4.metric("Test Days", len(results_test))
+                    st.write(
+                        f"Buy & Hold: Sharpe={'N/A' if sharpe_baseline is None else f'{sharpe_baseline:.2f}'}, "
+                        f"Return={total_return_baseline * 100:.1f}%"
+                    )
 
-                        st.write(f"Execution sim: delay_days={exec_model.delay_days}, half_spread_bps={exec_model.half_spread_bps}, slippage_bps={exec_model.slippage_bps}, fee_bps={exec_model.fee_bps}")
-                        st.write(f"Trades: {int(num_trades)}")
-                        st.write(f"Sharpe (no cost): {'N/A' if sharpe_strategy_no_cost is None else f'{sharpe_strategy_no_cost:.2f}'}")
-                        st.write(f"Buy & Hold: Sharpe={'N/A' if sharpe_baseline is None else f'{sharpe_baseline:.2f}'}, Return={total_return_baseline*100:.1f}%")
+                    cum_baseline = (1 + baseline_returns).cumprod()
+                    cum_strategy = (1 + strat["strategy_ret_with_cost"].dropna()).cumprod()
+                    chart_df = pd.DataFrame(
+                        {"Buy & Hold": cum_baseline.values, "Strategy (with cost)": cum_strategy.values},
+                        index=results_test["date"],
+                    )
+                    st.subheader("Cumulative returns")
+                    st.line_chart(chart_df)
 
-                        cum_baseline = (1 + baseline_returns).cumprod()
-                        cum_strategy = (1 + strat["strategy_ret_with_cost"].dropna()).cumprod()
-                        chart_df = pd.DataFrame({"Buy & Hold": cum_baseline.values, "Strategy (with cost)": cum_strategy.values}, index=results_test["date"])
-                        st.subheader("Cumulative returns")
-                        st.line_chart(chart_df)
-
-                    except Exception as e:
-                        st.error(f"Error running backtest: {e}")
-                        import traceback
-                        st.code(traceback.format_exc())
+                except Exception as e:
+                    st.error(f"Error running backtest: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
         with st.expander("Walk-forward (single stock)", expanded=False):
             wf_ticker = st.text_input("Ticker", "NVDA", key="wf_ticker")
             wf_horizon = st.selectbox("Horizon (days)", [1, 2, 3, 4, 5], index=4, key="wf_horizon")
-            wf_model = st.selectbox("Model", ["rf", "xgb"], index=0, key="wf_model")
-            wf_threshold = st.slider("Signal threshold", 0.0, 1.0, 0.2, 0.05, key="wf_threshold") / 100.0
+            wf_model = st.selectbox("Model", ["rf", "xgb", "gbrt"], index=0, key="wf_model")
+            wf_period = st.selectbox("Period", ["2y", "5y", "10y"], index=1, key="wf_period")
+            wf_threshold_pct = st.slider("Fold threshold (%)", 0.0, 1.0, 0.2, 0.05, key="wf_threshold") / 100.0
             wf_step_days = st.selectbox("Fold stride (trading days)", [5, 10, 21, 63, 126], index=2, key="wf_step_days")
 
             if st.button("Run Walk-Forward", key="run_wf"):
-                with st.spinner("Running walk-forward..."):
-                    try:
-                        fold_results = walk_forward_backtest(
+                try:
+                    with st.spinner("Running walk-forward..."):
+                        fold_results = _cached_walk_forward_backtest(
                             ticker=wf_ticker,
-                            period="5y",
+                            period=wf_period,
                             horizon=wf_horizon,
                             model_type=wf_model,
                             train_years=3,
                             test_years=1,
                             step_days=int(wf_step_days),
-                            threshold=float(wf_threshold),
+                            threshold=float(wf_threshold_pct),
                         )
 
-                        if not fold_results:
-                            st.warning("No folds produced (not enough data or settings too strict).")
-                            st.stop()
+                    if not fold_results:
+                        st.warning("No folds produced (not enough data or settings too strict).")
+                        st.stop()
 
-                        sharpes = [f.get("sharpe", 0.0) for f in fold_results if f.get("sharpe") is not None]
-                        avg_sh = (sum(sharpes) / len(sharpes)) if sharpes else None
-                        st.metric("Avg Sharpe", "N/A" if avg_sh is None else f"{avg_sh:.3f}")
+                    sharpes = [f.get("sharpe", 0.0) for f in fold_results if f.get("sharpe") is not None]
+                    avg_sh = (sum(sharpes) / len(sharpes)) if sharpes else None
+                    st.metric("Avg Sharpe", "N/A" if avg_sh is None else f"{avg_sh:.3f}")
 
-                        for i, fold in enumerate(fold_results, 1):
-                            sh = fold.get("sharpe")
-                            hr = fold.get("hit_rate")
-                            with st.expander(f"Fold {i} — Sharpe: {'N/A' if sh is None else f'{sh:.3f}'}"):
-                                st.write(f"Train: {fold.get('train_start')} → {fold.get('train_end')}")
-                                st.write(f"Test: {fold.get('test_start')} → {fold.get('test_end')}")
-                                st.write(f"Hit rate: {'N/A' if hr is None else f'{hr*100:.1f}%'}")
-                                st.write(f"Trades: {fold.get('num_trades')}")
+                    for i, fold in enumerate(fold_results, 1):
+                        sh = fold.get("sharpe")
+                        hr = fold.get("hit_rate")
+                        with st.expander(f"Fold {i} — Sharpe: {'N/A' if sh is None else f'{sh:.3f}'}"):
+                            st.write(f"Train: {fold.get('train_start')} → {fold.get('train_end')}")
+                            st.write(f"Test: {fold.get('test_start')} → {fold.get('test_end')}")
+                            st.write(f"Hit rate: {'N/A' if hr is None else f'{hr * 100:.1f}%'}")
+                            st.write(f"Trades: {fold.get('num_trades')}")
 
-                    except Exception as e:
-                        st.error(f"Error: {e}")
-                        import traceback
-                        st.code(traceback.format_exc())
+                except Exception as e:
+                    st.error(f"Error: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
 
         with st.expander("Comprehensive CSV", expanded=False):
             csv_path = "backtest_results_comprehensive.csv"
@@ -1094,65 +1197,40 @@ def run_app():
 
             if comp_results is None:
                 st.info("No comprehensive results loaded yet.")
-                st.stop()
+            else:
+                st.dataframe(comp_results, use_container_width=True)
 
-            sharpe_col = "RF_Sharpe" if "RF_Sharpe" in comp_results.columns else None
-            hit_col = "RF_HitRate" if "RF_HitRate" in comp_results.columns else None
-            ret_col = "RF_Return" if "RF_Return" in comp_results.columns else None
-
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Total tested", len(comp_results))
-            if sharpe_col:
-                tradeable = comp_results[comp_results[sharpe_col] > 1.0]
-                elite = comp_results[comp_results[sharpe_col] > 2.0]
-                c2.metric("Tradeable (Sharpe>1)", len(tradeable))
-                c3.metric("Elite (Sharpe>2)", len(elite))
-
-            st.dataframe(comp_results, use_container_width=True)
-
-            if sharpe_col:
-                cols = ["Ticker", "Category", sharpe_col]
-                if hit_col:
-                    cols.append(hit_col)
-                if ret_col:
-                    cols.append(ret_col)
-                cols = [c for c in cols if c in comp_results.columns]
-                st.subheader("Top 10 (by RF Sharpe)")
-                st.dataframe(comp_results.nlargest(10, sharpe_col)[cols], use_container_width=True)
-
-    # ===================== TAB: Portfolio WF (separate) =====================
+    # ===================== TAB: Portfolio WF =====================
     with tab_port:
-        st.header("🚀 Portfolio Walk-Forward")
-        st.markdown("**Production ML Portfolio Engine**")
+        st.header("Portfolio Walk-Forward")
+        st.markdown("Production ML Portfolio Engine")
 
         col1, col2 = st.columns([2, 1])
-
         with col1:
-            st.subheader("📊 Settings")
+            st.subheader("Settings")
             universe_text = st.text_input("Universe", value="AAPL,NVDA,MSFT")
             horizon = st.selectbox("Horizon", [1, 3, 5], format_func=lambda x: f"{x}D")
-
             c1, c2 = st.columns(2)
             with c1:
-                train_years = st.slider("Train", 1, 4, 2)
+                train_years = st.slider("Train (years)", 1, 4, 2)
             with c2:
-                test_years = st.slider("Test", 0, 2, 1)
+                test_years = st.slider("Test (years)", 0, 2, 1)
 
         with col2:
-            st.subheader("⚖️ Portfolio")
+            st.subheader("Portfolio")
             top_long = st.slider("Long %", 0.01, 0.20, 0.10, 0.01)
             top_short = st.slider("Short %", 0.20, 0.50, 0.30, 0.01)
             model_type2 = st.selectbox("Model", ["rf", "xgb", "gbrt"])
-            use_vix_filter = st.checkbox("🚨 VIX Filter", value=True)
+            use_vix_filter = st.checkbox("VIX Filter", value=True)
             vix_threshold = st.slider("VIX Max", 15, 35, 25) if use_vix_filter else None
 
-        q1, q2, _q3 = st.columns(3)
-        with q1:
-            if st.button("📈 SP500 Top 10"):
-                st.session_state.quick_universe = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
-        with q2:
-            if st.button("🏆 Mag 7"):
-                st.session_state.quick_universe = "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
+            q1, q2, _q3 = st.columns(3)
+            with q1:
+                if st.button("SP500 Top 10"):
+                    st.session_state.quick_universe = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
+            with q2:
+                if st.button("Mag 7"):
+                    st.session_state.quick_universe = "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
 
         if hasattr(st.session_state, "quick_universe"):
             universe_text = st.session_state.quick_universe
@@ -1160,11 +1238,11 @@ def run_app():
 
         run_col, est_col = st.columns([3, 1])
         with run_col:
-            if st.button("🚀 Run Backtest", type="primary", use_container_width=True):
+            if st.button("Run Backtest", type="primary", use_container_width=True):
                 tickers2 = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
                 with st.spinner(f"Running {len(tickers2)} tickers..."):
-                    results_df = walkforward_cross_sectional(
-                        tickers=tickers2,
+                    results_df = _cached_walkforward_cross_sectional(
+                        tuple(tickers2),
                         period="5y",
                         horizon=horizon,
                         model_type=model_type2,
@@ -1174,10 +1252,10 @@ def run_app():
                         top_pct_short=top_short,
                         vix_filter=vix_threshold if use_vix_filter else None,
                     )
-                    if results_df is not None and not results_df.empty:
-                        st.session_state.results = results_df
-                        st.session_state.portfolio_tickers = tickers2
-                        st.rerun()
+                if results_df is not None and not results_df.empty:
+                    st.session_state.results = results_df
+                    st.session_state.portfolio_tickers = tickers2
+                    st.rerun()
 
         with est_col:
             n_tickers = len([t for t in universe_text.split(",") if t.strip()])
@@ -1186,7 +1264,7 @@ def run_app():
         if "results" in st.session_state and st.session_state.results is not None and not st.session_state.results.empty:
             results_df = st.session_state.results
 
-            st.success(f"✅ {len(results_df)} folds complete!")
+            st.success(f"{len(results_df)} folds complete!")
             median_sharpe = results_df["sharpe"].median()
             avg_return = results_df["ann_return"].mean() * 100
             worst_dd = results_df["max_dd"].min()
@@ -1195,72 +1273,41 @@ def run_app():
 
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Sharpe (Median)", f"{median_sharpe:.2f}")
-            m2.metric("Hit Rate", f"{avg_hit:.0f}%")
-            m3.metric("Ann Return", f"{avg_return:.1f}%")
-            m4.metric("Max Drawdown", f"{worst_dd:.1%}")
-
-            st.markdown("### 🚦 Live Signal")
-            if recent_sharpe > 1.0:
-                st.success(f"DEPLOY – recent Sharpe {recent_sharpe:.2f}")
-            elif recent_sharpe > 0.3:
-                st.info(f"EDGE – recent Sharpe {recent_sharpe:.2f}")
-            else:
-                st.warning(f"STANDBY – recent Sharpe {recent_sharpe:.2f}")
+            m2.metric("Hit rate (Avg)", f"{avg_hit:.0f}%")
+            m3.metric("Ann return (Avg)", f"{avg_return:.1f}%")
+            m4.metric("Max drawdown (Worst)", f"{worst_dd:.2f}")
 
             left, right = st.columns([2, 1])
             with left:
-                st.markdown("### 📋 Fold Results")
+                st.subheader("Fold results")
                 st.dataframe(results_df.round(3), use_container_width=True, height=320)
 
-                st.markdown("### 📊 Sharpe Distribution")
+                st.subheader("Sharpe distribution")
                 fig, ax = plt.subplots(figsize=(6, 4))
                 results_df["sharpe"].hist(bins=12, ax=ax, alpha=0.7, edgecolor="black")
                 ax.axvline(median_sharpe, color="green", lw=2, ls="--", label="Median")
-                ax.axvline(0, color="red", lw=1, ls=":", label="0")
+                ax.axvline(0, color="red", lw=1, ls="-", label="0")
                 ax.legend()
                 ax.grid(True, alpha=0.3)
                 st.pyplot(fig)
 
             with right:
-                with st.expander("📈 Options Overlay (Per Ticker)", expanded=True):
-                    st.info("Per-ticker ATM calls/puts using latest fold's long/short signals.")
-                    latest_fold = int(results_df["fold"].iloc[-1]) if "fold" in results_df.columns else None
-                    if latest_fold is None:
-                        st.write("No fold column found.")
-                    else:
-                        fold_file = Path.cwd() / f"fold_signals_{latest_fold}.json"
-                        if fold_file.exists():
-                            fold_signals = pd.read_json(fold_file)
-                            long_names = fold_signals[fold_signals["any_long"]].sort_values("avg_pred", ascending=False)
-                            short_names = fold_signals[fold_signals["any_short"]].sort_values("avg_pred", ascending=True)
+                st.subheader("Live signal")
+                if recent_sharpe > 1.0:
+                    st.success(f"DEPLOY (recent Sharpe {recent_sharpe:.2f})")
+                elif recent_sharpe > 0.3:
+                    st.info(f"EDGE (recent Sharpe {recent_sharpe:.2f})")
+                else:
+                    st.warning(f"STANDBY (recent Sharpe {recent_sharpe:.2f})")
 
-                            oc1, oc2 = st.columns(2)
-                            with oc1:
-                                st.subheader("Calls (Bullish)")
-                                if long_names.empty:
-                                    st.write("No long signals.")
-                                else:
-                                    for _, r in long_names.head(5).iterrows():
-                                        st.write(f"• {r['ticker']}: {r['avg_pred']:.2%} → ATM Call, 7–14 DTE")
+                with st.expander("Write signals.json", expanded=False):
+                    if st.button("Write signals.json now", use_container_width=True):
+                        signals = build_signals_from_results(results_df, universe_text)
+                        (BASE_DIR / "signals.json").write_text(json.dumps(signals, indent=2))
+                        st.success(f"signals.json → {len(signals)} signals")
+                        st.json(signals)
 
-                            with oc2:
-                                st.subheader("Puts (Bearish)")
-                                if short_names.empty:
-                                    st.write("No short signals.")
-                                else:
-                                    for _, r in short_names.head(5).iterrows():
-                                        st.write(f"• {r['ticker']}: {r['avg_pred']:.2%} → ATM Put, 7–14 DTE")
-                        else:
-                            st.warning(f"No per-ticker signal file found for fold {latest_fold}. Run backtest again.")
-
-                st.markdown("### 🤖 Trading")
-                if st.button("💾 Write signals.json", use_container_width=True):
-                    signals = build_signals_from_results(results_df, universe_text)
-                    (BASE_DIR / "signals.json").write_text(json.dumps(signals, indent=2))
-                    st.success(f"✅ signals.json → {len(signals)} signals")
-                    st.json(signals)
-
-                st.metric("Latest Sharpe", f"{results_df['sharpe'].iloc[-1]:.2f}")
+                    st.metric("Latest Sharpe", f"{results_df['sharpe'].iloc[-1]:.2f}")
 
 
 if __name__ == "__main__":
