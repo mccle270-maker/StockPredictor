@@ -1,62 +1,102 @@
 {
-  "PEP": {
+  "AAPL": {
     "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": 0.0016697589933363907,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
+    "action": "SELL",
+    "qty": 1
+  },
+  "MSFT": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "NVDA": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "AMZN": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "GOOGL": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "META": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
   },
   "TSLA": {
     "asset": "stock",
     "action": "SELL",
-    "qty": 1,
-    "pred_next_ret": -0.015773762382271888,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
+    "qty": 1
   },
-  "WMT": {
+  "AMD": {
     "asset": "stock",
-    "action": "BUY",
-    "qty": 1,
-    "pred_next_ret": 0.010274775552243452,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
+    "action": "SELL",
+    "qty": 1
+  },
+  "INTC": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "NFLX": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "JPM": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
   },
   "BAC": {
     "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": -0.003517801428061058,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
+    "action": "SELL",
+    "qty": 1
   },
-  "META": {
+  "GS": {
     "asset": "stock",
-    "action": "BUY",
-    "qty": 1,
-    "pred_next_ret": 0.00895921869345668,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
+    "action": "SELL",
+    "qty": 1
+  },
+  "XOM": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "CVX": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "KO": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "PEP": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "WMT": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "COST": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
+  },
+  "DIS": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1
   }
 }

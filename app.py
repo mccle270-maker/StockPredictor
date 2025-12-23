@@ -43,6 +43,82 @@ BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_OUT_PATH = BASE_DIR / "signals.json"
 TRADER_PATH = BASE_DIR / "auto_paper_trade.py"
 
+def build_signals_from_preddf(
+    preddf: pd.DataFrame,
+    *,
+    prediction_horizon: int,
+    trademode: str,
+    preferspreads: bool,
+    dtemin: int,
+    dtemax: int,
+    maxstrike: float,
+    maxpremium: float,
+    widthpct: float,
+    execmodel: ExecutionModel,
+) -> dict:
+    signals = {}
+
+    if preddf is None or preddf.empty:
+        return signals
+
+    for _, row in preddf.iterrows():
+        tk = str(row.get("ticker", "")).upper().strip()
+        if not tk:
+            continue
+
+        pred = float(row.get("prednextret", 0.0) or 0.0)
+
+        stockaction = "BUY" if pred > 0.005 else "SELL" if pred < -0.005 else "HOLD"
+        strattext, _bias = suggest_options_strategy(
+            predret=pred,
+            putcallratio=row.get("putcalloiratio"),
+            atmiv=row.get("atmiv"),
+            horizon=prediction_horizon,
+        )
+        strategy = normalize_model_option_strategy(strattext, preferspreads=preferspreads)
+
+        useoptions = (
+            trademode == "Options only"
+            or (trademode == "Options if suggested" and strategy is not None)
+        )
+
+        if useoptions and strategy is not None:
+            signals[tk] = {
+                "asset": "option",
+                "strategy": strategy,
+                "dtemin": int(dtemin),
+                "dtemax": int(dtemax),
+                "maxstrike": float(maxstrike),
+                "maxpremium": float(maxpremium),
+                "widthpct": float(widthpct),
+                "qty": 1,
+                "rawstrategytext": str(strattext),
+                "prednextret": float(pred),
+                "lastclose": float(row.get("lastclose")) if row.get("lastclose") is not None else None,
+                "execution": {
+                    "delaydays": int(execmodel.delaydays),
+                    "halfspreadbps": float(execmodel.halfspreadbps),
+                    "slippagebps": float(execmodel.slippagebps),
+                    "feebps": float(execmodel.feebps),
+                },
+            }
+        else:
+            signals[tk] = {
+                "asset": "stock",
+                "action": stockaction,
+                "qty": 1,
+                "prednextret": float(pred),
+                "execution": {
+                    "delaydays": int(execmodel.delaydays),
+                    "halfspreadbps": float(execmodel.halfspreadbps),
+                    "slippagebps": float(execmodel.slippagebps),
+                    "feebps": float(execmodel.feebps),
+                },
+            }
+
+    return signals
+
+
 def write_signals_json_atomic(signals: dict, path: str = "signals.json"):
     fd, tmp_path = tempfile.mkstemp(prefix="signals_", suffix=".json")
     try:
@@ -217,6 +293,187 @@ def _build_display_df(pred_df: pd.DataFrame, display_horizon: int):
     display.rename(columns=rename_map, inplace=True)
     return display
 
+# ===================== TAB 1 HELPERS (condense) =====================
+
+def run_ticker_pipeline(
+    tk: str,
+    *,
+    model_type: str,
+    prediction_horizon: int,
+    auto_optimize: bool,
+    run_gaf: bool,
+    pricing_model,
+    fetch_live_price: bool,
+    run_mc: bool,
+) -> dict:
+    """
+    One-ticker pipeline: prediction + options snapshot + optional intraday + pricing + optional MC.
+    Returns dict compatible with your existing pred_df downstream.
+    """
+    out = predict_next_for_ticker(
+        tk,
+        period="5y",
+        model_type=model_type,
+        horizon=prediction_horizon,
+        use_vol_scaled_target=False,
+        auto_optimize=auto_optimize,
+        run_gaf=run_gaf,
+    )
+
+    opt = get_option_snapshot_features(tk) or {}
+    if isinstance(opt, dict):
+        out.update(opt)
+
+    atm_iv = out.get("atm_iv")
+    last_close = out.get("last_close")
+
+    # Optional intraday live price (slow)
+    live_price, live_ts = None, None
+    if fetch_live_price:
+        try:
+            intraday = get_history_intraday_cached(tk, period="1d", interval="1m")
+            if intraday is not None and (not intraday.empty) and ("Close" in intraday.columns):
+                live_price = float(intraday["Close"].iloc[-1])
+                live_ts = intraday.index[-1]
+        except Exception:
+            live_price, live_ts = None, None
+
+    out["liveprice"] = live_price
+    out["livets"] = str(live_ts) if live_ts is not None else None
+
+    # IV minus realized
+    out["iv_minus_realized"] = None
+    if atm_iv is not None and out.get("vol_20d") is not None:
+        try:
+            out["iv_minus_realized"] = float(atm_iv) - float(out["vol_20d"])
+        except Exception:
+            out["iv_minus_realized"] = None
+
+    # Theoretical ATM call price (keep same behavior)
+    out["theo_atm_call_price"] = None
+    try:
+        opt_exp = out.get("opt_exp")
+        if last_close is not None and atm_iv is not None and opt_exp:
+            opt_exp_date = pd.to_datetime(opt_exp).date()
+            val_date = pd.Timestamp.today().date()
+
+            opt_spec = OptionSpec(
+                spot=float(last_close),
+                strike=float(last_close),
+                maturity_date=opt_exp_date,
+                valuation_date=val_date,
+                rate=0.05,
+                div_yield=0.0,
+                vol=float(atm_iv),
+                is_call=True,
+            )
+
+            if pricing_model == PricingModel.HESTON:
+                heston_params = get_heston_params_for_ticker(tk)
+                if heston_params is None:
+                    theo_price = price_option(opt_spec, model=PricingModel.BLACK_SCHOLES)
+                else:
+                    theo_price = price_option(opt_spec, model=pricing_model, heston_params=heston_params)
+            else:
+                theo_price = price_option(opt_spec, model=pricing_model)
+
+            out["theo_atm_call_price"] = float(theo_price)
+    except Exception:
+        out["theo_atm_call_price"] = None
+
+    # Optional Monte Carlo (slow)
+    if run_mc and (atm_iv is not None) and (last_close is not None):
+        try:
+            mc_res = option_mc_ev(
+                s0=float(last_close),
+                mu=float(out.get("pred_next_ret")),
+                sigma=float(atm_iv),
+                days=int(prediction_horizon),
+                premium=1.0,
+                strike=float(last_close),
+                n_paths=5000,
+                is_call=True,
+            )
+            if isinstance(mc_res, dict):
+                out.update(mc_res)
+        except Exception:
+            pass
+
+    out["signal_alignment"] = classify_alignment(out.get("pred_next_ret"), out.get("put_call_oi_ratio"))
+    return out
+
+
+def build_signals_from_pred_df(
+    pred_df: pd.DataFrame,
+    *,
+    prediction_horizon: int,
+    trade_mode: str,
+    prefer_spreads: bool,
+    dte_min: int,
+    dte_max: int,
+    max_strike: float,
+    max_premium: float,
+    width_pct: float,
+    exec_model,
+) -> dict:
+    signals = {}
+    if pred_df is None or pred_df.empty:
+        return signals
+
+    for _, row in pred_df.iterrows():
+        tk = str(row.get("ticker", "")).upper().strip()
+        if not tk:
+            continue
+
+        pred = float(row.get("pred_next_ret") or 0.0)
+        stock_action = "BUY" if pred >= 0.005 else ("SELL" if pred <= -0.005 else "HOLD")
+
+        strat_text, _bias = suggest_options_strategy(
+            pred_ret=pred,
+            put_call_ratio=row.get("put_call_oi_ratio"),
+            atm_iv=row.get("atm_iv"),
+            horizon=prediction_horizon,
+        )
+        strategy = normalize_model_option_strategy(strat_text, prefer_spreads=prefer_spreads)
+
+        use_options = (trade_mode == "Options only") or (trade_mode == "Options if suggested" and strategy is not None)
+
+        if use_options and strategy is not None:
+            signals[tk] = {
+                "asset": "option",
+                "strategy": strategy,
+                "dte_min": int(dte_min),
+                "dte_max": int(dte_max),
+                "max_strike": float(max_strike),
+                "max_premium": float(max_premium),
+                "width_pct": float(width_pct),
+                "qty": 1,
+                "raw_strategy_text": str(strat_text),
+                "pred_next_ret": float(pred),
+                "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
+                "execution": {
+                    "delay_days": int(exec_model.delay_days),
+                    "half_spread_bps": float(exec_model.half_spread_bps),
+                    "slippage_bps": float(exec_model.slippage_bps),
+                    "fee_bps": float(exec_model.fee_bps),
+                },
+            }
+        else:
+            signals[tk] = {
+                "asset": "stock",
+                "action": stock_action,
+                "qty": 1,
+                "pred_next_ret": float(pred),
+                "execution": {
+                    "delay_days": int(exec_model.delay_days),
+                    "half_spread_bps": float(exec_model.half_spread_bps),
+                    "slippage_bps": float(exec_model.slippage_bps),
+                    "fee_bps": float(exec_model.fee_bps),
+                },
+            }
+
+    return signals
+
 def run_app():
     st.set_page_config(page_title="Stock Predictor", layout="wide")
     st.title("Stock Predictor Dashboard")
@@ -306,7 +563,11 @@ def run_app():
         if dte_max < dte_min:
             st.error("Max DTE must be >= Min DTE")
         run_gaf = st.sidebar.checkbox("Run GAF-CNN (slow)", value=False)
-
+        st.markdown("Performance (Tab 1)")
+        fetch_live_price = st.checkbox("Fetch intraday live price (slower)", value=False)
+        run_mc = st.checkbox("Compute Monte Carlo metrics (slower)", value=False)
+        fetch_news_greeks_all = st.checkbox("Fetch news/Greeks for all tickers (slower)", value=False)
+        details_top_n = st.slider("Details: tickers to fully expand", 1, 20, 5, 1)
 
     # ===================== TAB 1: Predictions & Options =====================
     with tab_pred:
@@ -324,6 +585,7 @@ def run_app():
                     ret_thresh=ret_thresh / 100.0,
                     vol_spike_thresh=vol_spike_thresh,
                 )
+
             with st.expander("Screener results (raw)", expanded=False):
                 st.dataframe(screener_df, use_container_width=True)
 
@@ -332,109 +594,41 @@ def run_app():
                 st.stop()
 
             if "flag" in screener_df.columns:
-                flagged = screener_df[screener_df["flag"] == True]["ticker"].tolist()
+                flagged = screener_df.loc[screener_df["flag"] == True, "ticker"].tolist()
             else:
                 flagged = []
+
             if not flagged:
                 flagged = tickers
+
             if len(flagged) > max_tickers:
                 st.warning(f"Limiting to first {max_tickers} tickers to avoid rate limits.")
                 flagged = flagged[:max_tickers]
 
             st.info(f"Running {horizon_label} predictions on: {', '.join(flagged)}")
-            progress_bar = st.progress(0)
+
+            progress_bar = st.progress(0.0)
             status_text = st.empty()
             results = []
 
             for i, tk in enumerate(flagged):
                 progress_bar.progress((i + 1) / len(flagged))
                 status_text.text(f"Processing {tk}... ({i+1}/{len(flagged)})")
+
                 if i > 0:
                     time.sleep(1)
 
                 try:
-                    out = predict_next_for_ticker(
+                    out = run_ticker_pipeline(
                         tk,
-                        period="5y",
                         model_type=model_type,
-                        horizon=prediction_horizon,
-                        use_vol_scaled_target=False,
+                        prediction_horizon=prediction_horizon,
                         auto_optimize=auto_optimize,
-                        run_gaf=run_gaf
+                        run_gaf=run_gaf,
+                        pricing_model=pricing_model,
+                        fetch_live_price=fetch_live_price,
+                        run_mc=run_mc,
                     )
-                    opt = get_option_snapshot_features(tk)
-                    out.update(opt)
-
-                    atm_iv = out.get("atm_iv")
-                    last_close = out.get("last_close")
-                    live_price = None
-                    live_ts = None
-                    try:
-                        intraday = get_history_intraday_cached(tk, period="1d", interval="1m")
-                        if intraday is not None and (not intraday.empty) and ("Close" in intraday.columns):
-                            live_price = float(intraday["Close"].iloc[-1])
-                            live_ts = intraday.index[-1]
-                    except Exception:
-                        live_price = None
-                        live_ts = None
-                    out["liveprice"] = live_price
-                    out["livets"] = str(live_ts) if live_ts is not None else None
-                        
-
-                    out["iv_minus_realized"] = None
-                    if atm_iv is not None and out.get("vol_20d") is not None:
-                        try:
-                            out["iv_minus_realized"] = float(atm_iv) - float(out["vol_20d"])
-                        except Exception:
-                            out["iv_minus_realized"] = None
-
-                    out["theo_atm_call_price"] = None
-                    try:
-                        opt_exp = out.get("opt_exp")
-                        if last_close is not None and atm_iv is not None and opt_exp:
-                            opt_exp_date = pd.to_datetime(opt_exp).date()
-                            val_date = pd.Timestamp.today().date()
-                            opt_spec = OptionSpec(
-                                spot=float(last_close),
-                                strike=float(last_close),
-                                maturity_date=opt_exp_date,
-                                valuation_date=val_date,
-                                rate=0.05,
-                                div_yield=0.0,
-                                vol=float(atm_iv),
-                                is_call=True,
-                            )
-                            heston_params = None
-                            if pricing_model == PricingModel.HESTON:
-                                heston_params = get_heston_params_for_ticker(tk)
-                                if heston_params is None:
-                                    theo_price = price_option(opt_spec, model=PricingModel.BLACK_SCHOLES)
-                                else:
-                                    theo_price = price_option(opt_spec, model=pricing_model, heston_params=heston_params)
-                            else:
-                                theo_price = price_option(opt_spec, model=pricing_model)
-                            out["theo_atm_call_price"] = float(theo_price)
-                    except Exception as pe:
-                        print(f"Pricing error for {tk}: {pe}")
-                        out["theo_atm_call_price"] = None
-
-                    if atm_iv is not None and last_close is not None:
-                        try:
-                            mc_res = option_mc_ev(
-                                s0=float(last_close),
-                                mu=float(out["pred_next_ret"]),
-                                sigma=float(atm_iv),
-                                days=int(prediction_horizon),
-                                premium=1.0,
-                                strike=float(last_close),
-                                n_paths=5000,
-                                is_call=True,
-                            )
-                            out.update(mc_res)
-                        except Exception as mc_e:
-                            print(f"MC error for {tk}: {mc_e}")
-
-                    out["signal_alignment"] = classify_alignment(out["pred_next_ret"], out.get("put_call_oi_ratio"))
                     results.append(out)
 
                 except YFRateLimitError:
@@ -451,61 +645,27 @@ def run_app():
                 st.session_state.pred_df = None
                 st.stop()
 
-            st.session_state.pred_df = pd.DataFrame(results)
-            st.session_state.pred_df["pred_next_ret_pct"] = st.session_state.pred_df["pred_next_ret"] * 100
+            pred_df = pd.DataFrame(results)
+            pred_df["pred_next_ret_pct"] = pred_df["pred_next_ret"] * 100.0
+
+            st.session_state.pred_df = pred_df
             st.session_state.model_type = model_type
             st.session_state.screener_df = screener_df
             st.session_state.prediction_horizon = prediction_horizon
             st.session_state.auto_optimize = auto_optimize
 
-            signals = {}
-            for _, row in st.session_state.pred_df.iterrows():
-                tk = str(row["ticker"]).upper()
-                pred = float(row["pred_next_ret"])
-                stock_action = "BUY" if pred >= 0.005 else ("SELL" if pred <= -0.005 else "HOLD")
-
-                strat_text, _bias = suggest_options_strategy(
-                    pred_ret=pred,
-                    put_call_ratio=row.get("put_call_oi_ratio"),
-                    atm_iv=row.get("atm_iv"),
-                    horizon=prediction_horizon,
-                )
-                strategy = normalize_model_option_strategy(strat_text, prefer_spreads=prefer_spreads)
-                use_options = (trade_mode == "Options only") or (trade_mode == "Options if suggested" and strategy is not None)
-
-                if use_options and strategy is not None:
-                    signals[tk] = {
-                        "asset": "option",
-                        "strategy": strategy,
-                        "dte_min": int(dte_min),
-                        "dte_max": int(dte_max),
-                        "max_strike": float(max_strike),
-                        "max_premium": float(max_premium),
-                        "width_pct": float(width_pct),
-                        "qty": 1,
-                        "raw_strategy_text": str(strat_text),
-                        "pred_next_ret": float(pred),
-                        "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
-                        "execution": {
-                            "delay_days": int(exec_model.delay_days),
-                            "half_spread_bps": float(exec_model.half_spread_bps),
-                            "slippage_bps": float(exec_model.slippage_bps),
-                            "fee_bps": float(exec_model.fee_bps),
-                        },
-                    }
-                else:
-                    signals[tk] = {
-                        "asset": "stock",
-                        "action": stock_action,
-                        "qty": 1,
-                        "pred_next_ret": float(pred),
-                        "execution": {
-                            "delay_days": int(exec_model.delay_days),
-                            "half_spread_bps": float(exec_model.half_spread_bps),
-                            "slippage_bps": float(exec_model.slippage_bps),
-                            "fee_bps": float(exec_model.fee_bps),
-                        },
-                    }
+            signals = build_signals_from_pred_df(
+                pred_df,
+                prediction_horizon=prediction_horizon,
+                trade_mode=trade_mode,
+                prefer_spreads=prefer_spreads,
+                dte_min=dte_min,
+                dte_max=dte_max,
+                max_strike=max_strike,
+                max_premium=max_premium,
+                width_pct=width_pct,
+                exec_model=exec_model,
+            )
 
             write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
             st.session_state.last_signals = signals
@@ -514,6 +674,7 @@ def run_app():
             st.session_state.last_trader_stdout = ""
             st.session_state.last_trader_stderr = ""
             st.session_state.last_trader_rc = None
+
             if auto_run_trader:
                 if not TRADER_PATH.exists():
                     st.error(f"Trader script not found: {TRADER_PATH}")
@@ -527,6 +688,7 @@ def run_app():
                     st.session_state.last_trader_stdout = res.stdout or ""
                     st.session_state.last_trader_stderr = res.stderr or ""
                     st.session_state.last_trader_rc = res.returncode
+
 
         # IMPORTANT: everything below is inside tab_pred so it never leaks to other tabs
         if st.session_state.pred_df is not None:
@@ -594,7 +756,11 @@ def run_app():
                 st.bar_chart(bar_data)
 
             with st.expander("Options strategy details (per ticker)", expanded=False):
-                for _, row in pred_df.iterrows():
+                detail_df = pred_df.copy()
+                detail_df["score"] = detail_df["pred_next_ret_pct"].abs()
+                detail_df = detail_df.sort_values("score", ascending=False)
+                rows_iter = detail_df if fetch_news_greeks_all else detail_df.head(details_top_n)
+                for _, row in rows_iter.iterrows():
                     strategy, sentiment = suggest_options_strategy(
                         row["pred_next_ret"],
                         row.get("put_call_oi_ratio"),
