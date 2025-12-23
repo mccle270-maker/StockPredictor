@@ -3,7 +3,7 @@
     "asset": "stock",
     "action": "SELL",
     "qty": 1,
-    "pred_next_ret": -0.006195130221055044,
+    "pred_next_ret": -0.006195130221055045,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -15,7 +15,7 @@
     "asset": "stock",
     "action": "BUY",
     "qty": 1,
-    "pred_next_ret": 0.006706928840438936,
+    "pred_next_ret": 0.006706928840438938,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,

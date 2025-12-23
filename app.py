@@ -504,6 +504,18 @@ def run_app():
         pricing_model_label = st.selectbox("Pricing engine", ["Black-Scholes", "Heston (stochastic vol)"], index=0)
         pricing_model = PricingModel.BLACK_SCHOLES if pricing_model_label == "Black-Scholes" else PricingModel.HESTON
 
+        st.markdown("Elastic Net feature selection")
+        use_elasticnet_select = st.checkbox("Enable Elastic Net selection", value=False)
+        en_l1_ratio = st.slider("l1_ratio", 0.0, 1.0, 0.5, 0.05)
+        en_cv_folds = st.slider("CV folds", 3, 8, 5, 1)
+
+        if use_elasticnet_select and ElasticNetCV is None:
+            st.error("Elastic Net requires scikit-learn (ElasticNetCV not available).")
+
+        os.environ["USE_ELASTICNET_SELECT"] = "1" if use_elasticnet_select else "0"
+        os.environ["ELASTICNET_L1_RATIO"] = str(en_l1_ratio)
+        os.environ["ELASTICNET_CV_FOLDS"] = str(en_cv_folds)
+
         run_gaf = st.checkbox("Run GAF-CNN (slow)", value=False)
         fetch_live_price = st.checkbox("Fetch intraday live price (slower)", value=False)
         run_mc = st.checkbox("Compute Monte Carlo metrics (slower)", value=False)
@@ -538,6 +550,12 @@ def run_app():
     if "pricing_model" not in locals():
         pricing_model_label = "Black-Scholes"
         pricing_model = PricingModel.BLACK_SCHOLES
+    if "use_elasticnet_select" not in locals():
+        use_elasticnet_select = False
+    if "en_l1_ratio" not in locals():
+        en_l1_ratio = 0.5
+    if "en_cv_folds" not in locals():
+        en_cv_folds = 5
     if "run_gaf" not in locals():
         run_gaf = False
     if "fetch_live_price" not in locals():
