@@ -2,101 +2,25 @@
   "AAPL": {
     "asset": "stock",
     "action": "SELL",
-    "qty": 1
-  },
-  "MSFT": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
+    "qty": 1,
+    "pred_next_ret": -0.006195130221055044,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
   },
   "NVDA": {
     "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "AMZN": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "GOOGL": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "META": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "TSLA": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "AMD": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "INTC": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "NFLX": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "JPM": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "BAC": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "GS": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "XOM": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "CVX": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "KO": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "PEP": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "WMT": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "COST": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
-  },
-  "DIS": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1
+    "action": "BUY",
+    "qty": 1,
+    "pred_next_ret": 0.006706928840438936,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
   }
 }
