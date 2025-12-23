@@ -3,7 +3,7 @@
     "asset": "stock",
     "action": "SELL",
     "qty": 1,
-    "pred_next_ret": -0.006195130221055045,
+    "pred_next_ret": -0.005792691687444804,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -13,33 +13,9 @@
   },
   "NVDA": {
     "asset": "stock",
-    "action": "BUY",
-    "qty": 1,
-    "pred_next_ret": 0.006706928840438938,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "PLTR": {
-    "asset": "stock",
-    "action": "SELL",
-    "qty": 1,
-    "pred_next_ret": -0.00599891188099958,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "QQQ": {
-    "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.0027013006102232276,
+    "pred_next_ret": 0.004493101773898469,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,

@@ -272,6 +272,40 @@ def sharpe_from_returns(r: pd.Series, periods_per_year: int = 252) -> float | No
         return None
     return float(r.mean() / r.std(ddof=1) * np.sqrt(periods_per_year))
 
+def add_basket_stress_from_z(
+    df: pd.DataFrame,
+    z_col: str = "retzscore20d",
+    pct_window: int = 252,
+    min_periods: int = 60,
+    shift_days: int = 1,
+) -> pd.DataFrame:
+    """
+    Adds per-date basket distance (Euclidean norm) and rolling percentile rank.
+    Expects df columns: date, ticker, and z_col.
+    shift_days=1 prevents lookahead (today's signal uses yesterday's stress).
+    """
+    if z_col not in df.columns:
+        raise ValueError(f"Missing z_col={z_col}. Available columns: {list(df.columns)[:20]}...")
+
+    z_wide = df.pivot_table(index="date", columns="ticker", values=z_col, aggfunc="mean")
+    D = np.sqrt((z_wide ** 2).sum(axis=1))
+
+    def pct_rank_last(x):
+        s = pd.Series(x)
+        return float(s.rank(pct=True).iloc[-1])
+
+    D_pct = D.rolling(pct_window, min_periods=min_periods).apply(pct_rank_last, raw=False)
+
+    stress = pd.DataFrame(
+        {
+            "date": D.index,
+            "basket_D": D.values,
+            "basket_D_pct": D_pct.shift(shift_days).values,
+        }
+    )
+    return df.merge(stress, on="date", how="left")
+
+
 def build_cross_sectional_portfolio(
     dates,
     tickers,
@@ -1039,6 +1073,11 @@ def walkforward_cross_sectional(
     top_pct_long: float = 0.15,
     top_pct_short: float = 0.35,
     vix_filter: float | None = None,
+    basket_gate: bool = False,
+    basket_entry_pct: float = 0.95,
+    basket_pct_window: int = 252,
+    basket_z_col: str = "retzscore20d",
+    basket_mode: str = "gate",
 ) -> pd.DataFrame:
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
@@ -1054,38 +1093,55 @@ def walkforward_cross_sectional(
     df["date"] = pd.to_datetime(df["date"])
     df = df.sort_values(["date", "ticker"]).reset_index(drop=True)
 
-    # VIX regime filter
+    # Basket stress (computed BEFORE VIX filter so percentile rank is based on full history)
+    if basket_gate:
+        df = add_basket_stress_from_z(
+            df,
+            z_col=basket_z_col,
+            pct_window=basket_pct_window,
+            min_periods=max(30, int(basket_pct_window * 0.25)),
+            shift_days=1,  # prevents lookahead
+        )
+
+    # VIX regime filter (date-level macro => removes whole dates)
     if vix_filter and "vix" in df.columns:
         orig_rows = len(df)
         df = df[df["vix"] < vix_filter].copy()
         print(f"[VIX] Kept {len(df)}/{orig_rows} rows (VIX<{vix_filter})")
 
+    # IMPORTANT: split by UNIQUE DATES (not by raw rows), so dates don't leak across folds
+    all_dates = np.array(sorted(df["date"].unique()))
+    n_dates = len(all_dates)
+
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
-    print(f"[WF DEBUG] Rows: {len(df)}, Train: {train_days}, Test: {test_days}")
+    print(f"[WF DEBUG] Rows: {len(df)}, Unique dates: {n_dates}, Train days: {train_days}, Test days: {test_days}")
 
-    n = len(df)
     fold_metrics: list[dict] = []
     start = 0
 
     while True:
         train_start = start
-        train_end = min(start + train_days, n)
+        train_end = min(start + train_days, n_dates)
         test_start = train_end
-        test_end = min(test_start + test_days, n)
+        test_end = min(test_start + test_days, n_dates)
 
-        if test_start >= n:
+        if test_start >= n_dates:
             break
 
-        train_df = df.iloc[train_start:train_end]
-        test_df = df.iloc[test_start:test_end]
+        train_dates = all_dates[train_start:train_end]
+        test_dates = all_dates[test_start:test_end]
+
+        train_df = df[df["date"].isin(train_dates)].copy()
+        test_df = df[df["date"].isin(test_dates)].copy()
 
         if len(train_df) < 30 or len(test_df) < 5:
             start += test_days
             continue
 
         fold_idx = len(fold_metrics)
-        print(f"[WF] Fold {fold_idx}: train={len(train_df)}, test={len(test_df)}")
+        print(f"[WF] Fold {fold_idx}: train_rows={len(train_df)}, test_rows={len(test_df)}, "
+              f"train_dates={len(train_dates)}, test_dates={len(test_dates)}")
 
         # MODEL TRAINING
         X_train = train_df[feat_cols].fillna(0).values
@@ -1107,28 +1163,20 @@ def walkforward_cross_sectional(
 
         test_df = test_df.copy()
         test_df["pred"] = y_pred
-        test_df["rank_pct"] = test_df.groupby("date")["pred"].rank(
-            pct=True, method="average"
-        )
+        test_df["rank_pct"] = test_df.groupby("date")["pred"].rank(pct=True, method="average")
 
         # INITIAL VERY LENIENT MASKS JUST TO AVOID EMPTY DAYS
         base_long_mask = test_df["rank_pct"] <= 0.30
         base_short_mask = test_df["rank_pct"] >= 0.70
-        print(
-            f"[WF] Base Long: {base_long_mask.sum()}, Base Short: {base_short_mask.sum()}"
-        )
+        print(f"[WF] Base Long: {base_long_mask.sum()}, Base Short: {base_short_mask.sum()}")
 
         # FINAL MASKS USING USER THRESHOLDS
         long_mask = test_df["rank_pct"] <= top_pct_long
         short_mask = test_df["rank_pct"] >= (1 - top_pct_short)
-        print(
-            f"[WF] Final Long: {long_mask.sum()}, Final Short: {short_mask.sum()}"
-        )
+        print(f"[WF] Final Long: {long_mask.sum()}, Final Short: {short_mask.sum()}")
 
         # VOL-TARGETED WEIGHTS (15% target vol)
-        test_df["vol_weight"] = vol_target_position_size(
-            1.0, test_df["vol_20d"], target_vol=0.15
-        )
+        test_df["vol_weight"] = vol_target_position_size(1.0, test_df["vol_20d"], target_vol=0.15)
 
         # VOL-WEIGHTED RETURNS
         long_rets = test_df[long_mask].groupby("date").apply(
@@ -1137,6 +1185,27 @@ def walkforward_cross_sectional(
         short_rets = -test_df[short_mask].groupby("date").apply(
             lambda x: (x["target"] * x["vol_weight"]).mean()
         )
+
+        # Basket gate/throttle applied at the DATE level
+        if basket_gate:
+            if "basket_D_pct" not in test_df.columns:
+                raise ValueError("basket_gate=True but basket_D_pct column is missing. "
+                                 "Ensure add_basket_stress_from_z ran and returned basket_D_pct.")
+
+            stress_by_date = test_df.groupby("date")["basket_D_pct"].first()
+
+            if basket_mode == "gate":
+                active = (stress_by_date >= basket_entry_pct).fillna(False).astype(float)
+                long_rets = long_rets.reindex(active.index).fillna(0.0) * active
+                short_rets = short_rets.reindex(active.index).fillna(0.0) * active
+
+            elif basket_mode == "throttle":
+                throttle = ((stress_by_date - 0.50) / 0.50).clip(0.0, 1.0).fillna(0.0)
+                long_rets = long_rets.reindex(throttle.index).fillna(0.0) * throttle
+                short_rets = short_rets.reindex(throttle.index).fillna(0.0) * throttle
+
+            else:
+                raise ValueError(f"Unknown basket_mode={basket_mode}. Use 'gate' or 'throttle'.")
 
         # HANDLE EMPTY SERIES
         if long_rets.empty and short_rets.empty:
@@ -1152,7 +1221,6 @@ def walkforward_cross_sectional(
         port_rets = port_rets.dropna()
 
         print(f"[WF] Portfolio: {len(port_rets)} days (15% target vol)")
-
         if len(port_rets) == 0:
             start += test_days
             continue
@@ -1169,24 +1237,22 @@ def walkforward_cross_sectional(
             .reset_index()
         )
         per_ticker["fold"] = fold_idx
-        
+
         # FOLD METRICS
         fold_metrics.append(
             {
                 "fold": fold_idx,
-                "train_start": str(train_df["date"].iloc[0])[:10],
-                "train_end": str(train_df["date"].iloc[-1])[:10],
-                "test_start": str(test_df["date"].iloc[0])[:10],
-                "test_end": str(test_df["date"].iloc[-1])[:10],
+                "train_start": str(train_df["date"].min())[:10],
+                "train_end": str(train_df["date"].max())[:10],
+                "test_start": str(test_df["date"].min())[:10],
+                "test_end": str(test_df["date"].max())[:10],
                 "test_days": int(len(port_rets)),
                 "sharpe": float(sharpe_from_returns(port_rets) or 0.0),
                 "ann_return": float(port_rets.mean() * 252),
                 "max_dd": float(max_drawdown_from_returns(port_rets) or 0.0),
                 "avg_n_long": float(long_mask.sum() / test_df["date"].nunique()),
                 "avg_n_short": float(short_mask.sum() / test_df["date"].nunique()),
-                "hit_rate": float(
-                    (np.sign(y_pred) == np.sign(y_test)).mean()
-                ),
+                "hit_rate": float((np.sign(y_pred) == np.sign(y_test)).mean()),
             }
         )
 
