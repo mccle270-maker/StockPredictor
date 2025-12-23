@@ -22,5 +22,29 @@
       "slippage_bps": 3.0,
       "fee_bps": 0.0
     }
+  },
+  "PLTR": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.00599891188099958,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "QQQ": {
+    "asset": "stock",
+    "action": "HOLD",
+    "qty": 1,
+    "pred_next_ret": 0.0027013006102232276,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
   }
 }
