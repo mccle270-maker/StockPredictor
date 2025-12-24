@@ -8,3 +8,4 @@ scipy
 statsmodels
 pyts
 matplotlib
+plotly

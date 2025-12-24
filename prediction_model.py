@@ -115,6 +115,23 @@ try:
 except Exception:
     ELASTICNET_CV_FOLDS = 5
 
+USE_OLSSIGSELECT = env_bool("USE_OLSSIGSELECT", False)
+
+try:
+    OLSSIG_ALPHA = float(os.environ.get("OLSSIG_ALPHA", "0.05"))
+except Exception:
+    OLSSIG_ALPHA = 0.05
+
+try:
+    OLSSIG_TOPK = int(os.environ.get("OLSSIG_TOPK", "50"))  # 0 => no cap
+except Exception:
+    OLSSIG_TOPK = 50
+
+try:
+    OLSSIG_MINFEATURES = int(os.environ.get("OLSSIG_MINFEATURES", "10"))
+except Exception:
+    OLSSIG_MINFEATURES = 10
+
 
 def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     params_by_ticker = {
@@ -910,6 +927,60 @@ def select_features_elasticnet_timeseries(
     selected_names = [featurenames[i] for i, m in enumerate(mask) if m]
     return X[:, mask], selected_names, mask
 
+def selectfeaturesols_pvalues(
+    X: np.ndarray,
+    y: np.ndarray,
+    featurenames: list[str],
+    alpha: float = 0.05,
+    topk: int = 50,          # 0 => no cap
+    minfeatures: int = 10,
+):
+    """
+    Returns: (X_selected, selected_names, selected_mask_full)
+    selected_mask_full is boolean mask aligned to the *input* featurenames.
+    """
+    if X is None or y is None or len(y) < 30:
+        mask = np.ones(len(featurenames), dtype=bool)
+        return X, list(featurenames), mask
+
+    try:
+        Xdf = pd.DataFrame(X, columns=featurenames)
+        Xdf = sm.add_constant(Xdf, has_constant="add")
+        ols = sm.OLS(y, Xdf).fit()
+
+        # p-values for features (exclude constant)
+        pvals = ols.pvalues.drop(labels=["const"], errors="ignore")
+        pvals = pvals.replace([np.inf, -np.inf], np.nan).dropna()
+
+        if pvals.empty:
+            mask = np.ones(len(featurenames), dtype=bool)
+            return X, list(featurenames), mask
+
+        # primary rule: keep p <= alpha
+        keep = pvals[pvals <= float(alpha)].sort_values()
+
+        # fallback: if too few, take best minfeatures by p-value
+        if len(keep) < int(minfeatures):
+            keep = pvals.sort_values().head(int(minfeatures))
+
+        # optional cap: keep only topk “best” p-values
+        if topk is not None and int(topk) > 0:
+            keep = keep.head(int(topk))
+
+        selected = list(keep.index)
+        mask = np.array([f in set(selected) for f in featurenames], dtype=bool)
+
+        # guardrail: never return empty
+        if mask.sum() == 0:
+            mask[:] = True
+            selected = list(featurenames)
+
+        return X[:, mask], selected, mask
+
+    except Exception as e:
+        print("OLS significance selection failed, skipping. Error:", e)
+        mask = np.ones(len(featurenames), dtype=bool)
+        return X, list(featurenames), mask
 
 
 def get_fundamental_features(ticker: str) -> dict:
@@ -1304,6 +1375,26 @@ def predict_next_for_ticker(
 
     n = len(X)
 
+# --- OLS significance selection (train-only to avoid lookahead) ---
+    if USE_OLSSIGSELECT:
+        trainend = int(n * 0.8)
+        Xtrain = X[:trainend]
+        ytrain = y[:trainend]
+
+        Xtrain_sel, ols_names, ols_mask = selectfeaturesols_pvalues(
+            Xtrain, ytrain,
+            featurenames=list(featcols),
+            alpha=OLSSIG_ALPHA,
+            topk=OLSSIG_TOPK,
+            minfeatures=OLSSIG_MINFEATURES,
+        )
+
+        # Apply same mask to full X + last row
+        X = X[:, ols_mask]
+        xlast = xlast[ols_mask]
+        featcols = ols_names
+
+
     if USE_ELASTICNET_SELECT:
         try:
             train_end_for_en = int(n * 0.8)
@@ -1465,6 +1556,17 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         Xtrain = train_df[feat_cols].values
         ytrain = train_df["ftarget_ret_horizon_ahead"].values
 
+        if USE_OLSSIGSELECT:
+            Xtrain, ols_names, ols_mask = selectfeaturesols_pvalues(
+                Xtrain, ytrain,
+                featurenames=list(featcols),
+                alpha=OLSSIG_ALPHA,
+                topk=OLSSIG_TOPK,
+                minfeatures=OLSSIG_MINFEATURES,
+            )
+            Xtest = Xtest[:, ols_mask]
+            featcols = ols_names
+
         selected_mask = None
         if USE_ELASTICNET_SELECT:
             try:
@@ -1562,6 +1664,18 @@ def backtest_one_ticker(ticker="AAPL", period="10y", test_years=1, threshold=0.0
 
     selected_mask = None
     selected_feats = None
+
+    if USE_OLSSIGSELECT:
+                Xtrain, ols_names, ols_mask = selectfeaturesols_pvalues(
+                    Xtrain, ytrain,
+                    featurenames=list(featcols),
+                    alpha=OLSSIG_ALPHA,
+                    topk=OLSSIG_TOPK,
+                    minfeatures=OLSSIG_MINFEATURES,
+                )
+                Xtest = Xtest[:, ols_mask]
+                featcols = ols_names
+
     if USE_ELASTICNET_SELECT:
         try:
             Xtrain_sel, selected_feats, selected_mask = select_features_elasticnet_timeseries(
@@ -1654,6 +1768,17 @@ def backtest_one_ticker_auto_optimized(
 
     Xtrain = train_df[feat_cols].values
     ytrain = train_df["ftarget_ret_horizon_ahead"].values
+
+    if USE_OLSSIGSELECT:
+            Xtrain, ols_names, ols_mask = selectfeaturesols_pvalues(
+                Xtrain, ytrain,
+                featurenames=list(featcols),
+                alpha=OLSSIG_ALPHA,
+                topk=OLSSIG_TOPK,
+                minfeatures=OLSSIG_MINFEATURES,
+            )
+            Xtest = Xtest[:, ols_mask]
+            featcols = ols_names
 
     selected_mask = None
     if USE_ELASTICNET_SELECT:
@@ -1948,6 +2073,16 @@ def walk_forward_backtest(
 
         # ... your existing: fit model, predict, simulate trades, compute metrics ...
         # fold_metrics.append({...})
+        if USE_OLSSIGSELECT:
+            Xtrain, ols_names, ols_mask = selectfeaturesols_pvalues(
+                Xtrain, ytrain,
+                featurenames=list(featcols),
+                alpha=OLSSIG_ALPHA,
+                topk=OLSSIG_TOPK,
+                minfeatures=OLSSIG_MINFEATURES,
+            )
+            Xtest = Xtest[:, ols_mask]
+            featcols = ols_names
 
         if USE_ELASTICNET_SELECT:
             try:

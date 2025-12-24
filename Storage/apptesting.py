@@ -4,7 +4,6 @@ import time
 import json
 import tempfile
 import subprocess
-import plotly.graph_objects as go
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -76,65 +75,6 @@ def write_signals_json_atomic(signals: dict, path: str):
         except Exception:
             pass
 
-@st.cache_data(ttl=6 * 60 * 60, show_spinner=False)
-def _cached_accuracy_row(
-    tk: str,
-    period: str,
-    model_type: str,
-    horizon: int,
-    delay_days: int,
-    half_spread_bps: float,
-    slippage_bps: float,
-    fee_bps: float,
-    signal_threshold_pct: float,
-    n_trials: int,
-):
-    results_test, accuracy = _cached_track_predictions(tk, period=period, model_type=model_type, horizon=int(horizon))
-    if results_test is None or results_test.empty:
-        return {"ticker": tk, "direction_accuracy": None, "sharpe_signal_w_cost": None, "dsr_signal_w_cost": None, "acc_n": 0}
-
-    exec_model = ExecutionModel(
-        delay_days=int(delay_days),
-        half_spread_bps=float(half_spread_bps),
-        slippage_bps=float(slippage_bps),
-        fee_bps=float(fee_bps),
-    )
-
-    baseline_returns = results_test["actual_return"].dropna()
-    results_exec = apply_latency_delay(results_test, delay_days=exec_model.delay_days, pred_col="predicted_return")
-
-    strat = results_exec.copy()
-    strat["position"] = np.where(strat["predicted_return"] > float(signal_threshold_pct), 1.0, 0.0)
-    strat["strategy_ret_with_cost"] = apply_costs_on_trades(strat, exec_model)
-
-    sharpe_signal_w_cost = compute_sharpe(strat["strategy_ret_with_cost"].dropna())
-    dsr_signal_w_cost = deflated_sharpe_ratio(strat["strategy_ret_with_cost"], n_trials=n_trials)
-
-    return {
-        "ticker": tk,
-        "direction_accuracy": float(accuracy),
-        "sharpe_signal_w_cost": None if sharpe_signal_w_cost is None else float(sharpe_signal_w_cost),
-        "dsr_signal_w_cost": None if dsr_signal_w_cost is None else float(dsr_signal_w_cost),
-        "acc_n": int(len(results_test)),
-    }
-
-def enrich_signals_in_place(signals: dict, pred_df: pd.DataFrame, *, context: dict):
-    if not signals or pred_df is None or pred_df.empty:
-        return signals
-    by_ticker = {str(r["ticker"]).upper(): r for _, r in pred_df.iterrows() if "ticker" in pred_df.columns}
-    for tk, sig in signals.items():
-        r = by_ticker.get(str(tk).upper(), {})
-        sig["context"] = dict(context)
-
-        # attach accuracy if available
-        sig["accuracy"] = {
-            "direction_accuracy": r.get("direction_accuracy"),
-            "sharpe_signal_w_cost": r.get("sharpe_signal_w_cost"),
-            "dsr_signal_w_cost": r.get("dsr_signal_w_cost"),
-            "n": r.get("acc_n"),
-        }
-    return signals
-
 
 def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
     params_by_ticker = {
@@ -165,30 +105,6 @@ def deflated_sharpe_ratio(daily_returns: pd.Series, n_trials: int, risk_free: fl
     z_deflated = z_strat - z_alpha
     return float(norm.cdf(z_deflated))
 
-FRICTION_PRESETS = {
-    "Default": dict(delay_days=1, half_spread_bps=2.0, slippage_bps=3.0, fee_bps=0.0),
-    "Loose (optimistic)": dict(delay_days=0, half_spread_bps=1.0, slippage_bps=1.0, fee_bps=0.0),
-    "Strict (pessimistic)": dict(delay_days=1, half_spread_bps=5.0, slippage_bps=8.0, fee_bps=1.0),
-}
-
-OPTIONS_PRESETS = {
-    "Default": dict(dte_min=0, dte_max=45, width_pct=0.05, prefer_spreads=True),
-    "Loose": dict(dte_min=0, dte_max=90, width_pct=0.10, prefer_spreads=True),
-    "Strict": dict(dte_min=0, dte_max=21, width_pct=0.03, prefer_spreads=True),
-}
-
-def _parse_int(s: str, default: int | None = None) -> int | None:
-    try:
-        return int(str(s).strip())
-    except Exception:
-        return default
-
-def _parse_float(s: str, default: float | None = None) -> float | None:
-    try:
-        return float(str(s).strip())
-    except Exception:
-        return default
-
 
 @dataclass
 class ExecutionModel:
@@ -203,55 +119,6 @@ def apply_latency_delay(df: pd.DataFrame, delay_days: int, pred_col: str = "pred
     if delay_days and delay_days > 0 and pred_col in out.columns:
         out[pred_col] = out[pred_col].shift(delay_days)
     return out
-
-import plotly.graph_objects as go
-
-@st.cache_data(ttl=30, show_spinner=False)
-def _cached_intraday_series(tk: str):
-    df = get_history_intraday_cached(tk, period="1d", interval="1m")
-    if df is None or df.empty or "Close" not in df.columns:
-        return None
-    return df[["Close"]].copy()
-
-@st.cache_data(ttl=10 * 60, show_spinner=False)
-def _cached_daily_series(tk: str):
-    df = get_history_cached(tk, period="6mo", interval="1d")
-    if df is None or df.empty or "Close" not in df.columns:
-        return None
-    return df[["Close"]].copy()
-
-def render_price_with_prediction(*, tk: str, horizon_days: int, pred_next_price, prefer_intraday: bool = True):
-    px = _cached_intraday_series(tk) if prefer_intraday else None
-    if px is None:
-        px = _cached_daily_series(tk)
-
-    if px is None or px.empty:
-        st.warning("No price data available for chart.")
-        return
-
-    x = px.index
-    y = px["Close"].astype(float)
-
-    last_x = x[-1]
-    last_y = float(y.iloc[-1])
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=y, mode="lines", name="Price"))
-
-    if pred_next_price is not None:
-        pred_x = last_x + pd.Timedelta(days=int(horizon_days))
-        fig.add_trace(
-            go.Scatter(
-                x=[last_x, pred_x],
-                y=[last_y, float(pred_next_price)],
-                mode="lines",
-                name="Predicted price",
-                line=dict(dash="dash"),
-            )
-        )
-
-    fig.update_layout(height=420, margin=dict(l=10, r=10, t=30, b=10), legend=dict(orientation="h"))
-    st.plotly_chart(fig, use_container_width=True)
 
 
 def apply_costs_on_trades(
@@ -604,53 +471,6 @@ def _cached_predict_bundle(
 def _cached_track_predictions(ticker: str, period: str, model_type: str, horizon: int):
     return track_predictions(ticker, period=period, model_type=model_type, horizon=int(horizon))
 
-@st.cache_data(ttl=30, show_spinner=False)
-def _cached_intraday_close(tk: str):
-    df = get_history_intraday_cached(tk, period="1d", interval="1m")
-    if df is None or df.empty or "Close" not in df.columns:
-        return None
-    return df[["Close"]].copy()
-
-@st.cache_data(ttl=10 * 60, show_spinner=False)
-def _cached_daily_close(tk: str):
-    df = get_history_cached(tk, period="6mo", interval="1d")
-    if df is None or df.empty or "Close" not in df.columns:
-        return None
-    return df[["Close"]].copy()
-
-def render_price_with_prediction(tk: str, horizon_days: int, pred_next_price, prefer_intraday: bool = True):
-    px = _cached_intraday_close(tk) if prefer_intraday else None
-    if px is None:
-        px = _cached_daily_close(tk)
-
-    if px is None or px.empty:
-        st.warning("No price data available for chart.")
-        return
-
-    x = px.index
-    y = px["Close"].astype(float)
-
-    last_x = x[-1]
-    last_y = float(y.iloc[-1])
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=y, mode="lines", name="Price"))
-
-    if pred_next_price is not None:
-        pred_x = last_x + pd.Timedelta(days=int(horizon_days))
-        fig.add_trace(
-            go.Scatter(
-                x=[last_x, pred_x],
-                y=[last_y, float(pred_next_price)],
-                mode="lines",
-                name="Predicted price",
-                line=dict(dash="dash"),
-            )
-        )
-
-    fig.update_layout(height=420, margin=dict(l=10, r=10, t=30, b=10), legend=dict(orientation="h"))
-    st.plotly_chart(fig, use_container_width=True)
-
 
 @st.cache_data(show_spinner=False, ttl=30 * 60)
 def _cached_walk_forward_backtest(
@@ -790,44 +610,30 @@ def run_app():
         fetch_live_price = st.checkbox("Fetch intraday live price (slower)", value=False)
         run_mc = st.checkbox("Compute Monte Carlo metrics (slower)", value=False)
 
-                # --- Friction presets ---
         st.markdown("Execution (frictions)")
-        friction_preset = st.selectbox("Friction preset", list(FRICTION_PRESETS.keys()), index=0)
-        fp = FRICTION_PRESETS[friction_preset]
+        bt_delay_days = st.selectbox("Execution delay (days)", [0, 1, 2], index=1)
+        bt_half_spread_bps = st.slider("Half-spread (bps)", 0.0, 20.0, 2.0, 0.5)
+        bt_slippage_bps = st.slider("Slippage (bps)", 0.0, 30.0, 3.0, 0.5)
+        bt_fee_bps = st.slider("Extra fees (bps)", 0.0, 10.0, 0.0, 0.5)
         exec_model = ExecutionModel(
-            delay_days=int(fp["delay_days"]),
-            half_spread_bps=float(fp["half_spread_bps"]),
-            slippage_bps=float(fp["slippage_bps"]),
-            fee_bps=float(fp["fee_bps"]),
-)
+            delay_days=int(bt_delay_days),
+            half_spread_bps=float(bt_half_spread_bps),
+            slippage_bps=float(bt_slippage_bps),
+            fee_bps=float(bt_fee_bps),
+        )
 
-        with st.expander("Override frictions (optional)", expanded=False):
-            exec_model.delay_days = _parse_int(st.text_input("Delay days", value=str(exec_model.delay_days)), exec_model.delay_days)
-            exec_model.half_spread_bps = _parse_float(st.text_input("Half-spread (bps)", value=str(exec_model.half_spread_bps)), exec_model.half_spread_bps)
-            exec_model.slippage_bps = _parse_float(st.text_input("Slippage (bps)", value=str(exec_model.slippage_bps)), exec_model.slippage_bps)
-            exec_model.fee_bps = _parse_float(st.text_input("Fees (bps)", value=str(exec_model.fee_bps)), exec_model.fee_bps)
+        st.markdown("DSR / overfitting")
+        n_trials = st.slider("Approx. # strategy variants tried", 1, 100, 20)
 
-        # --- Options budget (typed) ---
         st.markdown("Auto-trader (options)")
         trade_mode = st.selectbox("Trade mode", ["Stocks only", "Options if suggested", "Options only"], index=1)
-
-        options_preset = st.selectbox("Options preset", list(OPTIONS_PRESETS.keys()), index=0)
-        op = OPTIONS_PRESETS[options_preset]
-
-        budget_per_contract = _parse_float(st.text_input("Max premium ($/contract)", value="500"), 500.0)
-        max_premium = float(budget_per_contract)
-
-        max_strike = _parse_float(st.text_input("Max strike", value="500"), 500.0)
-
-        dte_min = _parse_int(st.text_input("Min DTE (days)", value=str(op["dte_min"])), int(op["dte_min"]))
-        dte_max = _parse_int(st.text_input("Max DTE (days)", value=str(op["dte_max"])), int(op["dte_max"]))
-
-        width_pct_in = _parse_float(st.text_input("Spread width (%)", value=str(op["width_pct"] * 100.0)), op["width_pct"] * 100.0)
-        width_pct = float(width_pct_in) / 100.0
-
-        prefer_spreads = st.checkbox("Prefer spreads", value=bool(op["prefer_spreads"]))
+        dte_min = st.slider("Min DTE (days)", 0, 30, 0, 1)
+        dte_max = st.slider("Max DTE (days)", 1, 180, 45, 1)
+        max_strike = st.slider("Max strike", 50, 1000, 500, 10)
+        max_premium = st.slider("Max premium ($/contract)", 50, 2000, 500, 50)
+        width_pct = st.slider("Spread width (%)", 1, 20, 5, 1) / 100.0
+        prefer_spreads = st.checkbox("Prefer spreads", value=True)
         auto_run_trader = st.checkbox("Auto-run trader after signals.json", value=False)
-
 
     # Defaults if Advanced not opened (needed because variables are defined inside the expander block above)
     if "run_gaf" not in locals():
@@ -858,18 +664,6 @@ def run_app():
         prefer_spreads = True
     if "auto_run_trader" not in locals():
         auto_run_trader = False
-    if "friction_preset" not in locals():
-        friction_preset = "Default"
-    if "options_preset" not in locals():
-        options_preset = "Default"
-    if "budget_per_contract" not in locals():
-        budget_per_contract = 500.0
-    if "use_ols_sig_select" not in locals():
-        os.environ["USE_OLSSIGSELECT"] = "0"
-    if "ols_alpha" not in locals():
-        os.environ["OLSSIG_ALPHA"] = "0.05"
-    if "ols_topk" not in locals():
-        os.environ["OLSSIG_TOPK"] = "50"
 
     # ===================== TAB: Dashboard =====================
     with tab_dash:
@@ -973,20 +767,6 @@ def run_app():
                     width_pct=width_pct,
                     exec_model=exec_model,
                 )
-
-                signals = enrich_signals_in_place(
-                    signals,
-                    pred_df=pred_df,
-                    context={
-                        "model_type": model_type,
-                        "period": period,
-                        "horizon": prediction_horizon,
-                        "friction_preset": friction_preset,
-                        "options_preset": options_preset,
-                        "budget_per_contract": max_premium,
-                        "signal_threshold_pct": signal_threshold_pct,
-                    },
-                )
                 write_signals_json_atomic(signals, str(SIGNALS_OUT_PATH))
                 st.session_state.last_signals = signals
                 st.success(f"Wrote signals.json to: {SIGNALS_OUT_PATH}")
@@ -1073,45 +853,11 @@ def run_app():
             ] if c in cand_df.columns]
             st.dataframe(cand_df[cols], use_container_width=True, height=280)
             detail_universe = cand_df["ticker"].tolist()
-        #========== Accuracy=========
-        st.subheader("Accuracy (optional)")
-        run_acc_all = st.checkbox("Compute accuracy for ALL tickers (slow)", value=False)
-        if run_acc_all and st.button("Run accuracy now", type="primary"):
-            rows = []
-            pbar = st.progress(0.0)
-            for i, tk in enumerate(pred_df["ticker"].tolist()):
-                pbar.progress((i + 1) / len(pred_df))
-                rows.append(
-                    _cached_accuracy_row(
-                        tk=tk,
-                        period=st.session_state.get("period", "5y"),
-                        model_type=st.session_state.get("modeltype", "rf"),
-                        horizon=display_horizon,
-                        delay_days=exec_model.delay_days,
-                        half_spread_bps=exec_model.half_spread_bps,
-                        slippage_bps=exec_model.slippage_bps,
-                        fee_bps=exec_model.fee_bps,
-                        signal_threshold_pct=signal_threshold_pct,
-                        n_trials=n_trials,
-                    )
-                )
-                pbar.empty()
-
-            acc_df = pd.DataFrame(rows)
-            pred_df = pred_df.merge(acc_df, on="ticker", how="left")
-            st.session_state.pred_df = pred_df  # persist merged metrics
-            st.success("Accuracy merged into Dashboard table.")
 
         st.subheader("Ticker details")
         selected = st.selectbox("Select ticker", detail_universe, key="dash_selected_ticker")
         row = pred_df[pred_df["ticker"] == selected].iloc[0]
-        st.subheader("Live price + forecast")
-        render_price_with_prediction(
-            tk=selected,
-            horizon_days=display_horizon,
-            pred_next_price=row.get("pred_next_price"),
-            prefer_intraday=True,
-        )
+
         left, right = st.columns([1.25, 1])
         with left:
             st.markdown("### Model")

@@ -531,6 +531,16 @@ def run_app():
         os.environ["ELASTICNET_L1_RATIO"] = str(en_l1_ratio)
         os.environ["ELASTICNET_CV_FOLDS"] = str(en_cv_folds)
 
+        st.markdown("OLS significance feature selection (experimental)")
+        use_ols_sig_select = st.checkbox("Enable OLS significance selection", value=False)
+        ols_alpha = st.slider("OLS p-value cutoff", 0.001, 0.20, 0.05, 0.005)
+        ols_topk = st.slider("Max features kept (0 = no cap)", 0, 200, 50, 5)
+
+        os.environ["USE_OLSSIGSELECT"] = "1" if use_ols_sig_select else "0"
+        os.environ["OLSSIG_ALPHA"] = str(ols_alpha)
+        os.environ["OLSSIG_TOPK"] = str(ols_topk)
+
+
         st.markdown("DSR / overfitting")
         n_trials = st.slider("Approx. # strategy variants tried", 1, 100, 20)
 
