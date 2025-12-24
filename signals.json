@@ -1,26 +1,29 @@
 {
-  "AAPL": {
-    "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": 0.004021189409231311,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
   "NVDA": {
     "asset": "stock",
     "action": "BUY",
     "qty": 1,
-    "pred_next_ret": 0.01716505409507993,
+    "pred_next_ret": 0.01329211106677557,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "rf",
+      "period": "10y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
     }
   }
 }

@@ -118,6 +118,23 @@ def _cached_accuracy_row(
         "acc_n": int(len(results_test)),
     }
 
+def _fmt_num(x, decimals=2):
+    try:
+        if x is None or (isinstance(x, float) and np.isnan(x)):
+            return "—"
+        return f"{float(x):.{decimals}f}"
+    except Exception:
+        return "—"
+
+def _fmt_pct(x, decimals=2):
+    try:
+        if x is None or (isinstance(x, float) and np.isnan(x)):
+            return "—"
+        return f"{float(x) * 100:.{decimals}f}%"
+    except Exception:
+        return "—"
+
+
 def enrich_signals_in_place(signals: dict, pred_df: pd.DataFrame, *, context: dict):
     if not signals or pred_df is None or pred_df.empty:
         return signals
@@ -203,8 +220,6 @@ def apply_latency_delay(df: pd.DataFrame, delay_days: int, pred_col: str = "pred
     if delay_days and delay_days > 0 and pred_col in out.columns:
         out[pred_col] = out[pred_col].shift(delay_days)
     return out
-
-import plotly.graph_objects as go
 
 @st.cache_data(ttl=30, show_spinner=False)
 def _cached_intraday_series(tk: str):
@@ -1114,67 +1129,86 @@ def run_app():
         )
         left, right = st.columns([1.25, 1])
         with left:
-            st.markdown("### Model")
-            if row.get("pred_next_ret") is not None:
-                st.write(f"{display_horizon_label} prediction: {float(row['pred_next_ret']) * 100:.2f}%")
-            st.write(f"Last close: {row.get('last_close')}")
-            st.write(f"Predicted price: {row.get('pred_next_price')}")
-            st.write(f"Prob up: {row.get('prob_up')}")
-            if "prob_up_gaf" in row:
-                st.write(f"GAF prob up: {row.get('prob_up_gaf')}")
-            st.write(f"Features used: {row.get('num_features')}")
-            st.write(f"Alignment: {row.get('signal_alignment')}")
-            if "vol_adjusted_edge" in row:
-                st.write(f"Vol-adjusted edge: {row.get('vol_adjusted_edge')}")
+            with st.expander("Model", expanded=True):
+                c1, c2, c3 = st.columns(3)
+
+                # Pred return is stored as decimal in row.get("prednextret")
+                pred_ret = row.get("prednextret", None)
+                prob_up = row.get("probup", None)
+
+                c1.metric(f"{display_horizon_label} prediction", _fmt_pct(pred_ret, 2))
+                c2.metric("Prob up", "—" if prob_up is None else f"{float(prob_up):.3f}")
+                c3.metric("Features used", "—" if row.get("numfeatures") is None else str(int(row.get("numfeatures"))))
+
+                st.markdown(
+                    f"""
+        - Last close: {_fmt_num(row.get("lastclose"), 2)}
+        - Predicted price: {_fmt_num(row.get("prednextprice"), 2)}
+        - Alignment: {row.get("signalalignment", "—")}
+        - Vol-adjusted edge: {_fmt_num(row.get("voladjustededge"), 3)}
+                    """.strip()
+                )
+
+            with st.expander("Price chart", expanded=False):
+                # Only if you added render_price_with_prediction earlier
+                try:
+                    render_price_with_prediction(
+                        tk=selected,
+                        horizon_days=display_horizon,
+                        pred_next_price=row.get("prednextprice"),
+                        prefer_intraday=True,
+                    )
+                except Exception as _e:
+                    st.info("Price chart not available (plotly/helper not set up).")
+
 
         with right:
-            st.markdown("### Options")
-            strat, _bias = suggest_options_strategy(
-                float(row.get("pred_next_ret") or 0.0),
-                row.get("put_call_oi_ratio"),
-                row.get("atm_iv"),
-                horizon=display_horizon,
-            )
-            st.write(strat)
-            st.write(f"ATM IV: {row.get('atm_iv')}")
-            st.write(f"Put/Call OI: {row.get('put_call_oi_ratio')}")
-            st.write(f"Theo ATM call: {row.get('theo_atm_call_price')}")
-            st.write(f"IV - realized: {row.get('iv_minus_realized')}")
+            with st.expander("Options", expanded=True):
+                strat, _bias = suggest_options_strategy(
+                    float(row.get("prednextret") or 0.0),
+                    row.get("putcalloiratio"),
+                    row.get("atmiv"),
+                    horizon=int(display_horizon),
+                )
 
-            load_slow = st.checkbox("Load Greeks + News (slow)", value=False, key="dash_load_slow")
-            if load_slow:
-                greeks_info = None
-                try:
-                    greeks_info = get_atm_greeks(selected)
-                except Exception:
-                    greeks_info = None
+                st.write(strat)
 
-                if greeks_info:
-                    cg, pg = greeks_info.get("call_greeks"), greeks_info.get("put_greeks")
-                    if cg:
-                        st.write(
-                            f"Call Δ {cg.get('delta'):.2f} Γ {cg.get('gamma'):.4f} "
-                            f"Vega {cg.get('vega'):.2f} Θ {cg.get('theta'):.2f}"
-                        )
-                    if pg:
-                        st.write(
-                            f"Put Δ {pg.get('delta'):.2f} Γ {pg.get('gamma'):.4f} "
-                            f"Vega {pg.get('vega'):.2f} Θ {pg.get('theta'):.2f}"
-                        )
-                else:
-                    st.write("Greeks: N/A")
+                o1, o2, o3 = st.columns(3)
+                o1.metric("ATM IV", _fmt_num(row.get("atmiv"), 3))
+                o2.metric("Put/Call OI", _fmt_num(row.get("putcalloiratio"), 3))
+                o3.metric("Theo ATM call", _fmt_num(row.get("theoatmcallprice"), 3))
 
-                news = get_news_for_ticker(selected, limit=5)
-                if detect_big_news(news):
-                    st.warning("Recent BIG news/headlines detected.")
-                if news:
-                    with st.expander("Headlines", expanded=True):
+                st.write(f"IV - realized: {_fmt_num(row.get('ivminusrealized'), 3)}")
+
+            with st.expander("Greeks + News (slow)", expanded=False):
+                loadslow = st.checkbox("Load Greeks + News", value=False, key="dash_load_slow_expander")
+                if loadslow:
+                    greeksinfo = None
+                    try:
+                        greeksinfo = get_atm_greeks(selected)
+                    except Exception:
+                        greeksinfo = None
+
+                    if greeksinfo:
+                        cg, pg = greeksinfo.get("callgreeks"), greeksinfo.get("putgreeks")
+                        if cg:
+                            st.write(f"Call Δ {cg.get('delta', 0):.2f} Γ {cg.get('gamma', 0):.4f} Vega {cg.get('vega', 0):.2f} Θ {cg.get('theta', 0):.2f}")
+                        if pg:
+                            st.write(f"Put  Δ {pg.get('delta', 0):.2f} Γ {pg.get('gamma', 0):.4f} Vega {pg.get('vega', 0):.2f} Θ {pg.get('theta', 0):.2f}")
+                    else:
+                        st.write("Greeks: NA")
+
+                    news = get_news_for_ticker(selected, limit=5)
+                    if detect_big_news(news):
+                        st.warning("Recent BIG news headlines detected.")
+                    if news:
                         for art in news:
                             title = art.get("title") or "No title"
                             url = art.get("url")
                             st.markdown(f"- [{title}]({url})" if url else f"- {title}")
-                else:
-                    st.write("News: none / not configured")
+                    else:
+                        st.write("News: none / not configured")
+
 
         with st.expander("Full predictions (all tickers)", expanded=False):
             display = _build_display_df(pred_df, display_horizon)
