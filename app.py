@@ -4,6 +4,7 @@ import time
 import json
 import tempfile
 import subprocess
+import importlib.metadata as m
 import plotly.graph_objects as go
 from pathlib import Path
 from dataclasses import dataclass
@@ -12,6 +13,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+
+import importlib.metadata as m
+st.write("Plotly version:", m.version("plotly"))
 
 try:
     from sklearn.linear_model import ElasticNetCV
@@ -1133,52 +1137,64 @@ def run_app():
                 c1, c2, c3 = st.columns(3)
 
                 # Pred return is stored as decimal in row.get("prednextret")
-                pred_ret = row.get("prednextret", None)
-                prob_up = row.get("probup", None)
+                pred_ret = row.get("pred_next_ret", None)
+                prob_up = row.get("prob_up", None)
 
                 c1.metric(f"{display_horizon_label} prediction", _fmt_pct(pred_ret, 2))
                 c2.metric("Prob up", "—" if prob_up is None else f"{float(prob_up):.3f}")
-                c3.metric("Features used", "—" if row.get("numfeatures") is None else str(int(row.get("numfeatures"))))
+                c3.metric("Features used", "—" if row.get("num_features") is None else str(int(row.get("num_features"))))
 
                 st.markdown(
                     f"""
-        - Last close: {_fmt_num(row.get("lastclose"), 2)}
-        - Predicted price: {_fmt_num(row.get("prednextprice"), 2)}
-        - Alignment: {row.get("signalalignment", "—")}
-        - Vol-adjusted edge: {_fmt_num(row.get("voladjustededge"), 3)}
+        - Last close: {_fmt_num(row.get("last_close"), 2)}
+        - Predicted price: {_fmt_num(row.get("pred_next_price"), 2)}
+        - Alignment: {row.get("signal_alignment", "—")}
+        - Vol-adjusted edge: {_fmt_num(row.get("vol_adjusted_edge"), 3)}
                     """.strip()
                 )
 
-            with st.expander("Price chart", expanded=False):
-                # Only if you added render_price_with_prediction earlier
-                try:
-                    render_price_with_prediction(
-                        tk=selected,
-                        horizon_days=display_horizon,
-                        pred_next_price=row.get("prednextprice"),
-                        prefer_intraday=True,
-                    )
-                except Exception as _e:
-                    st.info("Price chart not available (plotly/helper not set up).")
+        import plotly.graph_objects as go
+        import pandas as pd
 
+        with st.expander("Price chart", expanded=True):
+            hist = get_history_cached(selected, period="3mo", interval="1d")
+            if hist is None or hist.empty or "Close" not in hist.columns:
+                st.warning("No price history available for chart.")
+            else:
+                close = hist["Close"].dropna()
+                last_dt = close.index[-1]
+                pred_price = row.get("prednextprice")
+
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=close.index, y=close.values, name="Close", mode="lines"))
+
+                if pred_price is not None:
+                    future_dt = last_dt + pd.Timedelta(days=int(display_horizon))
+                    fig.add_trace(go.Scatter(
+                        x=[future_dt], y=[pred_price],
+                        name="Predicted", mode="markers",
+                        marker=dict(size=10)
+                    ))
+
+                st.plotly_chart(fig, use_container_width=True)
 
         with right:
             with st.expander("Options", expanded=True):
                 strat, _bias = suggest_options_strategy(
-                    float(row.get("prednextret") or 0.0),
-                    row.get("putcalloiratio"),
-                    row.get("atmiv"),
+                    float(row.get("pred_next_ret") or 0.0),
+                    row.get("put_call_oi_ratio"),
+                    row.get("atm_iv"),
                     horizon=int(display_horizon),
                 )
 
                 st.write(strat)
 
                 o1, o2, o3 = st.columns(3)
-                o1.metric("ATM IV", _fmt_num(row.get("atmiv"), 3))
-                o2.metric("Put/Call OI", _fmt_num(row.get("putcalloiratio"), 3))
-                o3.metric("Theo ATM call", _fmt_num(row.get("theoatmcallprice"), 3))
+                o1.metric("ATM IV", _fmt_num(row.get("atm_iv"), 3))
+                o2.metric("Put/Call OI", _fmt_num(row.get("put_call_oi_ratio"), 3))
+                o3.metric("Theo ATM call", _fmt_num(row.get("theo_atm_call_price"), 3))
 
-                st.write(f"IV - realized: {_fmt_num(row.get('ivminusrealized'), 3)}")
+                st.write(f"IV - realized: {_fmt_num(row.get('iv_minus_realized'), 3)}")
 
             with st.expander("Greeks + News (slow)", expanded=False):
                 loadslow = st.checkbox("Load Greeks + News", value=False, key="dash_load_slow_expander")
@@ -1190,7 +1206,7 @@ def run_app():
                         greeksinfo = None
 
                     if greeksinfo:
-                        cg, pg = greeksinfo.get("callgreeks"), greeksinfo.get("putgreeks")
+                        cg, pg = greeksinfo.get("call_greeks"), greeksinfo.get("put_greeks")
                         if cg:
                             st.write(f"Call Δ {cg.get('delta', 0):.2f} Γ {cg.get('gamma', 0):.4f} Vega {cg.get('vega', 0):.2f} Θ {cg.get('theta', 0):.2f}")
                         if pg:
