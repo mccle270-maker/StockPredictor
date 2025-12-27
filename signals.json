@@ -1,9 +1,9 @@
 {
-  "NVDA": {
+  "TSLA": {
     "asset": "stock",
     "action": "BUY",
     "qty": 1,
-    "pred_next_ret": 0.01076011414543381,
+    "pred_next_ret": 0.01373048685491085,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -11,7 +11,319 @@
       "fee_bps": 0.0
     },
     "context": {
-      "model_type": "rf",
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "NFLX": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.037061333656311035,
+    "last_close": 94.0,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "COST": {
+    "asset": "option",
+    "strategy": "BULL_CALL_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BULLISH: Buy Calls or Bull Call Spread",
+    "pred_next_ret": 0.03205947205424309,
+    "last_close": 857.5900268554688,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "DIS": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.01603141613304615,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "AMD": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
+    "pred_next_ret": 0.00802379660308361,
+    "last_close": 201.05999755859375,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "GS": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
+    "pred_next_ret": 0.0021237931214272976,
+    "last_close": 876.2999877929688,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "META": {
+    "asset": "stock",
+    "action": "HOLD",
+    "qty": 1,
+    "pred_next_ret": -0.0024918969720602036,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "WMT": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
+    "pred_next_ret": -0.003331533633172512,
+    "last_close": 114.83000183105469,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "JPM": {
+    "asset": "stock",
+    "action": "HOLD",
+    "qty": 1,
+    "pred_next_ret": -0.002908087335526943,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "BAC": {
+    "asset": "stock",
+    "action": "BUY",
+    "qty": 1,
+    "pred_next_ret": 0.014988565817475319,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "GOOGL": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.033976469188928604,
+    "last_close": 302.4599914550781,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
       "period": "5y",
       "horizon": 5,
       "friction_preset": "Default",
