@@ -1,6 +1,7 @@
 import os, json
 from pathlib import Path
 from datetime import datetime, timezone, date, timedelta
+from dataclasses import dataclass, asdict, field
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,6 +23,183 @@ WATCHLIST = ["PLTR", "SMCI", "NVDA", "ZS", "SPY", "JPM", "MSFT", "XOM"]
 
 BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_PATH = BASE_DIR / "signals.json"
+TRADE_LOG_PATH = BASE_DIR / "trade_log.json"
+
+
+# ========== TRADE MEMORY / LOGGING ==========
+@dataclass
+class TradeRecord:
+    """Persistent record of a single trade execution."""
+    trade_id: str  # Alpaca order ID
+    symbol: str
+    asset_type: str  # "stock", "option", "futures"
+    side: str  # "BUY", "SELL"
+    qty: float
+    entry_price: float
+    entry_date: str  # ISO format
+    entry_time: str  # ISO format timestamp
+    
+    # Exit details (filled on close)
+    exit_price: float | None = None
+    exit_date: str | None = None
+    exit_time: str | None = None
+    
+    # Performance
+    pnl: float | None = None  # Realized P&L
+    pnl_pct: float | None = None  # P&L %
+    holding_days: int | None = None
+    
+    # Metadata
+    strategy: str | None = None  # e.g., "BUY_CALL", "BULL_CALL_SPREAD"
+    signal_strength: float | None = None  # e.g., predicted return
+    notes: str = ""
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(**data)
+    
+    def close(self, exit_price: float, exit_date: str, exit_time: str):
+        """Mark trade as closed with exit price and date."""
+        self.exit_price = exit_price
+        self.exit_date = exit_date
+        self.exit_time = exit_time
+        
+        # Calculate P&L
+        if self.side.upper() == "BUY":
+            self.pnl = (exit_price - self.entry_price) * self.qty
+            self.pnl_pct = (exit_price / self.entry_price - 1) * 100
+        else:  # SELL
+            self.pnl = (self.entry_price - exit_price) * self.qty
+            self.pnl_pct = (self.entry_price / exit_price - 1) * 100
+        
+        # Calculate holding days
+        from datetime import datetime as dt
+        try:
+            entry_dt = dt.fromisoformat(self.entry_date.replace('Z', '+00:00'))
+            exit_dt = dt.fromisoformat(self.exit_date.replace('Z', '+00:00'))
+            self.holding_days = (exit_dt.date() - entry_dt.date()).days
+        except Exception:
+            self.holding_days = 0
+
+
+class TradeLog:
+    """Persistent trade log stored as JSON."""
+    
+    def __init__(self, path: Path = TRADE_LOG_PATH):
+        self.path = Path(path)
+        self.trades: dict[str, TradeRecord] = {}  # trade_id -> TradeRecord
+        self.load()
+    
+    def load(self):
+        """Load trades from disk."""
+        if not self.path.exists():
+            self.trades = {}
+            return
+        
+        try:
+            data = json.loads(self.path.read_text())
+            self.trades = {tid: TradeRecord.from_dict(tr) for tid, tr in data.items()}
+        except Exception as e:
+            print(f"[TradeLog] Error loading trades: {e}")
+            self.trades = {}
+    
+    def save(self):
+        """Persist trades to disk."""
+        try:
+            data = {tid: tr.to_dict() for tid, tr in self.trades.items()}
+            # Atomic write
+            import tempfile
+            fd, tmp = tempfile.mkstemp(prefix="trade_log_", suffix=".json")
+            try:
+                with os.fdopen(fd, "w") as f:
+                    json.dump(data, f, indent=2)
+                import os as os_module
+                os_module.replace(tmp, self.path)
+            finally:
+                try:
+                    if os.path.exists(tmp):
+                        os.remove(tmp)
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"[TradeLog] Error saving trades: {e}")
+    
+    def add_trade(
+        self,
+        trade_id: str,
+        symbol: str,
+        asset_type: str,
+        side: str,
+        qty: float,
+        entry_price: float,
+        strategy: str | None = None,
+        signal_strength: float | None = None,
+        notes: str = "",
+    ) -> TradeRecord:
+        """Record a new trade entry."""
+        now = datetime.now(timezone.utc)
+        record = TradeRecord(
+            trade_id=trade_id,
+            symbol=symbol,
+            asset_type=asset_type,
+            side=side,
+            qty=qty,
+            entry_price=entry_price,
+            entry_date=now.date().isoformat(),
+            entry_time=now.isoformat(),
+            strategy=strategy,
+            signal_strength=signal_strength,
+            notes=notes,
+        )
+        self.trades[trade_id] = record
+        self.save()
+        return record
+    
+    def close_trade(self, trade_id: str, exit_price: float):
+        """Close an existing trade."""
+        if trade_id not in self.trades:
+            print(f"[TradeLog] Trade {trade_id} not found")
+            return
+        
+        now = datetime.now(timezone.utc)
+        self.trades[trade_id].close(
+            exit_price=exit_price,
+            exit_date=now.date().isoformat(),
+            exit_time=now.isoformat(),
+        )
+        self.save()
+    
+    def get_stats(self) -> dict:
+        """Get aggregate stats from closed trades."""
+        closed = [tr for tr in self.trades.values() if tr.pnl is not None]
+        if not closed:
+            return {
+                "total_trades": 0,
+                "win_rate": 0,
+                "avg_pnl": 0,
+                "total_pnl": 0,
+                "avg_holding_days": 0,
+            }
+        
+        wins = sum(1 for tr in closed if tr.pnl > 0)
+        return {
+            "total_trades": len(closed),
+            "win_rate": (wins / len(closed)) * 100 if closed else 0,
+            "avg_pnl": sum(tr.pnl for tr in closed) / len(closed) if closed else 0,
+            "total_pnl": sum(tr.pnl for tr in closed),
+            "avg_holding_days": sum(tr.holding_days or 0 for tr in closed) / len(closed) if closed else 0,
+        }
+    
+    def get_open_trades(self) -> list[TradeRecord]:
+        """Get list of open (unfilled) trades."""
+        return [tr for tr in self.trades.values() if tr.pnl is None]
+    
+    def get_closed_trades(self) -> list[TradeRecord]:
+        """Get list of closed (filled) trades."""
+        return [tr for tr in self.trades.values() if tr.pnl is not None]
 
 
 def load_signals() -> dict:
@@ -348,6 +526,12 @@ def main():
 
     trade_client = TradingClient(key, secret, paper=True)
     option_data_client = OptionHistoricalDataClient(key, secret)
+    
+    # Initialize trade log
+    trade_log = TradeLog(TRADE_LOG_PATH)
+    print(f"[Trade Log] Loaded {len(trade_log.trades)} trades from {TRADE_LOG_PATH}")
+    stats = trade_log.get_stats()
+    print(f"[Trade Log Stats] {stats['total_trades']} closed trades | Win Rate: {stats['win_rate']:.1f}% | Total P&L: ${stats['total_pnl']:.2f}")
 
     positions = trade_client.get_all_positions()
     held = {p.symbol for p in positions}
@@ -387,6 +571,25 @@ def main():
                 time_in_force=TimeInForce.DAY,
             )
             submitted = trade_client.submit_order(order_data=order)
+            # Get last price for entry
+            hist = None
+            try:
+                import yfinance as yf
+                hist = yf.download(symbol, period="1d", progress=False)
+                last_price = float(hist["Close"].iloc[-1]) if hist is not None and not hist.empty else 0
+            except Exception:
+                last_price = 0
+            
+            # Log trade
+            trade_log.add_trade(
+                trade_id=submitted.id,
+                symbol=symbol,
+                asset_type="stock",
+                side=action,
+                qty=shares_for(symbol),
+                entry_price=last_price,
+                notes=f"Simple signal from signals.json",
+            )
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
             continue
 
@@ -419,6 +622,33 @@ def main():
                 time_in_force=TimeInForce.DAY,
             )
             submitted = trade_client.submit_order(order_data=order)
+            
+            # Get last price for entry
+            hist = None
+            try:
+                import yfinance as yf
+                hist = yf.download(symbol, period="1d", progress=False)
+                last_price = float(hist["Close"].iloc[-1]) if hist is not None and not hist.empty else 0
+            except Exception:
+                last_price = 0
+            
+            # Log trade with signal strength if available
+            signal_strength = spec.get("predicted_return", None)
+            try:
+                signal_strength = float(signal_strength) if signal_strength is not None else None
+            except Exception:
+                signal_strength = None
+            
+            trade_log.add_trade(
+                trade_id=submitted.id,
+                symbol=symbol,
+                asset_type="stock",
+                side=action,
+                qty=qty,
+                entry_price=last_price,
+                signal_strength=signal_strength,
+                notes=f"Signal from portfolio engine",
+            )
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
             continue
 
@@ -427,7 +657,7 @@ def main():
             strategy = str(spec.get("strategy", "")).upper().strip()
 
             dte_min = int(spec.get("dte_min", 0))
-            dte_max = int(spec.get("dte_max", 45))
+            dte_max = int(spec.get("dte_max", 60))  # Extended from 45 to 60 days
             max_premium = float(spec.get("max_premium", 500))  # dollars per 1-lot / spread
             qty = int(spec.get("qty", 1))
 
@@ -575,6 +805,60 @@ def main():
                 continue
 
             print(f"{symbol}: OPTIONS strategy '{strategy}' not supported -> skipping")
+            continue
+
+        # ===== FUTURES =====
+        if asset == "futures":
+            action = str(spec.get("action", "HOLD")).upper()
+            qty = float(spec.get("qty", 1))
+            contract = str(spec.get("contract", "ES")).upper()  # ES, NQ, MES, MNQ, etc.
+            
+            # Map futures contracts to Alpaca symbols
+            futures_map = {
+                "ES": "ES",      # E-mini S&P 500
+                "NQ": "NQ",      # E-mini Nasdaq-100
+                "MES": "MES",    # Micro E-mini S&P 500
+                "MNQ": "MNQ",    # Micro E-mini Nasdaq-100
+                "CL": "CL",      # Crude Oil
+                "GC": "GC",      # Gold
+                "ZB": "ZB",      # 30-Year Treasury Bond
+                "ZN": "ZN",      # 10-Year Treasury Note
+            }
+            
+            futures_symbol = futures_map.get(contract, contract)
+            
+            if action not in {"BUY", "SELL", "HOLD"}:
+                print(f"{symbol} (futures {contract}): invalid action '{action}', treating as HOLD")
+                action = "HOLD"
+            
+            if action == "HOLD":
+                print(f"{symbol} (futures {contract}): HOLD")
+                continue
+            
+            side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
+            order = MarketOrderRequest(
+                symbol=futures_symbol,
+                qty=qty,
+                side=side,
+                time_in_force=TimeInForce.DAY,
+            )
+            try:
+                submitted = trade_client.submit_order(order_data=order)
+                
+                # Log futures trade
+                trade_log.add_trade(
+                    trade_id=submitted.id,
+                    symbol=futures_symbol,
+                    asset_type="futures",
+                    side=action,
+                    qty=qty,
+                    entry_price=0,  # Futures typically executed at market; set to 0 as placeholder
+                    strategy=contract,
+                    notes=f"Futures contract {contract}",
+                )
+                print(f"{datetime.now(timezone.utc).isoformat()} {symbol} (futures {contract}) {action} -> {submitted.id}")
+            except Exception as e:
+                print(f"{symbol} (futures {contract}): Order failed: {e}")
             continue
 
         print(f"{symbol}: unknown asset '{asset}', skipping")

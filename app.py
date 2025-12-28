@@ -1517,112 +1517,202 @@ def run_app():
 
     # ===================== TAB: Portfolio WF =====================
     with tab_port:
-        st.header("Portfolio Walk-Forward")
-        st.markdown("Production ML Portfolio Engine")
+        st.header("📊 Portfolio Walk-Forward Backtest")
+        st.markdown("Validate strategies across time periods with advanced controls")
 
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.subheader("Settings")
-            universe_text = st.text_input("Universe", value="AAPL,NVDA,MSFT")
-            horizon = st.selectbox("Horizon", [1, 3, 5], format_func=lambda x: f"{x}D")
-            c1, c2 = st.columns(2)
-            with c1:
-                train_years = st.slider("Train (years)", 1, 4, 2)
-            with c2:
-                test_years = st.slider("Test (years)", 0, 2, 1)
-
-        with col2:
-            st.subheader("Portfolio")
-            top_long = st.slider("Long %", 0.01, 0.20, 0.10, 0.01)
-            top_short = st.slider("Short %", 0.20, 0.50, 0.30, 0.01)
-            model_type2 = st.selectbox("Model", ["rf", "xgb", "gbrt"])
-            use_vix_filter = st.checkbox("VIX Filter", value=True)
-            vix_threshold = st.slider("VIX Max", 15, 35, 25) if use_vix_filter else None
-
-            q1, q2, _q3 = st.columns(3)
-            with q1:
-                if st.button("SP500 Top 10"):
-                    st.session_state.quick_universe = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
-            with q2:
-                if st.button("Mag 7"):
-                    st.session_state.quick_universe = "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
-
-        if hasattr(st.session_state, "quick_universe"):
-            universe_text = st.session_state.quick_universe
-            st.info(f"Quick load: {universe_text}")
-
-        run_col, est_col = st.columns([3, 1])
+        with st.expander("⚙️ Model Configuration", expanded=True):
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.subheader("Universe")
+                universe_text = st.text_input("Tickers (comma-separated)", value="AAPL,NVDA,MSFT")
+                
+                q1, q2, q3 = st.columns(3)
+                with q1:
+                    if st.button("Top 10"):
+                        st.session_state.quick_universe = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,TSLA,AVGO,JPM,WMT"
+                with q2:
+                    if st.button("Mag 7"):
+                        st.session_state.quick_universe = "AAPL,NVDA,MSFT,GOOGL,AMZN,META,TSLA"
+                with q3:
+                    if st.button("Tech"):
+                        st.session_state.quick_universe = "AAPL,MSFT,NVDA,AMD,INTC,CRM,ADBE"
+                
+                if hasattr(st.session_state, "quick_universe"):
+                    universe_text = st.session_state.quick_universe
+                    st.info(f"✓ Loaded: {universe_text[:50]}...")
+            
+            with col2:
+                st.subheader("Time Windows")
+                horizon = st.selectbox("Prediction Horizon", [1, 3, 5], format_func=lambda x: f"{x} days")
+                train_years = st.slider("Training Period (years)", 1, 4, 2, 1)
+                test_years = st.slider("Test Period (years)", 0, 2, 1, 1)
+                
+            with col3:
+                st.subheader("Model & Risk")
+                model_type2 = st.selectbox("Model Type", ["rf", "xgb", "gbrt"], format_func=lambda x: f"{x.upper()} (Random Forest)" if x == "rf" else f"{x.upper()}")
+                use_vix_filter = st.checkbox("🔒 VIX Filter", value=True, help="Pause trading if VIX > threshold")
+                vix_threshold = st.slider("VIX Max", 15, 35, 25) if use_vix_filter else None
+                
+                # Futures toggle
+                enable_futures = st.checkbox("📈 Include Futures (ES, NQ)", value=False, help="Add S&P 500 / Nasdaq futures to portfolio")
+        
+        with st.expander("⚖️ Position Sizing", expanded=True):
+            ps1, ps2, ps3 = st.columns(3)
+            with ps1:
+                top_long = st.slider("Long %", 0.01, 0.20, 0.10, 0.01, help="% of top performers to buy")
+            with ps2:
+                top_short = st.slider("Short %", 0.20, 0.50, 0.30, 0.01, help="% of underperformers to short")
+            with ps3:
+                st.info(f"Net Exposure: {(top_long - top_short)*100:.0f}%")
+        
+        run_col, est_col, clear_col = st.columns([2, 1, 1])
         with run_col:
-            if st.button("Run Backtest", type="primary", use_container_width=True):
+            if st.button("▶️ Run Backtest", type="primary", use_container_width=True):
                 tickers2 = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
-                with st.spinner(f"Running {len(tickers2)} tickers..."):
-                    results_df = _cached_walkforward_cross_sectional(
-                        tuple(tickers2),
-                        period="5y",
-                        horizon=horizon,
-                        model_type=model_type2,
-                        train_years=train_years,
-                        test_years=test_years,
-                        top_pct_long=top_long,
-                        top_pct_short=top_short,
-                        vix_filter=vix_threshold if use_vix_filter else None,
-                    )
-                if results_df is not None and not results_df.empty:
-                    st.session_state.results = results_df
-                    st.session_state.portfolio_tickers = tickers2
-                    st.rerun()
+                
+                if enable_futures:
+                    tickers2 = list(set(tickers2 + ["ES", "NQ"]))
+                
+                if len(tickers2) == 0:
+                    st.error("No tickers provided!")
+                else:
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    try:
+                        status_text.info(f"⏳ Processing {len(tickers2)} assets ({train_years}y train + {test_years}y test)...")
+                        progress_bar.progress(25)
+                        
+                        results_df = _cached_walkforward_cross_sectional(
+                            tuple(tickers2),
+                            period="5y",
+                            horizon=horizon,
+                            model_type=model_type2,
+                            train_years=train_years,
+                            test_years=test_years,
+                            top_pct_long=top_long,
+                            top_pct_short=top_short,
+                            vix_filter=vix_threshold if use_vix_filter else None,
+                        )
+                        progress_bar.progress(100)
+                        
+                        if results_df is not None and not results_df.empty:
+                            st.session_state.results = results_df
+                            st.session_state.portfolio_tickers = tickers2
+                            status_text.success(f"✓ Complete! {len(results_df)} folds validated")
+                            st.rerun()
+                        else:
+                            st.error("Backtest returned no results")
+                    except Exception as e:
+                        progress_bar.progress(0)
+                        status_text.error(f"❌ Backtest failed: {str(e)[:100]}")
 
         with est_col:
             n_tickers = len([t for t in universe_text.split(",") if t.strip()])
-            st.info(f"Est: ~{n_tickers * train_years * 0.4:.0f}s")
+            est_time = max(1, n_tickers * train_years * 0.4)
+            st.metric("Estimated Time", f"~{est_time:.0f}s", delta="per fold")
+        
+        with clear_col:
+            if st.button("🔄 Clear Results"):
+                if "results" in st.session_state:
+                    del st.session_state.results
+                st.rerun()
+
+        st.divider()
 
         if "results" in st.session_state and st.session_state.results is not None and not st.session_state.results.empty:
             results_df = st.session_state.results
 
-            st.success(f"{len(results_df)} folds complete!")
+            # Summary metrics
             median_sharpe = results_df["sharpe"].median()
             avg_return = results_df["ann_return"].mean() * 100
             worst_dd = results_df["max_dd"].min()
             avg_hit = results_df["hit_rate"].mean() * 100
             recent_sharpe = results_df["sharpe"].tail(3).mean()
 
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Sharpe (Median)", f"{median_sharpe:.2f}")
-            m2.metric("Hit rate (Avg)", f"{avg_hit:.0f}%")
-            m3.metric("Ann return (Avg)", f"{avg_return:.1f}%")
-            m4.metric("Max drawdown (Worst)", f"{worst_dd:.2f}")
+            st.subheader(f"✓ Results: {len(results_df)} Folds Complete")
+            
+            # Performance tiles
+            m1, m2, m3, m4, m5 = st.columns(5)
+            m1.metric("Sharpe (Median)", f"{median_sharpe:.2f}", delta="risk-adjusted return" if median_sharpe > 1.0 else "below 1.0")
+            m2.metric("Hit Rate (Avg)", f"{avg_hit:.0f}%", delta="win % across folds")
+            m3.metric("Ann Return (Avg)", f"{avg_return:.1f}%", delta="avg yearly return")
+            m4.metric("Max Drawdown", f"{worst_dd:.2f}", delta="worst case")
+            m5.metric("Recent Sharpe (3 folds)", f"{recent_sharpe:.2f}", delta="latest performance")
 
-            left, right = st.columns([2, 1])
+            left, right = st.columns([2.5, 1.5])
+            
             with left:
-                st.subheader("Fold results")
-                st.dataframe(results_df.round(3), use_container_width=True, height=320)
-
-                st.subheader("Sharpe distribution")
-                fig, ax = plt.subplots(figsize=(6, 4))
-                results_df["sharpe"].hist(bins=12, ax=ax, alpha=0.7, edgecolor="black")
-                ax.axvline(median_sharpe, color="green", lw=2, ls="--", label="Median")
-                ax.axvline(0, color="red", lw=1, ls="-", label="0")
-                ax.legend()
-                ax.grid(True, alpha=0.3)
-                st.pyplot(fig)
+                tab_data, tab_chart = st.tabs(["📋 Data", "📊 Visualizations"])
+                
+                with tab_data:
+                    st.subheader("Fold Results (Detailed)")
+                    display_df = results_df.round(3)
+                    st.dataframe(display_df, use_container_width=True, height=400)
+                    
+                    if st.button("📥 Export CSV"):
+                        csv = results_df.round(3).to_csv(index=False)
+                        st.download_button("Download Results CSV", csv, "backtest_results.csv", "text/csv")
+                
+                with tab_chart:
+                    chart1, chart2 = st.columns(2)
+                    
+                    with chart1:
+                        st.subheader("Sharpe Distribution")
+                        fig, ax = plt.subplots(figsize=(5, 4))
+                        results_df["sharpe"].hist(bins=12, ax=ax, alpha=0.7, edgecolor="black", color="steelblue")
+                        ax.axvline(median_sharpe, color="green", lw=2, ls="--", label=f"Median: {median_sharpe:.2f}")
+                        ax.axvline(0, color="red", lw=1, ls="-", label="Breakeven")
+                        ax.set_xlabel("Sharpe Ratio")
+                        ax.set_ylabel("Frequency")
+                        ax.legend()
+                        ax.grid(True, alpha=0.3)
+                        st.pyplot(fig, use_container_width=True)
+                    
+                    with chart2:
+                        st.subheader("Return vs Drawdown")
+                        fig, ax = plt.subplots(figsize=(5, 4))
+                        scatter = ax.scatter(results_df["max_dd"], results_df["ann_return"] * 100, 
+                                           c=results_df["sharpe"], cmap="RdYlGn", s=80, alpha=0.6)
+                        ax.set_xlabel("Max Drawdown")
+                        ax.set_ylabel("Annual Return (%)")
+                        ax.grid(True, alpha=0.3)
+                        plt.colorbar(scatter, ax=ax, label="Sharpe Ratio")
+                        st.pyplot(fig, use_container_width=True)
 
             with right:
-                st.subheader("Live signal")
-                if recent_sharpe > 1.0:
-                    st.success(f"DEPLOY (recent Sharpe {recent_sharpe:.2f})")
-                elif recent_sharpe > 0.3:
-                    st.info(f"EDGE (recent Sharpe {recent_sharpe:.2f})")
+                st.subheader("📈 Deployment Status")
+                
+                if recent_sharpe > 1.2:
+                    st.success(f"🚀 **DEPLOY**\nRecent Sharpe: {recent_sharpe:.2f}", icon="✅")
+                    deploy_color = "green"
+                elif recent_sharpe > 0.5:
+                    st.info(f"⚡ **MONITOR**\nRecent Sharpe: {recent_sharpe:.2f}", icon="🔍")
+                    deploy_color = "blue"
                 else:
-                    st.warning(f"STANDBY (recent Sharpe {recent_sharpe:.2f})")
-
-                with st.expander("Write signals.json", expanded=False):
-                    if st.button("Write signals.json now", use_container_width=True):
-                        signals = build_signals_from_results(results_df, universe_text)
-                        (BASE_DIR / "signals.json").write_text(json.dumps(signals, indent=2))
-                        st.success(f"signals.json → {len(signals)} signals")
-                        st.json(signals)
-
-                    st.metric("Latest Sharpe", f"{results_df['sharpe'].iloc[-1]:.2f}")
+                    st.warning(f"⏸️ **STANDBY**\nRecent Sharpe: {recent_sharpe:.2f}", icon="⚠️")
+                    deploy_color = "orange"
+                
+                st.divider()
+                
+                with st.expander("📤 Export to signals.json", expanded=False):
+                    export_col1, export_col2 = st.columns(2)
+                    
+                    with export_col1:
+                        signal_type = st.selectbox("Signal Type", ["Latest", "Median Sharpe", "All Positive"])
+                    
+                    with export_col2:
+                        if st.button("✓ Export", use_container_width=True):
+                            signals = build_signals_from_results(results_df, universe_text)
+                            (BASE_DIR / "signals.json").write_text(json.dumps(signals, indent=2))
+                            st.success(f"✓ Exported {len(signals)} signals")
+                            with st.expander("Preview signals.json"):
+                                st.json(signals)
+                
+                st.metric("Latest Fold Sharpe", f"{results_df['sharpe'].iloc[-1]:.2f}")
+        else:
+            st.info("👆 Configure parameters above and click **Run Backtest** to begin")
 
 
 if __name__ == "__main__":

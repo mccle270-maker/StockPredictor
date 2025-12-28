@@ -9,7 +9,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.02659183368086815,
+    "pred_next_ret": -0.02835608646273613,
     "last_close": 47.91999816894531,
     "execution": {
       "delay_days": 1,
@@ -43,7 +43,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.026993541046977043,
+    "pred_next_ret": -0.04176640510559082,
     "last_close": 142.27999877929688,
     "execution": {
       "delay_days": 1,
@@ -68,17 +68,10 @@
     }
   },
   "GOLD": {
-    "asset": "option",
-    "strategy": "BUY_PUT",
-    "dte_min": 0,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
+    "asset": "stock",
+    "action": "SELL",
     "qty": 1,
-    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.02847464755177498,
-    "last_close": 32.630001068115234,
+    "pred_next_ret": -0.018889514729380608,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -102,10 +95,17 @@
     }
   },
   "WPM": {
-    "asset": "stock",
-    "action": "SELL",
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
     "qty": 1,
-    "pred_next_ret": -0.022633695974946022,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.026904378086328506,
+    "last_close": 115.44999694824219,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -138,7 +138,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.036137547343969345,
+    "pred_next_ret": -0.03927750885486603,
     "last_close": 77.62999725341797,
     "execution": {
       "delay_days": 1,
@@ -166,7 +166,7 @@
     "asset": "stock",
     "action": "SELL",
     "qty": 1,
-    "pred_next_ret": -0.020563015714287758,
+    "pred_next_ret": -0.020562998950481415,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -224,17 +224,10 @@
     }
   },
   "AA": {
-    "asset": "option",
-    "strategy": "BEAR_PUT_SPREAD",
-    "dte_min": 0,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
+    "asset": "stock",
+    "action": "SELL",
     "qty": 1,
-    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.029957499355077744,
-    "last_close": 48.18000030517578,
+    "pred_next_ret": -0.018537214025855064,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -295,7 +288,7 @@
     "asset": "stock",
     "action": "SELL",
     "qty": 1,
-    "pred_next_ret": -0.021666161715984344,
+    "pred_next_ret": -0.02259194105863571,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -322,7 +315,7 @@
     "asset": "stock",
     "action": "SELL",
     "qty": 1,
-    "pred_next_ret": -0.016128655523061752,
+    "pred_next_ret": -0.014438752084970474,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -349,7 +342,7 @@
     "asset": "stock",
     "action": "BUY",
     "qty": 1,
-    "pred_next_ret": 0.021691767498850822,
+    "pred_next_ret": 0.0208204984664917,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -416,7 +409,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.028207125142216682,
+    "pred_next_ret": -0.03161763772368431,
     "last_close": 99.33999633789062,
     "execution": {
       "delay_days": 1,
@@ -484,7 +477,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.04638071358203888,
+    "pred_next_ret": -0.043374281376600266,
     "last_close": 140.47999572753906,
     "execution": {
       "delay_days": 1,
@@ -518,7 +511,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.11072421818971634,
+    "pred_next_ret": -0.10217513889074326,
     "last_close": 67.69999694824219,
     "execution": {
       "delay_days": 1,
@@ -546,7 +539,7 @@
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.0027366115245968103,
+    "pred_next_ret": 0.0042665377259254456,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -570,17 +563,10 @@
     }
   },
   "NEE": {
-    "asset": "option",
-    "strategy": "BEAR_PUT_SPREAD",
-    "dte_min": 0,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
+    "asset": "stock",
+    "action": "SELL",
     "qty": 1,
-    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.02320188842713833,
-    "last_close": 80.8499984741211,
+    "pred_next_ret": -0.02219037525355816,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -613,7 +599,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.02942834421992302,
+    "pred_next_ret": -0.03672037646174431,
     "last_close": 44.279998779296875,
     "execution": {
       "delay_days": 1,
@@ -647,7 +633,7 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.07288186997175217,
+    "pred_next_ret": -0.06441947817802429,
     "last_close": 2.3299999237060547,
     "execution": {
       "delay_days": 1,

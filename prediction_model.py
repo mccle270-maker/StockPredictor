@@ -586,7 +586,121 @@ FEATURE_COLUMNS = [
     "gbm_p05_ret_5d",
     "gbm_p95_ret_5d",
     "dist_from_high_20", "dist_from_low_20", "up_days_5", "down_days_5",
+    # Advanced features (momentum, volatility clustering, regime transitions)
+    "momentum_3m_zscore", "momentum_6m_zscore", "momentum_ratio_10_20",
+    "volatility_cluster", "volatility_skew_ratio",
+    "regime_transition_score", "correlation_with_vol",
+    "tail_risk_20d", "rsi_divergence_5d", "macd_reversal_strength",
+    "vol_mean_reversion_score", "price_mean_reversion_score",
+    "liquidity_ratio", "spread_zscore", "momentum_accelerator",
 ]
+
+
+def add_advanced_features(hist: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds advanced momentum, volatility clustering, and regime transition features.
+    All features are lagged by 1 day to prevent look-ahead bias.
+    """
+    hist = hist.copy()
+    close = hist["Close"]
+    ret_1d = close.pct_change()
+    
+    # ---- Multi-scale momentum features ----
+    # 3-month (63 days) and 6-month (126 days) momentum
+    mom_3m = close / close.rolling(63).mean() - 1
+    mom_6m = close / close.rolling(126).mean() - 1
+    
+    # Standardize momentum scores
+    mom_3m_mean = mom_3m.rolling(60).mean()
+    mom_3m_std = mom_3m.rolling(60).std()
+    hist["momentum_3m_zscore"] = ((mom_3m - mom_3m_mean) / (mom_3m_std + 1e-9)).shift(1)
+    
+    mom_6m_mean = mom_6m.rolling(60).mean()
+    mom_6m_std = mom_6m.rolling(60).std()
+    hist["momentum_6m_zscore"] = ((mom_6m - mom_6m_mean) / (mom_6m_std + 1e-9)).shift(1)
+    
+    # Cross-scale momentum ratio (short-term vs long-term)
+    ret_10d = close.pct_change(10)
+    ret_20d = close.pct_change(20)
+    hist["momentum_ratio_10_20"] = (ret_10d / (ret_20d + 1e-9)).shift(1)
+    
+    # ---- Volatility clustering ----
+    vol_20d = ret_1d.rolling(20).std()
+    vol_60d = ret_1d.rolling(60).std()
+    
+    # High vol followed by high vol (clustering)
+    vol_above_mean = (vol_20d > vol_60d).astype(float)
+    hist["volatility_cluster"] = vol_above_mean.rolling(3).sum().shift(1)
+    
+    # Volatility skew: ratio of recent to long-term vol changes
+    vol_recent_change = vol_20d.diff(5)
+    hist["volatility_skew_ratio"] = (vol_recent_change / (vol_60d + 1e-9)).shift(1)
+    
+    # ---- Regime transition detection ----
+    # Score based on crossing moving averages (potential regime change)
+    ma_50 = close.rolling(50).mean()
+    ma_200 = close.rolling(200).mean()
+    above_50 = (close > ma_50).astype(int)
+    above_200 = (close > ma_200).astype(int)
+    regime_changes = above_50.diff().abs() + above_200.diff().abs()
+    hist["regime_transition_score"] = regime_changes.rolling(5).sum().shift(1)
+    
+    # ---- Correlation with volatility (volatility feedback) ----
+    ret_vol_corr = ret_1d.rolling(30).corr(vol_20d)
+    hist["correlation_with_vol"] = ret_vol_corr.shift(1)
+    
+    # ---- Tail risk (extreme moves) ----
+    # Proportion of days with returns in bottom 5% of distribution
+    ret_p5 = ret_1d.rolling(20).quantile(0.05)
+    tail_days = (ret_1d < ret_p5).astype(int)
+    hist["tail_risk_20d"] = tail_days.rolling(10).mean().shift(1)
+    
+    # ---- RSI divergence (momentum reversal signal) ----
+    # When price makes new high but RSI doesn't
+    rsi14 = hist["rsi14"] if "rsi14" in hist.columns else pd.Series(index=hist.index, data=np.nan)
+    price_high = close.rolling(5).max()
+    rsi_high = rsi14.rolling(5).max()
+    rsi_divergence = ((price_high - close.shift(1)) > 0) & ((rsi_high - rsi14.shift(1)) <= 0)
+    hist["rsi_divergence_5d"] = rsi_divergence.astype(int).shift(1)
+    
+    # ---- MACD strength and reversals ----
+    if "macdhist" in hist.columns:
+        macd_hist = hist["macdhist"]
+        macd_strength = macd_hist.abs()
+        hist["macd_reversal_strength"] = macd_hist.rolling(3).apply(
+            lambda x: 1 if x.iloc[-1] * x.iloc[0] < 0 else 0, raw=False
+        ).shift(1)
+    else:
+        hist["macd_reversal_strength"] = pd.Series(index=hist.index, data=0.0)
+    
+    # ---- Mean reversion signals ----
+    # Volatility mean reversion: when vol is high relative to average
+    vol_zscore = (vol_20d - vol_60d.rolling(60).mean()) / (vol_60d.rolling(60).std() + 1e-9)
+    hist["vol_mean_reversion_score"] = vol_zscore.shift(1)
+    
+    # Price mean reversion: distance from moving average
+    ma_20 = close.rolling(20).mean()
+    price_deviation = (close - ma_20) / (ma_20 + 1e-9)
+    hist["price_mean_reversion_score"] = price_deviation.shift(1)
+    
+    # ---- Liquidity features ----
+    # High volume relative to recent average = good liquidity
+    vol_avg = hist["Volume"].rolling(20).mean() if "Volume" in hist.columns else pd.Series(index=hist.index, data=1.0)
+    hist["liquidity_ratio"] = (hist["Volume"] / (vol_avg + 1e-9)).shift(1) if "Volume" in hist.columns else 1.0
+    
+    # Bid-ask proxy: range as % of price
+    high = hist["High"]
+    low = hist["Low"]
+    hl_range = (high - low) / (close + 1e-9)
+    hl_mean = hl_range.rolling(20).mean()
+    hist["spread_zscore"] = ((hl_range - hl_mean) / (hl_mean.rolling(20).std() + 1e-9)).shift(1)
+    
+    # ---- Momentum acceleration (second derivative) ----
+    ret_5d = close.pct_change(5)
+    ret_5d_prev = ret_5d.shift(5)
+    hist["momentum_accelerator"] = ((ret_5d - ret_5d_prev) / (ret_5d_prev.abs() + 1e-9)).shift(1)
+    
+    return hist
 
 
 def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
@@ -806,6 +920,9 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["day_of_week"] = hist.index.dayofweek
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day > 25).astype(int)
+
+    # Add advanced momentum/volatility clustering/regime features
+    hist = add_advanced_features(hist)
 
     return hist
 
