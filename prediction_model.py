@@ -1357,6 +1357,11 @@ def build_features_and_target(
             # Fill remaining NaNs with forward fill, then backward fill
             hist[feat_cols] = hist[feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
 
+            # IMPORTANT: Get the actual last close BEFORE dropna
+            # This is the most recent price in the raw data
+            actual_last_close = hist["Close"].iloc[-1]
+            actual_last_date = hist.index[-1]
+
             cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
             df = hist[cols_needed].dropna().copy()
 
@@ -1385,7 +1390,8 @@ def build_features_and_target(
 
             last_row = df.iloc[-1]
             last_row_features = last_row[feat_cols].values
-            last_close = hist.loc[df.index[-1], "Close"]
+            # Use the actual most recent close price from raw history, not df (which is dropna'd)
+            last_close = float(actual_last_close)
             last_vol_20d = last_row["vol_20d"]
 
             dates=df.index
