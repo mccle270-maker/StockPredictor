@@ -771,12 +771,28 @@ def add_regime_features(hist: pd.DataFrame) -> pd.DataFrame:
     # Compute rolling correlation between stock and SPX (market)
     if "Close" in hist.columns and len(hist) >= 60:
         try:
+            # Get date range - normalize timezone for consistency
+            min_date = hist.index.min()
+            max_date = hist.index.max()
+            
+            # Remove timezone info if present for fetching
+            if hasattr(min_date, 'tz_localize'):
+                min_date = pd.Timestamp(min_date.date())
+                max_date = pd.Timestamp(max_date.date())
+            
             # Try to get SPX for correlation
-            spx = _get_spx(hist.index.min(), hist.index.max(), tz=None)
+            spx = _get_spx(min_date, max_date, tz=None)
             if not spx.empty and "Close" in spx.columns:
                 spx_close = spx["Close"]
                 stock_rets = close.pct_change()
                 spx_rets = spx_close.pct_change()
+                
+                # Normalize indices to be tz-naive for alignment
+                stock_rets_index = stock_rets.index.tz_localize(None) if stock_rets.index.tz is not None else stock_rets.index
+                spx_rets_index = spx_rets.index.tz_localize(None) if spx_rets.index.tz is not None else spx_rets.index
+                
+                stock_rets = stock_rets.set_axis(stock_rets_index)
+                spx_rets = spx_rets.set_axis(spx_rets_index)
                 
                 # Align indices
                 combined = pd.DataFrame({
@@ -789,21 +805,21 @@ def add_regime_features(hist: pd.DataFrame) -> pd.DataFrame:
                     corr_median = corr_20d.rolling(60).median()
                     
                     # High correlation = market-driven, Low correlation = idiosyncratic
-                    hist["regime_high_corr"] = (corr_20d > corr_median).astype(int).shift(1)
-                    hist["regime_low_corr"] = (corr_20d <= corr_median).astype(int).shift(1)
+                    hist["regime_high_corr"] = (corr_20d > corr_median).astype(int).shift(1).reindex(hist.index, fill_value=0)
+                    hist["regime_low_corr"] = (corr_20d <= corr_median).astype(int).shift(1).reindex(hist.index, fill_value=0)
                 else:
-                    hist["regime_high_corr"] = np.nan
-                    hist["regime_low_corr"] = np.nan
+                    hist["regime_high_corr"] = 0
+                    hist["regime_low_corr"] = 0
             else:
-                hist["regime_high_corr"] = np.nan
-                hist["regime_low_corr"] = np.nan
+                hist["regime_high_corr"] = 0
+                hist["regime_low_corr"] = 0
         except Exception as e:
             print(f"[add_regime_features] Warning: Could not compute correlation regimes: {e}")
-            hist["regime_high_corr"] = np.nan
-            hist["regime_low_corr"] = np.nan
+            hist["regime_high_corr"] = 0
+            hist["regime_low_corr"] = 0
     else:
-        hist["regime_high_corr"] = np.nan
-        hist["regime_low_corr"] = np.nan
+        hist["regime_high_corr"] = 0
+        hist["regime_low_corr"] = 0
     
     # ===== Regime Duration (how long we've been in current regime) =====
     hist["bull_streak"] = (hist["regime_bull"] == 1).astype(int)
@@ -1397,23 +1413,21 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
                 print(f"[panel] Skipping {ticker}: insufficient data ({len(X) if X is not None else 0} rows)")
                 continue
             
-            # Dynamically determine which features are available
-            feat_cols_available = [c for c in FEATURE_COLUMNS if c in globals()]
-            macro_cols_available = [c for c in MACRO_COLUMNS if c in globals()]
-            feat_cols = feat_cols_available + macro_cols_available
-            
-            # Use the actual number of features returned
+            # Use the actual number of features returned by build_features_and_target
             actual_feat_count = X.shape[1] if len(X.shape) > 1 else len(X)
             
-            # Create meaningful column names - use first set of available columns
-            if len(feat_cols) == 0:
-                feat_cols = [f"feat_{i}" for i in range(actual_feat_count)]
+            # Get ALL available feature column names from FEATURE_COLUMNS and MACRO_COLUMNS
+            all_possible_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+            
+            # Use up to the number of features we have, use generic names if we need more
+            if len(all_possible_cols) >= actual_feat_count:
+                feat_cols = all_possible_cols[:actual_feat_count]
             else:
-                # Make sure we have the right number of columns
-                if len(feat_cols) > actual_feat_count:
-                    feat_cols = feat_cols[:actual_feat_count]
-                elif len(feat_cols) < actual_feat_count:
-                    feat_cols = feat_cols + [f"feat_{i}" for i in range(len(feat_cols), actual_feat_count)]
+                # More features returned than we have names for (shouldn't happen)
+                feat_cols = all_possible_cols + [f"feat_{i}" for i in range(len(all_possible_cols), actual_feat_count)]
+            
+            # Ensure exact match
+            feat_cols = feat_cols[:actual_feat_count]
             
             df = pd.DataFrame(X, index=pd.DatetimeIndex(dates), columns=feat_cols)
             df['target'] = y
@@ -1560,12 +1574,18 @@ def walkforward_cross_sectional(
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
 
-    # Use actual available features, not hardcoded list
-    feat_cols_available = [c for c in FEATURE_COLUMNS if c in panel.columns]
-    macro_cols_available = [c for c in MACRO_COLUMNS if c in panel.columns]
-    feat_cols = feat_cols_available + macro_cols_available
+    # Use actual available features from the panel
+    # The panel contains all columns created by build_features_and_target
+    all_cols = set(panel.columns) - {"target", "ticker"}
+    feat_cols = [c for c in all_cols if c != "ticker"]
+    
+    print(f"[WF] Available features: {len(feat_cols)}")
+    if len(feat_cols) == 0:
+        raise ValueError("[WF] No features available in panel. Check build_features_and_target output.")
     
     df = panel.dropna(subset=feat_cols + ["target"]).copy()
+    
+    print(f"[WF] After dropna: {len(df)} rows with {len(feat_cols)} features")
 
     # INDEX HANDLING
     df_reset = df.reset_index()
@@ -1625,9 +1645,15 @@ def walkforward_cross_sectional(
         print(f"[WF] Fold {fold_idx}: train_rows={len(train_df)}, test_rows={len(test_df)}, "
               f"train_dates={len(train_dates)}, test_dates={len(test_dates)}")
 
+        # GUARD: If we have 0 features available, skip this fold
+        if len(feat_cols) == 0:
+            print(f"[WF] Fold {fold_idx}: No features available (feat_cols is empty), skipping fold")
+            start += test_days
+            continue
+
         # FEATURE SELECTION (if enabled)
         fold_feat_cols = feat_cols.copy()
-        if feature_selection != "none":
+        if feature_selection != "none" and len(feat_cols) > 0:
             fold_feat_cols = _select_features_for_fold(
                 train_df=train_df,
                 feat_cols=feat_cols,
