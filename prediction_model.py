@@ -539,10 +539,15 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         s3m = get_fred_series("DGS3MO", start_date, end_date)
         vix = get_fred_series("VIXCLS", start_date, end_date)
 
+        # PHASE 1 FIX: Fill NaNs BEFORE reindex to prevent look-ahead bias at fold boundaries
+        s10_filled = s10.fillna(method='ffill').fillna(method='bfill')
+        s3m_filled = s3m.fillna(method='ffill').fillna(method='bfill')
+        vix_filled = vix.fillna(method='ffill').fillna(method='bfill')
+
         df_dates = df.index.normalize().tz_localize(None)
-        df["t10y"] = s10.reindex(df_dates).ffill().bfill().values
-        df["t3m"] = s3m.reindex(df_dates).ffill().bfill().values
-        df["vix"] = vix.reindex(df_dates).ffill().bfill().values
+        df["t10y"] = s10_filled.reindex(df_dates).values
+        df["t3m"] = s3m_filled.reindex(df_dates).values
+        df["vix"] = vix_filled.reindex(df_dates).values
         df["term_spread"] = df["t10y"] - df["t3m"]
 
         macro_cache[key] = df
@@ -593,6 +598,12 @@ FEATURE_COLUMNS = [
     "tail_risk_20d", "rsi_divergence_5d", "macd_reversal_strength",
     "vol_mean_reversion_score", "price_mean_reversion_score",
     "liquidity_ratio", "spread_zscore", "momentum_accelerator",
+    # PHASE 2: Regime detection features (lagged by 1 day)
+    "regime_bull", "regime_bear",
+    "regime_vix_low", "regime_vix_medium", "regime_vix_high",
+    "regime_covid",
+    "regime_high_corr", "regime_low_corr",
+    "bull_streak", "bear_streak",
 ]
 
 
@@ -699,6 +710,109 @@ def add_advanced_features(hist: pd.DataFrame) -> pd.DataFrame:
     ret_5d = close.pct_change(5)
     ret_5d_prev = ret_5d.shift(5)
     hist["momentum_accelerator"] = ((ret_5d - ret_5d_prev) / (ret_5d_prev.abs() + 1e-9)).shift(1)
+    
+    return hist
+
+
+def add_regime_features(hist: pd.DataFrame) -> pd.DataFrame:
+    """
+    PHASE 2: Add regime detection features to identify market conditions.
+    
+    4 Regime Types:
+    1. Bull/Bear: Based on 20-day rolling returns
+    2. VIX Regimes: Low volatility, medium, high volatility
+    3. COVID Crisis: Manual date-based crisis period
+    4. Correlation Regimes: Stock-to-market correlation regimes
+    
+    All features are LAGGED by 1 day to prevent look-ahead bias.
+    """
+    hist = hist.copy()
+    
+    # ===== REGIME 1: Bull vs Bear (20-day rolling return) =====
+    close = hist["Close"]
+    ret_1d = close.pct_change()
+    rolling_ret_20d = (1 + ret_1d).rolling(20).apply(lambda x: x.prod() - 1, raw=True)
+    
+    hist["regime_bull"] = (rolling_ret_20d > 0).astype(int).shift(1)
+    hist["regime_bear"] = (rolling_ret_20d <= 0).astype(int).shift(1)
+    
+    # ===== REGIME 2: VIX-based volatility regimes =====
+    if "vix" in hist.columns:
+        vix = hist["vix"]
+        hist["regime_vix_low"] = (vix < 12).astype(int).shift(1)
+        hist["regime_vix_medium"] = ((vix >= 12) & (vix <= 20)).astype(int).shift(1)
+        hist["regime_vix_high"] = (vix > 20).astype(int).shift(1)
+    else:
+        # Fallback: Use realized volatility if VIX not available
+        vol_20d = ret_1d.rolling(20).std()
+        vol_50d = ret_1d.rolling(50).std()
+        vol_percentile_75 = vol_20d.rolling(50).quantile(0.75)
+        vol_percentile_25 = vol_20d.rolling(50).quantile(0.25)
+        
+        hist["regime_vix_low"] = (vol_20d < vol_percentile_25).astype(int).shift(1)
+        hist["regime_vix_medium"] = ((vol_20d >= vol_percentile_25) & (vol_20d <= vol_percentile_75)).astype(int).shift(1)
+        hist["regime_vix_high"] = (vol_20d > vol_percentile_75).astype(int).shift(1)
+    
+    # ===== REGIME 3: COVID/Crisis Period =====
+    # Define crisis periods (historical market stress events)
+    covid_start = pd.Timestamp("2020-02-15")
+    covid_end = pd.Timestamp("2020-06-30")
+    
+    # Handle timezone-aware indices
+    hist_idx = hist.index.tz_localize(None) if hist.index.tz is not None else hist.index
+    
+    regime_covid_series = pd.Series(
+        ((hist_idx >= covid_start) & (hist_idx <= covid_end)).astype(int),
+        index=hist.index
+    )
+    hist["regime_covid"] = regime_covid_series.shift(1).fillna(0).astype(int)
+    
+    # ===== REGIME 4: Correlation with market =====
+    # Compute rolling correlation between stock and SPX (market)
+    if "Close" in hist.columns and len(hist) >= 60:
+        try:
+            # Try to get SPX for correlation
+            spx = _get_spx(hist.index.min(), hist.index.max(), tz=None)
+            if not spx.empty and "Close" in spx.columns:
+                spx_close = spx["Close"]
+                stock_rets = close.pct_change()
+                spx_rets = spx_close.pct_change()
+                
+                # Align indices
+                combined = pd.DataFrame({
+                    "stock": stock_rets,
+                    "spx": spx_rets
+                }).dropna()
+                
+                if len(combined) >= 20:
+                    corr_20d = combined["stock"].rolling(20).corr(combined["spx"])
+                    corr_median = corr_20d.rolling(60).median()
+                    
+                    # High correlation = market-driven, Low correlation = idiosyncratic
+                    hist["regime_high_corr"] = (corr_20d > corr_median).astype(int).shift(1)
+                    hist["regime_low_corr"] = (corr_20d <= corr_median).astype(int).shift(1)
+                else:
+                    hist["regime_high_corr"] = np.nan
+                    hist["regime_low_corr"] = np.nan
+            else:
+                hist["regime_high_corr"] = np.nan
+                hist["regime_low_corr"] = np.nan
+        except Exception as e:
+            print(f"[add_regime_features] Warning: Could not compute correlation regimes: {e}")
+            hist["regime_high_corr"] = np.nan
+            hist["regime_low_corr"] = np.nan
+    else:
+        hist["regime_high_corr"] = np.nan
+        hist["regime_low_corr"] = np.nan
+    
+    # ===== Regime Duration (how long we've been in current regime) =====
+    hist["bull_streak"] = (hist["regime_bull"] == 1).astype(int)
+    hist["bull_streak"] = hist["bull_streak"].groupby((hist["bull_streak"] != hist["bull_streak"].shift()).cumsum()).cumcount() + 1
+    hist["bull_streak"] = hist["bull_streak"] * hist["regime_bull"]
+    
+    bear_streak = (hist["regime_bear"] == 1).astype(int)
+    hist["bear_streak"] = bear_streak.groupby((bear_streak != bear_streak.shift()).cumsum()).cumcount() + 1
+    hist["bear_streak"] = hist["bear_streak"] * hist["regime_bear"]
     
     return hist
 
@@ -1157,6 +1271,28 @@ def build_features_and_target(
                 raise ValueError(f"No raw history for {ticker} with period={per}")
 
             hist = add_price_features(hist)
+            hist = add_regime_features(hist)  # PHASE 2: Add regime detection
+            
+            # PHASE 3: Add TA-Lib and Pandas-TA indicators
+            try:
+                from talib_integration import add_talib_indicators
+                hist = add_talib_indicators(hist)
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: TA-Lib indicators failed: {e}")
+            
+            try:
+                from pandas_ta_integration import add_pandas_ta_indicators
+                hist = add_pandas_ta_indicators(hist, categories=["momentum", "trend", "volatility", "volume"])
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: Pandas-TA indicators failed: {e}")
+            
+            # PHASE 4: Add ARIMA ensemble features
+            try:
+                from arima_integration import add_arima_features
+                hist = add_arima_features(hist, target_col="ret_1d", arima_horizons=[1, 5, 20])
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: ARIMA features failed: {e}")
+            
             missing = [c for c in (FEATURE_COLUMNS + MACRO_COLUMNS) if c not in hist.columns]
             print("Missing:", missing[:30])
             print("GBM cols present:", [c for c in hist.columns if c.startswith("gbm_")][:20])
