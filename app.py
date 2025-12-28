@@ -1151,8 +1151,8 @@ def run_app():
 
                             resultsexec = apply_latency_delay(
                                 resultstest,
-                                delaydays=exec_model.delaydays,
-                                predcol="predictedreturn"
+                                delay_days=exec_model.delay_days,
+                                pred_col="predicted_return"
                             )
 
                             strat = resultsexec.copy()
@@ -1565,8 +1565,8 @@ def run_app():
                 
                 # Allow override
                 with st.expander("⚡ Override Defaults"):
-                    train_years = st.slider("Training Period (years)", 0.5, 4, default_train, 0.25)
-                    test_years = st.slider("Test Period (years)", 0.05, 1, default_test, 0.05)
+                    train_years = st.slider("Training Period (years)", 0.5, 4.0, float(default_train), 0.25)
+                    test_years = st.slider("Test Period (years)", 0.05, 1.0, float(default_test), 0.05)
                 
             with col3:
                 st.subheader("Model & Risk")
@@ -1604,6 +1604,19 @@ def run_app():
             
             **Why not use Sharpe alone?** Bad models can fake good Sharpe on short windows.
             Multiple folds + walk-forward = Real-world validation.
+            """)
+        
+        with st.expander("⚡ Speed Tips (If Too Slow)", expanded=False):
+            st.markdown("""
+            **First run takes 2-5 minutes.** After that, results are cached for 30 minutes.
+            
+            **To make it faster:**
+            1. **Reduce tickers** - Use 3-5 instead of 10+ (biggest impact)
+            2. **Use Balanced preset** - Fewer folds, faster
+            3. **Disable VIX filter** - Skips some calculations
+            4. **Shorter training** - 1 year instead of 2 (in override)
+            
+            **Second+ runs:** Instant (cached) unless you change settings.
             """)
         
         run_col, est_col, clear_col = st.columns([2, 1, 1])
@@ -1651,7 +1664,7 @@ def run_app():
         with est_col:
             n_tickers = len([t for t in universe_text.split(",") if t.strip()])
             est_time = max(1, n_tickers * train_years * 0.4)
-            st.metric("Estimated Time", f"~{est_time:.0f}s", delta="per fold")
+            st.metric("Estimated Time", f"~{est_time:.0f}s", delta="First run only (then cached)")
         
         with clear_col:
             if st.button("🔄 Clear Results"):
