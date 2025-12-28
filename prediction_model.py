@@ -1023,11 +1023,12 @@ def select_features_elasticnet_timeseries(
             ("scaler", StandardScaler(with_mean=True, with_std=True)),
             ("enet", ElasticNetCV(
                 l1_ratio=float(l1ratio),
-                alphas=None,
+                alphas=np.logspace(-4, 1, 100),  # Use explicit alpha range instead of None (deprecated)
                 cv=cv.split(Xdf),
                 n_jobs=-1,
                 random_state=int(randomstate),
-                max_iter=5000,
+                max_iter=10000,  # Increased from 5000 for better convergence
+                tol=1e-3,  # Looser tolerance to aid convergence
             )),
         ]
     )
@@ -1491,11 +1492,13 @@ def walkforward_cross_sectional(
         test_df["vol_weight"] = vol_target_position_size(1.0, test_df["vol_20d"], target_vol=0.15)
 
         # VOL-WEIGHTED RETURNS
-        long_rets = test_df[long_mask].groupby("date").apply(
-            lambda x: (x["target"] * x["vol_weight"]).mean()
+        long_rets = test_df[long_mask].groupby("date", as_index=True).apply(
+            lambda x: (x["target"] * x["vol_weight"]).mean(),
+            include_groups=False
         )
-        short_rets = -test_df[short_mask].groupby("date").apply(
-            lambda x: (x["target"] * x["vol_weight"]).mean()
+        short_rets = -test_df[short_mask].groupby("date", as_index=True).apply(
+            lambda x: (x["target"] * x["vol_weight"]).mean(),
+            include_groups=False
         )
 
         # Basket gate/throttle applied at the DATE level
