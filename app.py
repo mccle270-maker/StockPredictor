@@ -1545,8 +1545,28 @@ def run_app():
             with col2:
                 st.subheader("Time Windows")
                 horizon = st.selectbox("Prediction Horizon", [1, 3, 5], format_func=lambda x: f"{x} days")
-                train_years = st.slider("Training Period (years)", 1, 4, 2, 1)
-                test_years = st.slider("Test Period (years)", 0, 2, 1, 1)
+                
+                # Preset time window configurations
+                preset_option = st.selectbox(
+                    "📋 Window Preset",
+                    ["Conservative (Anti-Overfit)", "Balanced", "Aggressive (More Data)"],
+                    help="Choose preset to avoid overfitting while validating model quality"
+                )
+                
+                # Define presets
+                presets = {
+                    "Conservative (Anti-Overfit)": {"train": 2, "test": 0.15, "desc": "2y train, ~38d test → ~25 folds"},
+                    "Balanced": {"train": 1.5, "test": 0.2, "desc": "1.5y train, ~50d test → ~18 folds"},
+                    "Aggressive (More Data)": {"train": 1, "test": 0.1, "desc": "1y train, ~25d test → ~40 folds"},
+                }
+                
+                default_train, default_test = presets[preset_option]["train"], presets[preset_option]["test"]
+                st.caption(f"🎯 {presets[preset_option]['desc']}")
+                
+                # Allow override
+                with st.expander("⚡ Override Defaults"):
+                    train_years = st.slider("Training Period (years)", 0.5, 4, default_train, 0.25)
+                    test_years = st.slider("Test Period (years)", 0.05, 1, default_test, 0.05)
                 
             with col3:
                 st.subheader("Model & Risk")
@@ -1565,6 +1585,26 @@ def run_app():
                 top_short = st.slider("Short %", 0.20, 0.50, 0.30, 0.01, help="% of underperformers to short")
             with ps3:
                 st.info(f"Net Exposure: {(top_long - top_short)*100:.0f}%")
+        
+        # Anti-overfitting guidance
+        st.divider()
+        with st.expander("📚 Why These Defaults?", expanded=False):
+            st.markdown("""
+            **Conservative Preset (Default):**
+            - **2 years training** → Enough data to learn patterns without memorizing noise
+            - **~38 day test** → ~25 folds = High statistical confidence
+            - **Best for:** Validating if your model actually works (not overfitted)
+            
+            **Balanced Preset:**
+            - Medium between reliability and data efficiency
+            
+            **Aggressive Preset:**
+            - More folds (~40) = Higher precision on signal detection
+            - Risk: Shorter training may overfit if not careful
+            
+            **Why not use Sharpe alone?** Bad models can fake good Sharpe on short windows.
+            Multiple folds + walk-forward = Real-world validation.
+            """)
         
         run_col, est_col, clear_col = st.columns([2, 1, 1])
         with run_col:
@@ -1640,6 +1680,32 @@ def run_app():
             m3.metric("Ann Return (Avg)", f"{avg_return:.1f}%", delta="avg yearly return")
             m4.metric("Max Drawdown", f"{worst_dd:.2f}", delta="worst case")
             m5.metric("Recent Sharpe (3 folds)", f"{recent_sharpe:.2f}", delta="latest performance")
+
+            # Model Quality Assessment
+            st.divider()
+            col_assess1, col_assess2 = st.columns(2)
+            
+            with col_assess1:
+                st.subheader("🎯 Model Quality Check")
+                if median_sharpe > 1.2:
+                    st.success(f"✅ **EXCELLENT** - Sharpe {median_sharpe:.2f} across {len(results_df)} folds\n\n"
+                              "This is a strong signal your model works in real conditions.")
+                elif median_sharpe > 0.5:
+                    st.info(f"⚡ **GOOD** - Sharpe {median_sharpe:.2f} with consistent wins\n\n"
+                           "Model shows promise. Consider live trading with caution.")
+                else:
+                    st.warning(f"⏸️ **WEAK** - Sharpe {median_sharpe:.2f}\n\n"
+                              "Model may be overfitted or lacking signal. Refine features or parameters.")
+            
+            with col_assess2:
+                st.subheader("📊 Stability Check")
+                sharpe_std = results_df["sharpe"].std()
+                if sharpe_std < 0.5:
+                    st.success(f"✅ Stable - Sharpe σ={sharpe_std:.2f} (consistent performance)")
+                elif sharpe_std < 1.0:
+                    st.info(f"⚡ Moderate - Sharpe σ={sharpe_std:.2f} (some variation)")
+                else:
+                    st.warning(f"⚠️ Volatile - Sharpe σ={sharpe_std:.2f} (inconsistent performance)")
 
             left, right = st.columns([2.5, 1.5])
             
