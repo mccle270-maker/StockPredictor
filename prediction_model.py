@@ -1251,6 +1251,114 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
     print(f"[panel] Combined {len(panel)} rows across {len(dfs)} tickers")
     return panel
 
+
+def _select_features_for_fold(
+    train_df: pd.DataFrame,
+    feat_cols: list,
+    horizon: int,
+    selection_mode: str = "best",
+) -> list | None:
+    """
+    Apply feature selection to a training fold.
+    
+    Args:
+        train_df: Training data for this fold
+        feat_cols: All available feature columns
+        horizon: Prediction horizon
+        selection_mode: "elasticnet", "ols", or "best" (compare both)
+    
+    Returns:
+        Selected feature columns, or None if selection fails
+    """
+    try:
+        X = train_df[feat_cols].fillna(0).values
+        y = train_df["target"].values
+        
+        if len(X) < 30:
+            return None
+        
+        selected_cols = None
+        
+        if selection_mode == "elasticnet":
+            try:
+                dates = pd.to_datetime(train_df["date"]).values if "date" in train_df.columns else None
+                X_sel, en_names, en_mask = select_features_elasticnet_timeseries(
+                    X=X,
+                    y=y,
+                    feature_names=list(feat_cols),
+                    dates=dates,
+                    horizon=horizon,
+                    n_splits=min(5, len(X) // 30),
+                    l1_ratio=0.5,
+                    min_features=10,
+                )
+                selected_cols = en_names
+            except Exception as e:
+                print(f"[FS] ElasticNet failed: {e}")
+        
+        elif selection_mode == "ols":
+            try:
+                X_sel, ols_names, ols_mask = selectfeaturesols_pvalues(
+                    X, y,
+                    featurenames=list(feat_cols),
+                    alpha=0.05,
+                    topk=50,
+                    minfeatures=10,
+                )
+                selected_cols = ols_names
+            except Exception as e:
+                print(f"[FS] OLS failed: {e}")
+        
+        elif selection_mode == "best":
+            # Try ElasticNet first, fallback to OLS, fallback to all
+            elasticnet_cols = None
+            ols_cols = None
+            
+            try:
+                dates = pd.to_datetime(train_df["date"]).values if "date" in train_df.columns else None
+                X_sel, en_names, en_mask = select_features_elasticnet_timeseries(
+                    X=X,
+                    y=y,
+                    feature_names=list(feat_cols),
+                    dates=dates,
+                    horizon=horizon,
+                    n_splits=min(5, len(X) // 30),
+                    l1_ratio=0.5,
+                    min_features=10,
+                )
+                elasticnet_cols = en_names
+            except Exception as e:
+                print(f"[FS] ElasticNet failed in 'best' mode: {e}")
+            
+            try:
+                X_sel, ols_names, ols_mask = selectfeaturesols_pvalues(
+                    X, y,
+                    featurenames=list(feat_cols),
+                    alpha=0.05,
+                    topk=50,
+                    minfeatures=10,
+                )
+                ols_cols = ols_names
+            except Exception as e:
+                print(f"[FS] OLS failed in 'best' mode: {e}")
+            
+            # Pick ElasticNet if available (more aggressive regularization), else OLS, else all
+            if elasticnet_cols:
+                selected_cols = elasticnet_cols
+                print(f"[FS] Using ElasticNet ({len(elasticnet_cols)} features)")
+            elif ols_cols:
+                selected_cols = ols_cols
+                print(f"[FS] Using OLS ({len(ols_cols)} features)")
+            else:
+                print(f"[FS] Both methods failed, using all {len(feat_cols)} features")
+        
+        return selected_cols
+    
+    except Exception as e:
+        print(f"[FS] Feature selection error: {e}")
+        return None
+
+
 def walkforward_cross_sectional(
     tickers,
     period: str = "5y",
@@ -1266,6 +1374,7 @@ def walkforward_cross_sectional(
     basket_pct_window: int = 252,
     basket_z_col: str = "retzscore20d",
     basket_mode: str = "gate",
+    feature_selection: str = "best",  # "none", "elasticnet", "ols", "best" (compare both, pick winner)
 ) -> pd.DataFrame:
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
@@ -1331,8 +1440,23 @@ def walkforward_cross_sectional(
         print(f"[WF] Fold {fold_idx}: train_rows={len(train_df)}, test_rows={len(test_df)}, "
               f"train_dates={len(train_dates)}, test_dates={len(test_dates)}")
 
+        # FEATURE SELECTION (if enabled)
+        fold_feat_cols = feat_cols.copy()
+        if feature_selection != "none":
+            fold_feat_cols = _select_features_for_fold(
+                train_df=train_df,
+                feat_cols=feat_cols,
+                horizon=horizon,
+                selection_mode=feature_selection,
+            )
+            if fold_feat_cols is not None and len(fold_feat_cols) > 0:
+                print(f"[WF] Fold {fold_idx}: Selected {len(fold_feat_cols)}/{len(feat_cols)} features")
+            else:
+                fold_feat_cols = feat_cols
+                print(f"[WF] Fold {fold_idx}: Feature selection failed, using all {len(feat_cols)} features")
+
         # MODEL TRAINING
-        X_train = train_df[feat_cols].fillna(0).values
+        X_train = train_df[fold_feat_cols].fillna(0).values
         y_train = train_df["target"].values
 
         np.random.seed(42)
@@ -1342,7 +1466,7 @@ def walkforward_cross_sectional(
         model.fit(X_train, y_train)
 
         # PREDICTION
-        X_test = test_df[feat_cols].fillna(0).values
+        X_test = test_df[fold_feat_cols].fillna(0).values
         X_test = X_test + np.random.normal(0, 1e-8, X_test.shape)
         y_test = test_df["target"].values
         y_pred = model.predict(X_test)

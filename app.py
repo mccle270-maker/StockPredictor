@@ -700,22 +700,24 @@ def _cached_walkforward_cross_sectional(
     period: str,
     horizon: int,
     model_type: str,
-    train_years: int,
-    test_years: int,
+    train_years: float,
+    test_years: float,
     top_pct_long: float,
     top_pct_short: float,
     vix_filter,
+    feature_selection: str = "best",
 ):
     return walkforward_cross_sectional(
         tickers=list(tickers_tuple),
         period=period,
         horizon=int(horizon),
         model_type=model_type,
-        train_years=int(train_years),
-        test_years=int(test_years),
+        train_years=float(train_years),
+        test_years=float(test_years),
         top_pct_long=float(top_pct_long),
         top_pct_short=float(top_pct_short),
         vix_filter=vix_filter,
+        feature_selection=feature_selection,
     )
 
 
@@ -1571,6 +1573,20 @@ def run_app():
             with col3:
                 st.subheader("Model & Risk")
                 model_type2 = st.selectbox("Model Type", ["rf", "xgb", "gbrt"], format_func=lambda x: f"{x.upper()} (Random Forest)" if x == "rf" else f"{x.upper()}")
+                
+                # Feature selection mode for walk-forward
+                feature_selection_mode = st.selectbox(
+                    "Feature Selection",
+                    ["best", "elasticnet", "ols", "none"],
+                    format_func=lambda x: {
+                        "best": "🏆 Best (Compare both)",
+                        "elasticnet": "🎯 ElasticNet",
+                        "ols": "📊 OLS",
+                        "none": "❌ None (All features)",
+                    }[x],
+                    help="ElasticNet: Aggressive regularization | OLS: p-value filtering | Best: Try both, pick winner"
+                )
+                
                 use_vix_filter = st.checkbox("🔒 VIX Filter", value=True, help="Pause trading if VIX > threshold")
                 vix_threshold = st.slider("VIX Max", 15, 35, 25) if use_vix_filter else None
                 
@@ -1647,6 +1663,7 @@ def run_app():
                             top_pct_long=top_long,
                             top_pct_short=top_short,
                             vix_filter=vix_threshold if use_vix_filter else None,
+                            feature_selection=feature_selection_mode,
                         )
                         progress_bar.progress(100)
                         

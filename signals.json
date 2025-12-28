@@ -1,9 +1,9 @@
 {
   "AAPL": {
     "asset": "stock",
-    "action": "SELL",
+    "action": "BUY",
     "qty": 1,
-    "pred_next_ret": -0.011225280374418016,
+    "pred_next_ret": 0.009472206630578295,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -28,9 +28,9 @@
   },
   "NVDA": {
     "asset": "stock",
-    "action": "HOLD",
+    "action": "BUY",
     "qty": 1,
-    "pred_next_ret": -0.003925915519894884,
+    "pred_next_ret": 0.008759126884646291,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
