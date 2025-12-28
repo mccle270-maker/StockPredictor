@@ -1072,8 +1072,9 @@ def run_app():
             if sort_col in cand_df.columns:
                 cand_df = cand_df.sort_values(sort_col, ascending=False)
 
+            # Initialize detail_universe (list of tickers to select from)
             if cand_df.empty:
-                st.write("No candidates matched your filters.")
+                st.info("No candidates matched your filters. Showing full universe.")
                 detail_universe = pred_df["ticker"].tolist()
             else:
                 cols = [c for c in [
@@ -1187,8 +1188,22 @@ def run_app():
 
 
             st.subheader("Ticker details")
-            selected = st.selectbox("Select ticker", detail_universe, key="dash_selected_ticker")
-            row = pred_df[pred_df["ticker"] == selected].iloc[0]
+            
+            # Ensure detail_universe is defined and sorted
+            if not detail_universe:
+                st.warning("No tickers available. Run the screener first.")
+                st.stop()
+            
+            sorted_universe = sorted(set(detail_universe))
+            selected = st.selectbox("Select ticker to analyze", sorted_universe, key="dash_selected_ticker")
+            
+            # Get the selected ticker's row
+            matching_rows = pred_df[pred_df["ticker"] == selected]
+            if matching_rows.empty:
+                st.error(f"No data found for {selected}. Please run the screener again.")
+                st.stop()
+            
+            row = matching_rows.iloc[0]
 
             st.subheader("Live price + forecast")
             render_price_with_prediction(
@@ -1202,105 +1217,128 @@ def run_app():
         # STACKED EXPANDERS
         # -------------------------
 
-            with st.expander("Model", expanded=True):
-                c1, c2, c3 = st.columns(3)
+            with st.expander("📊 Model Prediction", expanded=True):
+                pred_ret = row.get("pred_next_ret", None)
+                prob_up = row.get("prob_up", None)
+                
+                col1, col2, col3 = st.columns(3)
+                col1.metric(f"🎯 {display_horizon_label} Return", _fmt_pct(pred_ret, 2))
+                col2.metric("📈 Prob Up", "—" if prob_up is None else f"{float(prob_up):.1%}")
+                col3.metric("🔧 Features", "—" if row.get("num_features") is None else str(int(row.get("num_features"))))
+                
+                st.divider()
+                
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Last Close", f"${_fmt_num(row.get('last_close'), 2)}")
+                m2.metric("Pred Price", f"${_fmt_num(row.get('pred_next_price'), 2)}")
+                m3.metric("Vol 20D", _fmt_pct(row.get("vol_20d"), 2))
+                m4.metric("Signal", row.get("signal_alignment", "—"))
+                
+                if "vol_adjusted_edge" in row.index:
+                    st.metric("Vol-Adjusted Edge", _fmt_num(row.get("vol_adjusted_edge"), 3))
 
-            pred_ret = row.get("pred_next_ret", None)
-            prob_up = row.get("prob_up", None)
-
-            c1.metric(f"{display_horizon_label} prediction", _fmt_pct(pred_ret, 2))
-            c2.metric("Prob up", "—" if prob_up is None else f"{float(prob_up):.3f}")
-            c3.metric(
-                "Features used",
-                "—" if row.get("num_features") is None else str(int(row.get("num_features")))
-            )
-
-            st.markdown(
-                f"""
-        - Last close: {_fmt_num(row.get("last_close"), 2)}
-        - Predicted price: {_fmt_num(row.get("pred_next_price"), 2)}
-        - Alignment: {row.get("signal_alignment", "—")}
-        - Vol-adjusted edge: {_fmt_num(row.get("vol_adjusted_edge"), 3)}
-                """.strip()
-            )
-
-            with st.expander("Price chart", expanded=True):
+            with st.expander("📈 Price Chart & Forecast", expanded=True):
                 hist = get_history_cached(selected, period="3mo", interval="1d")
-            if hist is None or hist.empty or "Close" not in hist.columns:
-                st.warning("No price history available for chart.")
-            else:
-                close = hist["Close"].dropna()
-                last_dt = close.index[-1]
-                pred_price = row.get("pred_next_price")  # <-- FIX: keep your naming consistent
+                if hist is None or hist.empty or "Close" not in hist.columns:
+                    st.warning("No price history available for chart.")
+                else:
+                    close = hist["Close"].dropna()
+                    last_dt = close.index[-1]
+                    pred_price = row.get("pred_next_price")
 
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=close.index, y=close.values, name="Close", mode="lines"))
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=close.index, y=close.values, name="Close", mode="lines",
+                                           line=dict(color="steelblue", width=2)))
 
-                if pred_price is not None:
-                    future_dt = last_dt + pd.Timedelta(days=int(display_horizon))
-                    fig.add_trace(
-                        go.Scatter(
-                            x=[future_dt],
-                            y=[pred_price],
-                            name="Predicted",
-                            mode="markers",
-                            marker=dict(size=10),
+                    if pred_price is not None:
+                        future_dt = last_dt + pd.Timedelta(days=int(display_horizon))
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[last_dt, future_dt],
+                                y=[float(close.iloc[-1]), pred_price],
+                                name="Predicted",
+                                mode="lines",
+                                line=dict(color="red", dash="dash", width=2),
+                            )
                         )
+                        fig.add_trace(
+                            go.Scatter(
+                                x=[future_dt],
+                                y=[pred_price],
+                                name="Target",
+                                mode="markers",
+                                marker=dict(size=12, color="red"),
+                            )
+                        )
+
+                    fig.update_layout(
+                        height=450,
+                        title=f"{selected} - 3M Price History + {display_horizon_label} Forecast",
+                        xaxis_title="Date",
+                        yaxis_title="Price ($)",
+                        hovermode="x unified",
+                        template="plotly_white",
                     )
+                    st.plotly_chart(fig, use_container_width=True)
 
-                st.plotly_chart(fig, use_container_width=True)
-
-            with st.expander("Options", expanded=True):
+            with st.expander("📊 Options & Risk", expanded=True):
                 strat, _bias = suggest_options_strategy(
-                float(row.get("pred_next_ret") or 0.0),
-                row.get("put_call_oi_ratio"),
-                row.get("atm_iv"),
-                horizon=int(display_horizon),
-            )
+                    pred_ret=float(row.get("pred_next_ret") or 0.0),
+                    put_call_ratio=row.get("put_call_oi_ratio"),
+                    atm_iv=row.get("atm_iv"),
+                    horizon=int(display_horizon),
+                )
 
-            st.write(strat)
+                o1, o2, o3, o4 = st.columns(4)
+                o1.metric("ATM IV", _fmt_num(row.get("atm_iv"), 3))
+                o2.metric("Put/Call OI", _fmt_num(row.get("put_call_oi_ratio"), 3))
+                o3.metric("IV vs Realized", _fmt_num(row.get("iv_minus_realized"), 3))
+                o4.metric("Theo ATM Call", f"${_fmt_num(row.get('theo_atm_call_price'), 2)}")
+                
+                st.divider()
+                st.info(f"**Strategy**: {strat}")
 
-            o1, o2, o3 = st.columns(3)
-            o1.metric("ATM IV", _fmt_num(row.get("atm_iv"), 3))
-            o2.metric("Put/Call OI", _fmt_num(row.get("put_call_oi_ratio"), 3))
-            o3.metric("Theo ATM call", _fmt_num(row.get("theo_atm_call_price"), 3))
-
-            st.write(f"IV - realized: {_fmt_num(row.get('iv_minus_realized'), 3)}")
-
-            with st.expander("Greeks + News (slow)", expanded=False):
-                loadslow = st.checkbox("Load Greeks + News", value=False, key="dash_load_slow_expander")
-            if loadslow:
-                greeksinfo = None
-                try:
-                    greeksinfo = get_atm_greeks(selected)
-                except Exception:
+            with st.expander("📰 Greeks + News (slow)", expanded=False):
+                loadslow = st.checkbox("Load Greeks + News data", value=False, key="dash_load_slow_expander")
+                if loadslow:
                     greeksinfo = None
+                    try:
+                        greeksinfo = get_atm_greeks(selected)
+                    except Exception as e:
+                        st.warning(f"Greeks fetch failed: {e}")
+                        greeksinfo = None
 
-                if greeksinfo:
-                    cg, pg = greeksinfo.get("call_greeks"), greeksinfo.get("put_greeks")
-                    if cg:
-                        st.write(
-                            f"Call Δ {cg.get('delta', 0):.2f} Γ {cg.get('gamma', 0):.4f} "
-                            f"Vega {cg.get('vega', 0):.2f} Θ {cg.get('theta', 0):.2f}"
-                        )
-                    if pg:
-                        st.write(
-                            f"Put  Δ {pg.get('delta', 0):.2f} Γ {pg.get('gamma', 0):.4f} "
-                            f"Vega {pg.get('vega', 0):.2f} Θ {pg.get('theta', 0):.2f}"
-                        )
-                else:
-                    st.write("Greeks: NA")
+                    if greeksinfo:
+                        cg, pg = greeksinfo.get("call_greeks"), greeksinfo.get("put_greeks")
+                        st.write("**Call Greeks:**")
+                        if cg:
+                            st.write(
+                                f"Δ {cg.get('delta', 0):.2f} | Γ {cg.get('gamma', 0):.4f} | "
+                                f"Vega {cg.get('vega', 0):.2f} | Θ {cg.get('theta', 0):.2f}"
+                            )
+                        st.write("**Put Greeks:**")
+                        if pg:
+                            st.write(
+                                f"Δ {pg.get('delta', 0):.2f} | Γ {pg.get('gamma', 0):.4f} | "
+                                f"Vega {pg.get('vega', 0):.2f} | Θ {pg.get('theta', 0):.2f}"
+                            )
+                    else:
+                        st.info("Greeks: Not available")
 
-                news = get_news_for_ticker(selected, limit=5)
-                if detect_big_news(news):
-                    st.warning("Recent BIG news headlines detected.")
-                if news:
-                    for art in news:
-                        title = art.get("title") or "No title"
-                        url = art.get("url")
-                        st.markdown(f"- [{title}]({url})" if url else f"- {title}")
-                else:
-                    st.write("News: none / not configured")
+                    st.divider()
+                    news = get_news_for_ticker(selected, limit=5)
+                    if detect_big_news(news):
+                        st.warning("⚠️ **Recent significant news detected!**")
+                    if news:
+                        st.write("**Recent News:**")
+                        for i, art in enumerate(news, 1):
+                            title = art.get("title") or "No title"
+                            url = art.get("url")
+                            sent = art.get("sentiment")
+                            sent_emoji = "🔴" if sent and float(sent) < -0.3 else "🟢" if sent and float(sent) > 0.3 else "⚪"
+                            st.markdown(f"{sent_emoji} [{title}]({url})" if url else f"{sent_emoji} {title}")
+                    else:
+                        st.info("News: Not configured or unavailable")
 
 
                 with st.expander("Full predictions (all tickers)", expanded=False):

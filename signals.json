@@ -1,32 +1,5 @@
 {
-  "TSLA": {
-    "asset": "stock",
-    "action": "BUY",
-    "qty": 1,
-    "pred_next_ret": 0.01373048685491085,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "NFLX": {
+  "FCX": {
     "asset": "option",
     "strategy": "BUY_PUT",
     "dte_min": 0,
@@ -36,8 +9,8 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.037061333656311035,
-    "last_close": 94.0,
+    "pred_next_ret": -0.02659183368086815,
+    "last_close": 47.91999816894531,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -60,18 +33,18 @@
       "n": null
     }
   },
-  "COST": {
+  "SCCO": {
     "asset": "option",
-    "strategy": "BULL_CALL_SPREAD",
+    "strategy": "BEAR_PUT_SPREAD",
     "dte_min": 0,
     "dte_max": 45,
     "max_strike": 500.0,
     "max_premium": 500.0,
     "width_pct": 0.05,
     "qty": 1,
-    "raw_strategy_text": "BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.03205947205424309,
-    "last_close": 857.5900268554688,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.026993541046977043,
+    "last_close": 142.27999877929688,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -94,11 +67,45 @@
       "n": null
     }
   },
-  "DIS": {
+  "GOLD": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.02847464755177498,
+    "last_close": 32.630001068115234,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "WPM": {
     "asset": "stock",
     "action": "SELL",
     "qty": 1,
-    "pred_next_ret": -0.01603141613304615,
+    "pred_next_ret": -0.022633695974946022,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
@@ -121,190 +128,7 @@
       "n": null
     }
   },
-  "AMD": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_min": 0,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 1,
-    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.00802379660308361,
-    "last_close": 201.05999755859375,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "GS": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_min": 0,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 1,
-    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": 0.0021237931214272976,
-    "last_close": 876.2999877929688,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "META": {
-    "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": -0.0024918969720602036,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "WMT": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_min": 0,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 1,
-    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
-    "pred_next_ret": -0.003331533633172512,
-    "last_close": 114.83000183105469,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "JPM": {
-    "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": -0.002908087335526943,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "BAC": {
-    "asset": "stock",
-    "action": "BUY",
-    "qty": 1,
-    "pred_next_ret": 0.014988565817475319,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "GOOGL": {
+  "RIO": {
     "asset": "option",
     "strategy": "BUY_PUT",
     "dte_min": 0,
@@ -314,8 +138,517 @@
     "width_pct": 0.05,
     "qty": 1,
     "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.033976469188928604,
-    "last_close": 302.4599914550781,
+    "pred_next_ret": -0.036137547343969345,
+    "last_close": 77.62999725341797,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "KALU": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.020563015714287758,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "PLUG": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.03930772840976715,
+    "last_close": 2.259999990463257,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "AA": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.029957499355077744,
+    "last_close": 48.18000030517578,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "MP": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor or Straddle (high IV)",
+    "pred_next_ret": -0.000511087360791862,
+    "last_close": 52.040000915527344,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "BHP": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.021666161715984344,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "GLNCY": {
+    "asset": "stock",
+    "action": "SELL",
+    "qty": 1,
+    "pred_next_ret": -0.016128655523061752,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "DUK": {
+    "asset": "stock",
+    "action": "BUY",
+    "qty": 1,
+    "pred_next_ret": 0.021691767498850822,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "FSLR": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.06754474341869354,
+    "last_close": 261.7900085449219,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "NEM": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.028207125142216682,
+    "last_close": 99.33999633789062,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "ENPH": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.03764602169394493,
+    "last_close": 32.959999084472656,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "ALB": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.04638071358203888,
+    "last_close": 140.47999572753906,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "SQM": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.11072421818971634,
+    "last_close": 67.69999694824219,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "SO": {
+    "asset": "stock",
+    "action": "HOLD",
+    "qty": 1,
+    "pred_next_ret": 0.0027366115245968103,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "NEE": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.02320188842713833,
+    "last_close": 80.8499984741211,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "EXC": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.02942834421992302,
+    "last_close": 44.279998779296875,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    },
+    "context": {
+      "model_type": "xgb",
+      "period": "5y",
+      "horizon": 5,
+      "friction_preset": "Default",
+      "options_preset": "Default",
+      "budget_per_contract": 500.0,
+      "signal_threshold_pct": 0.005
+    },
+    "accuracy": {
+      "direction_accuracy": null,
+      "sharpe_signal_w_cost": null,
+      "dsr_signal_w_cost": null,
+      "n": null
+    }
+  },
+  "CMCLF": {
+    "asset": "option",
+    "strategy": "BEAR_PUT_SPREAD",
+    "dte_min": 0,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
+    "pred_next_ret": -0.07288186997175217,
+    "last_close": 2.3299999237060547,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
