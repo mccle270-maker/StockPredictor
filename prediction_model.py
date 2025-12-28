@@ -1560,7 +1560,11 @@ def walkforward_cross_sectional(
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
 
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    # Use actual available features, not hardcoded list
+    feat_cols_available = [c for c in FEATURE_COLUMNS if c in panel.columns]
+    macro_cols_available = [c for c in MACRO_COLUMNS if c in panel.columns]
+    feat_cols = feat_cols_available + macro_cols_available
+    
     df = panel.dropna(subset=feat_cols + ["target"]).copy()
 
     # INDEX HANDLING
@@ -2075,16 +2079,35 @@ def backtest_one_ticker(ticker="AAPL", period="10y", test_years=1, threshold=0.0
     hist = get_price_history(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
 
-    macro_df = get_macro_df(symbol="^GSPC", period=period)
-    hist = hist.join(macro_df, how="left")
+    # Make macro data optional
+    try:
+        macro_df = get_macro_df(symbol="^GSPC", period=period)
+        hist = hist.join(macro_df, how="left")
+    except Exception as e:
+        print(f"[backtest_one_ticker] Warning: Could not fetch macro data: {e}")
 
-    fund_feats = get_fundamental_features(ticker)
-    for k, v in fund_feats.items():
-        hist[k] = v
+    # Make fundamental data optional
+    try:
+        fund_feats = get_fundamental_features(ticker)
+        for k, v in fund_feats.items():
+            hist[k] = v
+    except Exception as e:
+        print(f"[backtest_one_ticker] Warning: Could not fetch fundamental data: {e}")
 
     hist["ftarget_ret_horizon_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
 
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    # Use actual available features, not hardcoded list
+    feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
+    macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
+    feat_cols = feat_cols_available + macro_cols_available
+    
+    # Filter by data quality (< 50% NaN)
+    data_quality = hist[feat_cols].isna().sum() / len(hist)
+    feat_cols = [c for c in feat_cols if data_quality[c] < 0.5]
+    
+    # Fill remaining NaNs
+    hist[feat_cols] = hist[feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
+    
     cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
     df = hist[cols_needed].dropna().copy()
 
@@ -2097,7 +2120,7 @@ def backtest_one_ticker(ticker="AAPL", period="10y", test_years=1, threshold=0.0
 
     Xtrain = train_df[feat_cols].values
     ytrain = train_df["ftarget_ret_horizon_ahead"].values
-    Xtest = test_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
+    Xtest = test_df[feat_cols].values
     ytest = test_df["ftarget_ret_horizon_ahead"].values
 
     selected_mask = None
@@ -2106,7 +2129,7 @@ def backtest_one_ticker(ticker="AAPL", period="10y", test_years=1, threshold=0.0
     if USE_OLSSIGSELECT:
                 Xtrain, ols_names, ols_mask = selectfeaturesols_pvalues(
                     Xtrain, ytrain,
-                    featurenames=list(featcols),
+                    featurenames=list(feat_cols),
                     alpha=OLSSIG_ALPHA,
                     topk=OLSSIG_TOPK,
                     minfeatures=OLSSIG_MINFEATURES,
@@ -2183,16 +2206,35 @@ def backtest_one_ticker_auto_optimized(
     hist = get_price_history(ticker, period=period, interval="1d")
     hist = add_price_features(hist)
 
-    macro_df = get_macro_df(symbol="^GSPC", period=period)
-    hist = hist.join(macro_df, how="left")
+    # Make macro data optional
+    try:
+        macro_df = get_macro_df(symbol="^GSPC", period=period)
+        hist = hist.join(macro_df, how="left")
+    except Exception as e:
+        print(f"[backtest_one_ticker_auto_optimized] Warning: Could not fetch macro data: {e}")
 
-    fund_feats = get_fundamental_features(ticker)
-    for k, v in fund_feats.items():
-        hist[k] = v
+    # Make fundamental data optional
+    try:
+        fund_feats = get_fundamental_features(ticker)
+        for k, v in fund_feats.items():
+            hist[k] = v
+    except Exception as e:
+        print(f"[backtest_one_ticker_auto_optimized] Warning: Could not fetch fundamental data: {e}")
 
     hist["ftarget_ret_horizon_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
 
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    # Use actual available features, not hardcoded list
+    feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
+    macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
+    feat_cols = feat_cols_available + macro_cols_available
+    
+    # Filter by data quality (< 50% NaN)
+    data_quality = hist[feat_cols].isna().sum() / len(hist)
+    feat_cols = [c for c in feat_cols if data_quality[c] < 0.5]
+    
+    # Fill remaining NaNs
+    hist[feat_cols] = hist[feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
+    
     cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
     df = hist[cols_needed].dropna().copy()
 
@@ -2252,7 +2294,7 @@ def backtest_one_ticker_auto_optimized(
     print(f"{ticker} Kept {len(important_features)}/{len(feat_cols)} features; dropped {dropped_count} weak")
 
     train_val_df = df.iloc[:val_end]
-    Xtrain_val_full = train_val_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
+    Xtrain_val_full = train_val_df[feat_cols].values
     ytrain_val = train_val_df["ftarget_ret_horizon_ahead"].values
 
     if selected_mask is not None:
@@ -2266,7 +2308,7 @@ def backtest_one_ticker_auto_optimized(
     model_final = make_model(model_type=model_type, random_state=42)
     model_final.fit(Xtrain_val, ytrain_val)
 
-    Xtest_full = test_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
+    Xtest_full = test_df[feat_cols].values
     ytest = test_df["ftarget_ret_horizon_ahead"].values
     if selected_mask is not None:
         Xtest_full = Xtest_full[:, selected_mask]
@@ -2461,17 +2503,37 @@ def walk_forward_backtest(
         return []
 
     hist = add_price_features(hist)
-    macro_df = get_macro_df(symbol="^GSPC", period=period)
-    hist = hist.join(macro_df, how="left")
+    
+    # Make macro data optional
+    try:
+        macro_df = get_macro_df(symbol="^GSPC", period=period)
+        hist = hist.join(macro_df, how="left")
+    except Exception as e:
+        print(f"[walk_forward_backtest] Warning: Could not fetch macro data: {e}")
 
-    fund_feats = get_fundamental_features(ticker)
-    for k, v in fund_feats.items():
-        hist[k] = v
+    # Make fundamental data optional
+    try:
+        fund_feats = get_fundamental_features(ticker)
+        for k, v in fund_feats.items():
+            hist[k] = v
+    except Exception as e:
+        print(f"[walk_forward_backtest] Warning: Could not fetch fundamental data: {e}")
 
     target_col = "ftarget_ret_horizon_ahead"
     hist[target_col] = hist["Close"].pct_change(horizon).shift(-horizon)
 
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    # Use actual available features, not hardcoded list
+    feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
+    macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
+    feat_cols = feat_cols_available + macro_cols_available
+    
+    # Filter by data quality (< 50% NaN)
+    data_quality = hist[feat_cols].isna().sum() / len(hist)
+    feat_cols = [c for c in feat_cols if data_quality[c] < 0.5]
+    
+    # Fill remaining NaNs
+    hist[feat_cols] = hist[feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
+    
     cols_needed = feat_cols + [target_col]
     df = hist[cols_needed].dropna().copy()
     if df.empty:
