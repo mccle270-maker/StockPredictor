@@ -270,7 +270,7 @@ def render_price_with_prediction(*, tk: str, horizon_days: int, pred_next_price,
         )
 
     fig.update_layout(height=420, margin=dict(l=10, r=10, t=30, b=10), legend=dict(orientation="h"))
-    st.plotly_chart(fig, width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def apply_costs_on_trades(
@@ -668,7 +668,7 @@ def render_price_with_prediction(tk: str, horizon_days: int, pred_next_price, pr
         )
 
     fig.update_layout(height=420, margin=dict(l=10, r=10, t=30, b=10), legend=dict(orientation="h"))
-    st.plotly_chart(fig, width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
 
 @st.cache_data(show_spinner=False, ttl=30 * 60)
@@ -907,7 +907,7 @@ def run_app():
                         screener_df = _cached_screen_stocks(tuple(tickers), ret_thresh / 100.0, vol_spike_thresh)
 
                     with st.expander("Screener results (raw)", expanded=False):
-                        st.dataframe(screener_df, width=True)
+                        st.dataframe(screener_df, use_container_width=True)
 
                     if screener_df is None or screener_df.empty:
                         st.warning("No screener data returned.")
@@ -1093,7 +1093,7 @@ def run_app():
                     "num_features",
                     "prob_up_gaf",
                 ] if c in cand_df.columns]
-                st.dataframe(cand_df[cols], width=True, height=280)
+                st.dataframe(cand_df[cols], use_container_width=True, height=280)
                 detail_universe = cand_df["ticker"].tolist()
             #========== Accuracy=========
             st.subheader("Validation: accuracy + Sharpe (all tickers)")
@@ -1185,7 +1185,7 @@ def run_app():
                 showdf = valdf.copy()
                 if "Accuracy %" in showdf.columns:
                     showdf = showdf.sort_values(by="Accuracy %", ascending=False, na_position="last")
-                st.dataframe(showdf, width=True, height=350)
+                st.dataframe(showdf, use_container_width=True, height=350)
 
 
 
@@ -1281,7 +1281,7 @@ def run_app():
                         hovermode="x unified",
                         template="plotly_white",
                     )
-                    st.plotly_chart(fig, width=True)
+                    st.plotly_chart(fig, use_container_width=True)
 
             with st.expander("📊 Options & Risk", expanded=True):
                 strat, _bias = suggest_options_strategy(
@@ -1345,7 +1345,7 @@ def run_app():
 
                 with st.expander("Full predictions (all tickers)", expanded=False):
                     display = _build_display_df(pred_df, display_horizon)
-                    st.dataframe(display, width=True)
+                    st.dataframe(display, use_container_width=True)
                     pred_col = f"Pred {display_horizon_label} Return (%)"
                     if pred_col in display.columns:
                         st.subheader(f"{pred_col} by ticker")
@@ -1376,7 +1376,7 @@ def run_app():
                                     "Pred next ret (%)": round(float(s.get("pred_next_ret", 0.0)) * 100, 2),
                                 }
                             )
-                    st.dataframe(pd.DataFrame(sig_rows), width=True)
+                    st.dataframe(pd.DataFrame(sig_rows), use_container_width=True)
                 else:
                     st.info("No signals written yet in this session.")
 
@@ -1515,7 +1515,7 @@ def run_app():
             if comp_results is None:
                 st.info("No comprehensive results loaded yet.")
             else:
-                st.dataframe(comp_results, width=True)
+                st.dataframe(comp_results, use_container_width=True)
 
     # ===================== TAB: Portfolio WF =====================
     with tab_port:
@@ -1645,7 +1645,7 @@ def run_app():
         
         run_col, est_col, clear_col = st.columns([2, 1, 1])
         with run_col:
-            if st.button("▶️ Run Backtest", type="primary", width=True):
+            if st.button("▶️ Run Backtest", type="primary", use_container_width=True):
                 tickers2 = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
                 
                 if enable_futures:
@@ -1753,7 +1753,7 @@ def run_app():
                 with tab_data:
                     st.subheader("Fold Results (Detailed)")
                     display_df = results_df.round(3)
-                    st.dataframe(display_df, width=True, height=400)
+                    st.dataframe(display_df, use_container_width=True, height=400)
                     
                     if st.button("📥 Export CSV"):
                         csv = results_df.round(3).to_csv(index=False)
@@ -1772,7 +1772,7 @@ def run_app():
                         ax.set_ylabel("Frequency")
                         ax.legend()
                         ax.grid(True, alpha=0.3)
-                        st.pyplot(fig, width=True)
+                        st.pyplot(fig, use_container_width=True)
                     
                     with chart2:
                         st.subheader("Return vs Drawdown")
@@ -1783,7 +1783,7 @@ def run_app():
                         ax.set_ylabel("Annual Return (%)")
                         ax.grid(True, alpha=0.3)
                         plt.colorbar(scatter, ax=ax, label="Sharpe Ratio")
-                        st.pyplot(fig, width=True)
+                        st.pyplot(fig, use_container_width=True)
 
             with right:
                 st.subheader("📈 Deployment Status")
@@ -1807,7 +1807,7 @@ def run_app():
                         signal_type = st.selectbox("Signal Type", ["Latest", "Median Sharpe", "All Positive"])
                     
                     with export_col2:
-                        if st.button("✓ Export", width=True):
+                        if st.button("✓ Export", use_container_width=True):
                             signals = build_signals_from_results(results_df, universe_text)
                             (BASE_DIR / "signals.json").write_text(json.dumps(signals, indent=2))
                             st.success(f"✓ Exported {len(signals)} signals")
