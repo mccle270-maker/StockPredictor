@@ -1297,23 +1297,50 @@ def build_features_and_target(
             print("Missing:", missing[:30])
             print("GBM cols present:", [c for c in hist.columns if c.startswith("gbm_")][:20])
 
-
-
-            macro_df = get_macro_df(symbol="^GSPC", period=per)
-            hist = hist.join(macro_df, how="left")
+            # Try to get macro data, but don't fail if unavailable
+            try:
+                macro_df = get_macro_df(symbol="^GSPC", period=per)
+                hist = hist.join(macro_df, how="left")
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: Could not fetch macro data: {e}")
+            
+            # Fill missing macro columns with NaN, then forward/backward fill
             for c in MACRO_COLUMNS:
                 if c not in hist.columns:
                     hist[c] = np.nan
-            hist[MACRO_COLUMNS] = hist[MACRO_COLUMNS].ffill().bfill()
+            # Only fill if column exists
+            macro_cols_present = [c for c in MACRO_COLUMNS if c in hist.columns]
+            if macro_cols_present:
+                hist[macro_cols_present] = hist[macro_cols_present].ffill().bfill()
 
-            fund_feats = get_fundamental_features(ticker)
-            for k, v in fund_feats.items():
-                hist[k] = v
+            # Try to get fundamental data, but don't fail if unavailable
+            try:
+                fund_feats = get_fundamental_features(ticker)
+                for k, v in fund_feats.items():
+                    hist[k] = v
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: Could not fetch fundamental data: {e}")
 
             raw_target = hist["Close"].pct_change(horizon).shift(-horizon)
             hist["ftarget_ret_horizon_ahead"] = (raw_target / (hist["vol_20d"] + 1e-9)) if use_vol_scaled_target else raw_target
 
-            feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+            # Use only columns that actually exist AND have data
+            # First, only include feature columns that exist
+            feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
+            # Then, filter to only columns with < 50% NaN
+            data_quality = hist[feat_cols_available].isna().sum() / len(hist)
+            feat_cols_available = [c for c in feat_cols_available if data_quality[c] < 0.5]
+            
+            macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
+            # Filter macro columns with < 50% NaN
+            data_quality_macro = hist[macro_cols_available].isna().sum() / len(hist)
+            macro_cols_available = [c for c in macro_cols_available if data_quality_macro[c] < 0.5]
+            
+            feat_cols = feat_cols_available + macro_cols_available
+            
+            # Fill remaining NaNs with forward fill, then backward fill
+            hist[feat_cols] = hist[feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
+
             cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
             df = hist[cols_needed].dropna().copy()
 
@@ -1358,7 +1385,6 @@ def build_features_and_target(
 def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_scaled_target=False):
     """Build cross-sectional panel from multiple tickers, skipping failures."""
     dfs = []
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
     
     for ticker in tickers:
         try:
@@ -1370,12 +1396,30 @@ def build_panel_features_and_target(tickers, period="5y", horizon=1, use_vol_sca
             if X is None or len(X) < 50:
                 print(f"[panel] Skipping {ticker}: insufficient data ({len(X) if X is not None else 0} rows)")
                 continue
-                
+            
+            # Dynamically determine which features are available
+            feat_cols_available = [c for c in FEATURE_COLUMNS if c in globals()]
+            macro_cols_available = [c for c in MACRO_COLUMNS if c in globals()]
+            feat_cols = feat_cols_available + macro_cols_available
+            
+            # Use the actual number of features returned
+            actual_feat_count = X.shape[1] if len(X.shape) > 1 else len(X)
+            
+            # Create meaningful column names - use first set of available columns
+            if len(feat_cols) == 0:
+                feat_cols = [f"feat_{i}" for i in range(actual_feat_count)]
+            else:
+                # Make sure we have the right number of columns
+                if len(feat_cols) > actual_feat_count:
+                    feat_cols = feat_cols[:actual_feat_count]
+                elif len(feat_cols) < actual_feat_count:
+                    feat_cols = feat_cols + [f"feat_{i}" for i in range(len(feat_cols), actual_feat_count)]
+            
             df = pd.DataFrame(X, index=pd.DatetimeIndex(dates), columns=feat_cols)
             df['target'] = y
             df['ticker'] = ticker
             dfs.append(df)
-            print(f"[panel] {ticker}: {len(df)} rows OK")
+            print(f"[panel] {ticker}: {len(df)} rows OK ({actual_feat_count} features)")
             
         except Exception as e:
             print(f"[panel] Skipping {ticker}: {e}")
@@ -1751,7 +1795,9 @@ def predict_next_for_ticker(
     X, y, x_last, last_close, last_vol_20d, prob_up_gaf, dates = build_features_and_target(
         ticker=ticker, period=period, horizon=horizon, use_vol_scaled_target=use_vol_scaled_target, run_gaf=run_gaf,
     )
-    feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+    
+    # Dynamically determine available features (don't use hardcoded FEATURE_COLUMNS + MACRO_COLUMNS)
+    actual_feat_cols = [f"feat_{i}" for i in range(X.shape[1])]
 
     n = len(X)
 
@@ -1763,7 +1809,7 @@ def predict_next_for_ticker(
 
         Xtrain_sel, ols_names, ols_mask = selectfeaturesols_pvalues(
             Xtrain, ytrain,
-            featurenames=list(featcols),
+            featurenames=list(actual_feat_cols),
             alpha=OLSSIG_ALPHA,
             topk=OLSSIG_TOPK,
             minfeatures=OLSSIG_MINFEATURES,
@@ -1771,8 +1817,8 @@ def predict_next_for_ticker(
 
         # Apply same mask to full X + last row
         X = X[:, ols_mask]
-        xlast = xlast[ols_mask]
-        featcols = ols_names
+        x_last = x_last[ols_mask]
+        actual_feat_cols = ols_names
 
 
     if USE_ELASTICNET_SELECT:
@@ -1784,7 +1830,7 @@ def predict_next_for_ticker(
             X_en_train_sel, en_selected_names, en_mask = select_features_elasticnet_timeseries(
                 X=X_en_train,
                 y=y_en_train,
-                feature_names=list(feat_cols),
+                feature_names=list(actual_feat_cols),
                 dates=dates[:train_end_for_en],
                 horizon=horizon,
                 n_splits=ELASTICNET_CV_FOLDS,
@@ -1793,8 +1839,8 @@ def predict_next_for_ticker(
             )
             X = X[:, en_mask]
             x_last = x_last[en_mask]
-            feat_cols = en_selected_names
-            print(f"{ticker} ElasticNet selected {len(feat_cols)} features")
+            actual_feat_cols = en_selected_names
+            print(f"{ticker} ElasticNet selected {len(actual_feat_cols)} features")
         except Exception as e:
             print(f"{ticker} ElasticNet selection failed; continuing without it. Error: {e}")
 
@@ -1811,13 +1857,13 @@ def predict_next_for_ticker(
         else:
             important_mask = np.ones(X.shape[1], dtype=bool)
 
-        important_features = [feat_cols[i] for i in range(len(feat_cols)) if important_mask[i]]
-        print(f"{ticker} Using {len(important_features)}/{len(feat_cols)} features for prediction")
+        important_features = [actual_feat_cols[i] for i in range(len(actual_feat_cols)) if important_mask[i]]
+        print(f"{ticker} Using {len(important_features)}/{len(actual_feat_cols)} features for prediction")
 
         Xtrain_full = X[:train_end][:, important_mask]
         ytrain_full = y[:train_end]
         x_last_pruned = x_last[important_mask]
-        feat_cols = important_features
+        actual_feat_cols = important_features
     else:
         split_idx = int(n * 0.8)
         Xtrain_full = X[:split_idx]
@@ -1862,7 +1908,7 @@ def predict_next_for_ticker(
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
 
     if hasattr(model, "feature_importances_"):
-        feature_importance = dict(zip(feat_cols, model.feature_importances_))
+        feature_importance = dict(zip(actual_feat_cols, model.feature_importances_))
         top_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)[:5]
         top_features_str = ", ".join([f"{feat}:{imp:.3f}" for feat, imp in top_features])
     else:
@@ -1880,12 +1926,12 @@ def predict_next_for_ticker(
         "prob_up": prob_up,
         "prob_down": prob_down,
         "prob_up_gaf": prob_up_gaf,
-        "num_features": len(feat_cols),
+        "num_features": len(actual_feat_cols),
         "top_features": top_features_str,
         "elasticnet_enabled": bool(USE_ELASTICNET_SELECT),
         "elasticnet_l1_ratio": float(ELASTICNET_L1_RATIO),
         "elasticnet_cv_folds": int(ELASTICNET_CV_FOLDS),
-        "elasticnet_selected_n": int(len(feat_cols)) if USE_ELASTICNET_SELECT else None,
+        "elasticnet_selected_n": int(len(actual_feat_cols)) if USE_ELASTICNET_SELECT else None,
     }
 
 
@@ -1899,16 +1945,28 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
 
         hist = add_price_features(hist)
 
-        macro_df = get_macro_df(symbol="^GSPC", period=period)
-        hist = hist.join(macro_df, how="left")
+        # Try to get macro data, but don't fail if unavailable
+        try:
+            macro_df = get_macro_df(symbol="^GSPC", period=period)
+            hist = hist.join(macro_df, how="left")
+        except Exception as e:
+            print(f"[track_predictions] Warning: Could not fetch macro data: {e}")
 
-        fund_feats = get_fundamental_features(ticker)
-        for k, v in fund_feats.items():
-            hist[k] = v
+        # Try to get fundamental data, but don't fail if unavailable
+        try:
+            fund_feats = get_fundamental_features(ticker)
+            for k, v in fund_feats.items():
+                hist[k] = v
+        except Exception as e:
+            print(f"[track_predictions] Warning: Could not fetch fundamental data: {e}")
 
         hist["ftarget_ret_horizon_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
 
-        feat_cols = FEATURE_COLUMNS + MACRO_COLUMNS
+        # Use only columns that actually exist
+        feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
+        macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
+        feat_cols = feat_cols_available + macro_cols_available
+        
         cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
         df = hist[cols_needed].dropna().copy()
 
