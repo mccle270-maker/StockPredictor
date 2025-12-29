@@ -520,6 +520,111 @@ def pick_bear_put_spread(
     return None, None, None
 
 
+def pick_iron_condor(
+    trade_client: TradingClient,
+    option_data_client: OptionHistoricalDataClient,
+    underlying: str,
+    spot: float | None,
+    dte_min: int,
+    dte_max: int,
+    max_premium: float,         # dollars (net credit * 100)
+    max_strike: float | None,
+    width_pct: float = 0.05,
+):
+    """
+    Pick an Iron Condor (sell call spread + sell put spread for net credit).
+    Returns: (short_call, long_call, short_put, long_put, est_credit)
+    """
+    contracts = _list_option_contracts(
+        trade_client,
+        underlying,
+        dte_min=dte_min,
+        dte_max=dte_max,
+        strike_lte=max_strike,
+    )
+
+    calls = []
+    puts = []
+    for c in contracts:
+        sym, exp, strike, is_call = _extract_contract_fields(c)
+        if sym is None:
+            continue
+        if not _in_dte_window(exp, dte_min, dte_max):
+            continue
+        if max_strike is not None and float(strike) > float(max_strike):
+            continue
+        
+        if is_call:
+            calls.append((sym, exp, strike))
+        else:
+            puts.append((sym, exp, strike))
+
+    if not calls or not puts or spot is None:
+        return None, None, None, None, None
+
+    by_exp_calls = {}
+    for sym, exp, strike in calls:
+        by_exp_calls.setdefault(exp, []).append((sym, strike))
+
+    by_exp_puts = {}
+    for sym, exp, strike in puts:
+        by_exp_puts.setdefault(exp, []).append((sym, strike))
+
+    # Try to match same expiration for both sides
+    common_exps = set(by_exp_calls.keys()) & set(by_exp_puts.keys())
+    if not common_exps:
+        return None, None, None, None, None
+
+    for exp in sorted(common_exps):
+        call_chain = sorted(by_exp_calls[exp], key=lambda x: x[1])
+        put_chain = sorted(by_exp_puts[exp], key=lambda x: x[1])
+
+        # Short call OTM (above spot)
+        short_calls = [(s, k) for (s, k) in call_chain if k > float(spot)]
+        if not short_calls:
+            continue
+        short_call_sym, short_call_strike = short_calls[0]  # Closest OTM call
+
+        # Long call further OTM
+        long_calls = [(s, k) for (s, k) in call_chain if k > short_call_strike]
+        if not long_calls:
+            continue
+        target_call = short_call_strike * (1.0 + float(width_pct))
+        long_call_sym, long_call_strike = min(long_calls, key=lambda x: abs(x[1] - target_call))
+
+        # Short put OTM (below spot)
+        short_puts = [(s, k) for (s, k) in put_chain if k < float(spot)]
+        if not short_puts:
+            continue
+        short_put_sym, short_put_strike = short_puts[-1]  # Closest OTM put
+
+        # Long put further OTM
+        long_puts = [(s, k) for (s, k) in put_chain if k < short_put_strike]
+        if not long_puts:
+            continue
+        target_put = short_put_strike * (1.0 - float(width_pct))
+        long_put_sym, long_put_strike = min(long_puts, key=lambda x: abs(x[1] - target_put))
+
+        # Get bid/ask for all legs
+        sc_bid, sc_ask = _get_latest_bid_ask(option_data_client, short_call_sym)
+        lc_bid, lc_ask = _get_latest_bid_ask(option_data_client, long_call_sym)
+        sp_bid, sp_ask = _get_latest_bid_ask(option_data_client, short_put_sym)
+        lp_bid, lp_ask = _get_latest_bid_ask(option_data_client, long_put_sym)
+
+        if None in [sc_bid, lc_ask, sp_bid, lp_ask]:
+            continue
+
+        # Net credit = (short call credit - long call cost) + (short put credit - long put cost)
+        call_credit = float(sc_bid) - float(lc_ask)
+        put_credit = float(sp_bid) - float(lp_ask)
+        est_credit = call_credit + put_credit
+
+        if est_credit > 0 and est_credit * 100.0 <= float(max_premium):
+            return short_call_sym, long_call_sym, short_put_sym, long_put_sym, est_credit
+
+    return None, None, None, None, None
+
+
 def main():
     key = os.environ["APCA_API_KEY_ID"]
     secret = os.environ["APCA_API_SECRET_KEY"]
@@ -598,23 +703,33 @@ def main():
         # ===== STOCKS =====
         if asset == "stock":
             action = str(spec.get("action", "HOLD")).upper()
-            qty = float(spec.get("qty", shares_for(symbol)))
+            qty = float(spec.get("qty", 1))
 
-            if action not in {"BUY", "SELL", "HOLD"}:
+            if action not in {"BUY", "SHORT", "SELL", "HOLD"}:
                 print(f"{symbol}: invalid action '{action}', treating as HOLD")
                 action = "HOLD"
 
             if action == "BUY" and symbol in held:
                 print(f"{symbol}: BUY skipped (already holding)")
                 continue
-            if action == "SELL" and symbol not in held:
-                print(f"{symbol}: SELL skipped (no position to close)")
+            if action in {"SHORT", "SELL"} and symbol not in held:
+                print(f"{symbol}: {action} skipped (no position to close)")
                 continue
             if action == "HOLD":
                 print(f"{symbol}: HOLD")
                 continue
 
-            side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
+            # Map actions to Alpaca order side
+            if action == "BUY":
+                side = OrderSide.BUY
+                order_desc = f"BUY {int(qty)} shares"
+            elif action == "SHORT":
+                side = OrderSide.SELL  # SHORT is sell side in Alpaca
+                order_desc = f"SHORT {int(qty)} shares"
+            else:  # SELL
+                side = OrderSide.SELL
+                order_desc = f"SELL {int(qty)} shares"
+            
             order = MarketOrderRequest(
                 symbol=symbol,
                 qty=qty,
@@ -643,7 +758,7 @@ def main():
                 last_price = 0
             
             # Log trade with signal strength if available
-            signal_strength = spec.get("predicted_return", None)
+            signal_strength = spec.get("pred_next_ret", None)
             try:
                 signal_strength = float(signal_strength) if signal_strength is not None else None
             except Exception:
@@ -657,9 +772,9 @@ def main():
                 qty=qty,
                 entry_price=last_price,
                 signal_strength=signal_strength,
-                notes=f"Signal from portfolio engine",
+                notes=f"Signal from portfolio engine ({int(qty)} qty)",
             )
-            print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
+            print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {order_desc} -> {submitted.id}")
             continue
 
         # ===== OPTIONS =====
@@ -812,6 +927,56 @@ def main():
                     f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
                     f"-> long={long_put} short={short_put} limit={limit_price:.2f} -> {submitted.id}"
                 )
+                continue
+
+            if strategy == "IRON_CONDOR":
+                short_call, long_call, short_put, long_put, est_credit = pick_iron_condor(
+                    trade_client,
+                    option_data_client,
+                    symbol,
+                    spot,
+                    dte_min,
+                    dte_max,
+                    max_premium,
+                    max_strike,
+                    width_pct=width_pct,
+                )
+                if not all([short_call, long_call, short_put, long_put]) or est_credit is None:
+                    strike_msg = f", strike<={max_strike}" if max_strike is not None else ""
+                    print(
+                        f"{symbol}: No IRON_CONDOR found with est_credit<=${max_premium} "
+                        f"and {dte_min}-{dte_max} DTE{strike_msg}"
+                    )
+                    continue
+
+                # Iron Condor: 4-leg spread (sell call, buy call, sell put, buy put)
+                legs = [
+                    OptionLegRequest(symbol=short_call, side=OrderSide.SELL, ratio_qty=1),
+                    OptionLegRequest(symbol=long_call, side=OrderSide.BUY, ratio_qty=1),
+                    OptionLegRequest(symbol=short_put, side=OrderSide.SELL, ratio_qty=1),
+                    OptionLegRequest(symbol=long_put, side=OrderSide.BUY, ratio_qty=1),
+                ]
+
+                # For credit spreads, we try to get at least the net credit
+                limit_price = round(max(0.01, float(est_credit) - 0.05), 2)
+
+                req = LimitOrderRequest(
+                    qty=qty,
+                    order_class=OrderClass.MLEG,
+                    time_in_force=TimeInForce.DAY,
+                    limit_price=limit_price,
+                    legs=legs,
+                )
+                
+                try:
+                    submitted = trade_client.submit_order(order_data=req)
+                    print(
+                        f"{datetime.now(timezone.utc).isoformat()} {symbol} IRON_CONDOR "
+                        f"-> call spread: {short_call}/{long_call}, put spread: {short_put}/{long_put}, "
+                        f"limit={limit_price:.2f} (credit) -> {submitted.id}"
+                    )
+                except Exception as e:
+                    print(f"{symbol}: IRON_CONDOR order failed: {e}")
                 continue
 
             print(f"{symbol}: OPTIONS strategy '{strategy}' not supported -> skipping")

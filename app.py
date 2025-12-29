@@ -339,14 +339,17 @@ def suggest_options_strategy(pred_ret, put_call_ratio, atm_iv, horizon=1):
                 return "BEARISH: Buy Puts (low protection)", "bearish"
             return "BEARISH: Buy Puts or Bear Put Spread", "bearish"
 
+    # HIGH IV → Iron Condor (sell premium, neutral direction, harvest volatility)
     if abs(pred_pct) < (0.5 * threshold_multiplier) and atm_iv and float(atm_iv) > 0.35:
-        return "NEUTRAL: Sell Iron Condor or Straddle (high IV)", "neutral"
+        return "NEUTRAL: Sell Iron Condor (high IV, harvest premium)", "neutral"
 
     return "NEUTRAL: Wait / no-trade", "neutral"
 
 
 def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | None:
     s = (text or "").lower()
+    if "iron condor" in s:
+        return "IRON_CONDOR"
     if "bullish" in s and "call" in s and "spread" in s:
         return "BULL_CALL_SPREAD" if prefer_spreads else "BUY_CALL"
     if "bullish" in s and "buy call" in s:
@@ -355,8 +358,6 @@ def normalize_model_option_strategy(text: str, prefer_spreads: bool) -> str | No
         return "BEAR_PUT_SPREAD" if prefer_spreads else "BUY_PUT"
     if "bearish" in s and "buy put" in s:
         return "BUY_PUT"
-    if "iron condor" in s:
-        return "IRON_CONDOR"
     return None
 
 
@@ -460,7 +461,24 @@ def build_signals_from_pred_df(
             continue
 
         pred = float(row.get("pred_next_ret") or 0.0)
-        stock_action = "BUY" if pred >= 0.005 else ("SELL" if pred <= -0.005 else "HOLD")
+        
+        # Calculate position size based on confidence strength
+        # Small moves: 1 contract, Medium: 2, Strong: 3
+        pred_abs = abs(pred)
+        if pred_abs >= 0.02:  # 2%+ expected return
+            qty_contracts = 3
+        elif pred_abs >= 0.01:  # 1%+ expected return
+            qty_contracts = 2
+        else:
+            qty_contracts = 1
+        
+        # Stock action: BUY bullish, SHORT bearish (if confident enough)
+        if pred >= 0.005:
+            stock_action = "BUY"
+        elif pred <= -0.01:  # Only SHORT if fairly confident (-1%+)
+            stock_action = "SHORT"
+        else:
+            stock_action = "HOLD"
 
         strat_text, _bias = suggest_options_strategy(
             pred_ret=pred,
@@ -480,7 +498,7 @@ def build_signals_from_pred_df(
                 "max_strike": float(max_strike),
                 "max_premium": float(max_premium),
                 "width_pct": float(width_pct),
-                "qty": 1,
+                "qty": qty_contracts,  # Use confidence-based quantity
                 "raw_strategy_text": str(strat_text),
                 "pred_next_ret": float(pred),
                 "last_close": float(row.get("last_close")) if row.get("last_close") is not None else None,
@@ -495,7 +513,7 @@ def build_signals_from_pred_df(
             signals[tk] = {
                 "asset": "stock",
                 "action": stock_action,
-                "qty": 1,
+                "qty": qty_contracts,  # Use confidence-based quantity
                 "pred_next_ret": float(pred),
                 "execution": {
                     "delay_days": int(exec_model.delay_days),
@@ -504,6 +522,8 @@ def build_signals_from_pred_df(
                     "fee_bps": float(exec_model.fee_bps),
                 },
             }
+
+        print(f"{tk}: qty={qty_contracts} {stock_action if signals[tk]['asset'] == 'stock' else strategy}")
 
     return signals
 
