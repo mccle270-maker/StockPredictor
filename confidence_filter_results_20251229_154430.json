@@ -1,0 +1,170 @@
+{
+  "GLD_rf_1d": [
+    {
+      "threshold": 0.0,
+      "trades": 251,
+      "pct_data": 100.0,
+      "accuracy": 0.46613545816733065,
+      "accuracy_gain": 0.0,
+      "best_threshold": 0.0
+    },
+    {
+      "threshold": 0.0005,
+      "trades": 154,
+      "pct_data": 61.354581673306775,
+      "accuracy": 0.4805194805194805,
+      "accuracy_gain": 1.4384022352149861,
+      "best_threshold": 0.0005
+    },
+    {
+      "threshold": 0.001,
+      "trades": 79,
+      "pct_data": 31.47410358565737,
+      "accuracy": 0.5189873417721519,
+      "accuracy_gain": 5.285188360482124,
+      "best_threshold": 0.001
+    },
+    {
+      "threshold": 0.002,
+      "trades": 9,
+      "pct_data": 3.5856573705179287,
+      "accuracy": 0.5555555555555556,
+      "accuracy_gain": 8.942009738822494,
+      "best_threshold": 0.002
+    }
+  ],
+  "GLD_xgb_1d": [
+    {
+      "threshold": 0.0,
+      "trades": 251,
+      "pct_data": 100.0,
+      "accuracy": 0.450199203187251,
+      "accuracy_gain": 0.0,
+      "best_threshold": 0.0
+    },
+    {
+      "threshold": 0.0005,
+      "trades": 236,
+      "pct_data": 94.02390438247012,
+      "accuracy": 0.4491525423728814,
+      "accuracy_gain": -0.10466608143696043,
+      "best_threshold": null
+    },
+    {
+      "threshold": 0.001,
+      "trades": 205,
+      "pct_data": 81.67330677290838,
+      "accuracy": 0.45365853658536587,
+      "accuracy_gain": 0.3459333398114883,
+      "best_threshold": 0.001
+    },
+    {
+      "threshold": 0.002,
+      "trades": 168,
+      "pct_data": 66.93227091633466,
+      "accuracy": 0.4880952380952381,
+      "accuracy_gain": 3.7896034907987097,
+      "best_threshold": 0.002
+    },
+    {
+      "threshold": 0.005,
+      "trades": 83,
+      "pct_data": 33.067729083665334,
+      "accuracy": 0.4578313253012048,
+      "accuracy_gain": 0.763212211395381,
+      "best_threshold": null
+    },
+    {
+      "threshold": 0.01,
+      "trades": 13,
+      "pct_data": 5.179282868525896,
+      "accuracy": 0.6923076923076923,
+      "accuracy_gain": 24.21084891204413,
+      "best_threshold": 0.01
+    }
+  ],
+  "SPY_rf_1d": [
+    {
+      "threshold": 0.0,
+      "trades": 251,
+      "pct_data": 100.0,
+      "accuracy": 0.4940239043824701,
+      "accuracy_gain": 0.0,
+      "best_threshold": 0.0
+    },
+    {
+      "threshold": 0.0005,
+      "trades": 163,
+      "pct_data": 64.9402390438247,
+      "accuracy": 0.5030674846625767,
+      "accuracy_gain": 0.9043580280106545,
+      "best_threshold": 0.0005
+    },
+    {
+      "threshold": 0.001,
+      "trades": 108,
+      "pct_data": 43.02788844621514,
+      "accuracy": 0.49074074074074076,
+      "accuracy_gain": -0.32831636417293697,
+      "best_threshold": null
+    },
+    {
+      "threshold": 0.002,
+      "trades": 37,
+      "pct_data": 14.741035856573706,
+      "accuracy": 0.5675675675675675,
+      "accuracy_gain": 7.354366318509742,
+      "best_threshold": 0.002
+    }
+  ],
+  "SPY_rf_5d": [
+    {
+      "threshold": 0.0,
+      "trades": 250,
+      "pct_data": 100.0,
+      "accuracy": 0.48,
+      "accuracy_gain": 0.0,
+      "best_threshold": 0.0
+    },
+    {
+      "threshold": 0.0005,
+      "trades": 236,
+      "pct_data": 94.39999999999999,
+      "accuracy": 0.4788135593220339,
+      "accuracy_gain": -0.1186440677966083,
+      "best_threshold": null
+    },
+    {
+      "threshold": 0.001,
+      "trades": 218,
+      "pct_data": 87.2,
+      "accuracy": 0.481651376146789,
+      "accuracy_gain": 0.16513761467890076,
+      "best_threshold": 0.001
+    },
+    {
+      "threshold": 0.002,
+      "trades": 181,
+      "pct_data": 72.39999999999999,
+      "accuracy": 0.4696132596685083,
+      "accuracy_gain": -1.0386740331491673,
+      "best_threshold": null
+    },
+    {
+      "threshold": 0.005,
+      "trades": 135,
+      "pct_data": 54.0,
+      "accuracy": 0.43703703703703706,
+      "accuracy_gain": -4.296296296296292,
+      "best_threshold": null
+    },
+    {
+      "threshold": 0.01,
+      "trades": 33,
+      "pct_data": 13.200000000000001,
+      "accuracy": 0.6666666666666666,
+      "accuracy_gain": 18.666666666666664,
+      "best_threshold": 0.01
+    }
+  ]
+}

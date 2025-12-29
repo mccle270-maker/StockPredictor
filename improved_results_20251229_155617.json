@@ -1,0 +1,82 @@
+[
+  {
+    "experiment_id": "improved_r1_gld_rf_reg",
+    "ticker": "GLD",
+    "model_type": "rf",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:55:52.160672"
+  },
+  {
+    "experiment_id": "improved_r1_gld_xgb_reg",
+    "ticker": "GLD",
+    "model_type": "xgb",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:02.611361"
+  },
+  {
+    "experiment_id": "improved_r1_gld_gb_reg",
+    "ticker": "GLD",
+    "model_type": "gbrt",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:05.160366"
+  },
+  {
+    "experiment_id": "improved_r2_spy_rf_reg",
+    "ticker": "SPY",
+    "model_type": "rf",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:07.669102"
+  },
+  {
+    "experiment_id": "improved_r2_spy_xgb_reg",
+    "ticker": "SPY",
+    "model_type": "xgb",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:09.920451"
+  },
+  {
+    "experiment_id": "improved_r2_qqq_rf_reg",
+    "ticker": "QQQ",
+    "model_type": "rf",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:11.833380"
+  },
+  {
+    "experiment_id": "improved_r3_gld_rf_reg_confirm",
+    "ticker": "GLD",
+    "model_type": "rf",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:13.125164"
+  },
+  {
+    "experiment_id": "improved_r3_spy_rf_reg_confirm",
+    "ticker": "SPY",
+    "model_type": "rf",
+    "status": "failed",
+    "samples": 1254,
+    "features_used": 144,
+    "error_message": "prediction_model.make_model() got multiple values for keyword argument 'task'",
+    "timestamp": "2025-12-29T15:56:15.403808"
+  }
+]

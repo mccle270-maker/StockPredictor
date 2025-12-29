@@ -652,6 +652,30 @@ def main():
     for symbol, spec in signals.items():
         symbol = str(symbol).upper()
 
+        # ===== NEW: CONFIDENCE FILTERING =====
+        # Skip low-confidence predictions to improve accuracy
+        # Confidence = |predicted_return| (higher absolute value = higher confidence)
+        # Thresholds tuned from diagnostics: GLD/XOM=0.001, SPY/broad=0.002
+        confidence_thresholds = {
+            "GLD": 0.001,
+            "XOM": 0.001,  # Similar commodity behavior
+            "SPY": 0.002,
+            "QQQ": 0.002,
+            "NVDA": 0.002,
+            "MSFT": 0.002,
+            "JPM": 0.002,
+        }
+        min_confidence = confidence_thresholds.get(symbol, 0.001)  # Default 0.001
+        
+        if isinstance(spec, dict):
+            confidence = abs(spec.get("confidence_score", 0.0))
+            if confidence < min_confidence:
+                print(f"{symbol}: SKIPPED (confidence {confidence:.6f} < {min_confidence}) - Low confidence signal")
+                continue
+            if confidence > 0:
+                print(f"{symbol}: Confidence {confidence:.6f} ✓ (threshold {min_confidence})")
+        # ========================================
+
         if not isinstance(spec, dict):
             action = str(spec).upper()
             if action not in {"BUY", "SELL", "HOLD"}:

@@ -1,0 +1,922 @@
+2025-12-29 15:25:30,573 | RunExperiments | INFO | Loaded 10 experiments from experiments_phase2b.json
+2025-12-29 15:25:30,573 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:25:30,573 | RunExperiments | INFO | Loading 10 experiments...
+2025-12-29 15:25:30,573 | ExperimentRunner | INFO | Added experiment: phase2b_baseline_rf (GLD / rf)
+2025-12-29 15:25:30,573 | ExperimentRunner | INFO | Added experiment: phase2b_baseline_xgb (GLD / xgb)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_macro_rf (GLD / rf)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_sentiment_rf (GLD / rf)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_full_features_rf (GLD / rf)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_elasticnet_select_rf (GLD / rf)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_xgb_depth_sweep_d3 (QQQ / xgb)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_xgb_depth_sweep_d4 (QQQ / xgb)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_xgb_depth_sweep_d5 (QQQ / xgb)
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Added experiment: phase2b_rf_all_tiers (SPY / rf)
+2025-12-29 15:25:30,574 | RunExperiments | INFO | 
+====================================================================================================
+2025-12-29 15:25:30,574 | RunExperiments | INFO | STARTING EXPERIMENT RUN
+2025-12-29 15:25:30,574 | RunExperiments | INFO | ====================================================================================================
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | Starting 10 experiments...
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | 
+[1/10] Running: phase2b_baseline_rf
+2025-12-29 15:25:30,574 | ExperimentRunner | INFO | [phase2b_baseline_rf] Starting backtest for GLD
+2025-12-29 15:25:38,532 | ExperimentRunner | ERROR | [phase2b_baseline_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:38,533 | ExperimentRunner | INFO | 
+[2/10] Running: phase2b_baseline_xgb
+2025-12-29 15:25:38,533 | ExperimentRunner | INFO | [phase2b_baseline_xgb] Starting backtest for GLD
+2025-12-29 15:25:41,281 | ExperimentRunner | ERROR | [phase2b_baseline_xgb] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:41,281 | ExperimentRunner | INFO | 
+[3/10] Running: phase2b_macro_rf
+2025-12-29 15:25:41,281 | ExperimentRunner | INFO | [phase2b_macro_rf] Starting backtest for GLD
+2025-12-29 15:25:44,439 | ExperimentRunner | ERROR | [phase2b_macro_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:44,439 | ExperimentRunner | INFO | 
+[4/10] Running: phase2b_sentiment_rf
+2025-12-29 15:25:44,439 | ExperimentRunner | INFO | [phase2b_sentiment_rf] Starting backtest for GLD
+2025-12-29 15:25:47,547 | ExperimentRunner | ERROR | [phase2b_sentiment_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:47,547 | ExperimentRunner | INFO | 
+[5/10] Running: phase2b_full_features_rf
+2025-12-29 15:25:47,547 | ExperimentRunner | INFO | [phase2b_full_features_rf] Starting backtest for GLD
+2025-12-29 15:25:50,740 | ExperimentRunner | ERROR | [phase2b_full_features_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:50,741 | ExperimentRunner | INFO | 
+[6/10] Running: phase2b_elasticnet_select_rf
+2025-12-29 15:25:50,741 | ExperimentRunner | INFO | [phase2b_elasticnet_select_rf] Starting backtest for GLD
+2025-12-29 15:25:53,923 | ExperimentRunner | ERROR | [phase2b_elasticnet_select_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:53,924 | ExperimentRunner | INFO | 
+[7/10] Running: phase2b_xgb_depth_sweep_d3
+2025-12-29 15:25:53,924 | ExperimentRunner | INFO | [phase2b_xgb_depth_sweep_d3] Starting backtest for QQQ
+2025-12-29 15:25:55,738 | ExperimentRunner | ERROR | [phase2b_xgb_depth_sweep_d3] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:55,739 | ExperimentRunner | INFO | 
+[8/10] Running: phase2b_xgb_depth_sweep_d4
+2025-12-29 15:25:55,739 | ExperimentRunner | INFO | [phase2b_xgb_depth_sweep_d4] Starting backtest for QQQ
+2025-12-29 15:25:57,290 | ExperimentRunner | ERROR | [phase2b_xgb_depth_sweep_d4] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:57,290 | ExperimentRunner | INFO | 
+[9/10] Running: phase2b_xgb_depth_sweep_d5
+2025-12-29 15:25:57,291 | ExperimentRunner | INFO | [phase2b_xgb_depth_sweep_d5] Starting backtest for QQQ
+2025-12-29 15:25:58,529 | ExperimentRunner | ERROR | [phase2b_xgb_depth_sweep_d5] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:25:58,529 | ExperimentRunner | INFO | 
+[10/10] Running: phase2b_rf_all_tiers
+2025-12-29 15:25:58,529 | ExperimentRunner | INFO | [phase2b_rf_all_tiers] Starting backtest for SPY
+2025-12-29 15:26:01,457 | ExperimentRunner | ERROR | [phase2b_rf_all_tiers] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:26:01,457 | ExperimentRunner | INFO | 
+✅ All 10 experiments completed
+2025-12-29 15:26:01,457 | RunExperiments | INFO | 
+====================================================================================================
+2025-12-29 15:26:01,457 | RunExperiments | INFO | RESULTS
+2025-12-29 15:26:01,457 | RunExperiments | INFO | ====================================================================================================
+2025-12-29 15:26:01,463 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_152601.json
+2025-12-29 15:26:01,468 | ExperimentRunner | INFO | Leaderboard saved to results/leaderboard_20251229_152601.csv
+2025-12-29 15:26:01,468 | RunExperiments | INFO | 
+✅ Results saved:
+2025-12-29 15:26:01,468 | RunExperiments | INFO |    - JSON: results/experiment_results_20251229_152601.json
+2025-12-29 15:26:01,468 | RunExperiments | INFO |    - CSV: results/leaderboard_20251229_152601.csv
+2025-12-29 15:26:01,468 | RunExperiments | INFO |    - Log: experiment_runner.log
+2025-12-29 15:28:28,674 | __main__ | INFO | PHASE 2B COMPREHENSIVE TESTING & ANALYSIS
+2025-12-29 15:28:28,675 | __main__ | INFO | ================================================================================
+2025-12-29 15:28:28,675 | __main__ | INFO | 
+🔍 ROUND 1: Feature & Model Testing on GLD
+2025-12-29 15:28:28,675 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:28:28,675 | __main__ | INFO | ROUND 1: Running 4 experiments
+2025-12-29 15:28:28,675 | __main__ | INFO | ================================================================================
+
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | Added experiment: r1_gld_rf_baseline (GLD / rf)
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | Added experiment: r1_gld_rf_macro (GLD / rf)
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | Added experiment: r1_gld_xgb_baseline (GLD / xgb)
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | Added experiment: r1_gld_xgb_macro (GLD / xgb)
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | Starting 4 experiments...
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | 
+[1/4] Running: r1_gld_rf_baseline
+2025-12-29 15:28:28,675 | ExperimentRunner | INFO | [r1_gld_rf_baseline] Starting backtest for GLD
+2025-12-29 15:28:37,226 | ExperimentRunner | ERROR | [r1_gld_rf_baseline] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:37,226 | ExperimentRunner | INFO | 
+[2/4] Running: r1_gld_rf_macro
+2025-12-29 15:28:37,226 | ExperimentRunner | INFO | [r1_gld_rf_macro] Starting backtest for GLD
+2025-12-29 15:28:41,081 | ExperimentRunner | ERROR | [r1_gld_rf_macro] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:41,081 | ExperimentRunner | INFO | 
+[3/4] Running: r1_gld_xgb_baseline
+2025-12-29 15:28:41,081 | ExperimentRunner | INFO | [r1_gld_xgb_baseline] Starting backtest for GLD
+2025-12-29 15:28:44,208 | ExperimentRunner | ERROR | [r1_gld_xgb_baseline] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:44,209 | ExperimentRunner | INFO | 
+[4/4] Running: r1_gld_xgb_macro
+2025-12-29 15:28:44,209 | ExperimentRunner | INFO | [r1_gld_xgb_macro] Starting backtest for GLD
+2025-12-29 15:28:47,072 | ExperimentRunner | ERROR | [r1_gld_xgb_macro] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:47,072 | ExperimentRunner | INFO | 
+✅ All 4 experiments completed
+2025-12-29 15:28:47,078 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_152847.json
+2025-12-29 15:28:47,079 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:28:47,079 | __main__ | INFO | ANALYSIS
+2025-12-29 15:28:47,079 | __main__ | INFO | ================================================================================
+2025-12-29 15:28:47,079 | __main__ | INFO | 
+GLD:
+2025-12-29 15:28:47,080 | __main__ | INFO |   Count: 4
+2025-12-29 15:28:47,080 | __main__ | INFO |   Avg Sharpe: 2.510
+2025-12-29 15:28:47,080 | __main__ | INFO |   Max Sharpe: 2.510 (r1_gld_rf_baseline)
+2025-12-29 15:28:47,080 | __main__ | INFO |   Avg Accuracy: 45.8%
+2025-12-29 15:28:47,080 | __main__ | INFO |   Avg Max DD: -10.1%
+2025-12-29 15:28:47,080 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:28:47,080 | __main__ | INFO |   RF: Avg Sharpe=2.510, Count=2
+2025-12-29 15:28:47,080 | __main__ | INFO |   XGB: Avg Sharpe=2.510, Count=2
+2025-12-29 15:28:47,080 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:28:47,081 | __main__ | INFO |   r1_gld_rf_baseline             | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:28:47,081 | __main__ | INFO |   r1_gld_rf_macro                | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:28:47,081 | __main__ | INFO |   r1_gld_xgb_baseline            | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:28:47,081 | __main__ | INFO |   r1_gld_xgb_macro               | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:28:47,081 | __main__ | INFO | 
+🔍 ROUND 2: Cross-Ticker Testing
+2025-12-29 15:28:47,082 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:28:47,082 | __main__ | INFO | ROUND 2: Running 4 experiments
+2025-12-29 15:28:47,082 | __main__ | INFO | ================================================================================
+
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | Added experiment: r2_spy_rf (SPY / rf)
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | Added experiment: r2_spy_xgb (SPY / xgb)
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | Added experiment: r2_qqq_rf (QQQ / rf)
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | Added experiment: r2_qqq_xgb (QQQ / xgb)
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | Starting 4 experiments...
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | 
+[1/4] Running: r2_spy_rf
+2025-12-29 15:28:47,082 | ExperimentRunner | INFO | [r2_spy_rf] Starting backtest for SPY
+2025-12-29 15:28:51,098 | ExperimentRunner | ERROR | [r2_spy_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:51,100 | ExperimentRunner | INFO | 
+[2/4] Running: r2_spy_xgb
+2025-12-29 15:28:51,100 | ExperimentRunner | INFO | [r2_spy_xgb] Starting backtest for SPY
+2025-12-29 15:28:54,545 | ExperimentRunner | ERROR | [r2_spy_xgb] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:54,546 | ExperimentRunner | INFO | 
+[3/4] Running: r2_qqq_rf
+2025-12-29 15:28:54,546 | ExperimentRunner | INFO | [r2_qqq_rf] Starting backtest for QQQ
+2025-12-29 15:28:57,738 | ExperimentRunner | ERROR | [r2_qqq_rf] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:57,743 | ExperimentRunner | INFO | 
+[4/4] Running: r2_qqq_xgb
+2025-12-29 15:28:57,743 | ExperimentRunner | INFO | [r2_qqq_xgb] Starting backtest for QQQ
+2025-12-29 15:28:59,945 | ExperimentRunner | ERROR | [r2_qqq_xgb] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:28:59,947 | ExperimentRunner | INFO | 
+✅ All 4 experiments completed
+2025-12-29 15:28:59,952 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_152859.json
+2025-12-29 15:28:59,954 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:28:59,954 | __main__ | INFO | ANALYSIS
+2025-12-29 15:28:59,954 | __main__ | INFO | ================================================================================
+2025-12-29 15:28:59,955 | __main__ | INFO | 
+SPY:
+2025-12-29 15:28:59,955 | __main__ | INFO |   Count: 2
+2025-12-29 15:28:59,955 | __main__ | INFO |   Avg Sharpe: 0.747
+2025-12-29 15:28:59,956 | __main__ | INFO |   Max Sharpe: 0.747 (r2_spy_rf)
+2025-12-29 15:28:59,956 | __main__ | INFO |   Avg Accuracy: 49.8%
+2025-12-29 15:28:59,956 | __main__ | INFO |   Avg Max DD: -18.8%
+2025-12-29 15:28:59,956 | __main__ | INFO | 
+QQQ:
+2025-12-29 15:28:59,956 | __main__ | INFO |   Count: 2
+2025-12-29 15:28:59,956 | __main__ | INFO |   Avg Sharpe: 0.730
+2025-12-29 15:28:59,956 | __main__ | INFO |   Max Sharpe: 0.730 (r2_qqq_rf)
+2025-12-29 15:28:59,956 | __main__ | INFO |   Avg Accuracy: 45.8%
+2025-12-29 15:28:59,957 | __main__ | INFO |   Avg Max DD: -22.8%
+2025-12-29 15:28:59,957 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:28:59,957 | __main__ | INFO |   RF: Avg Sharpe=0.739, Count=2
+2025-12-29 15:28:59,957 | __main__ | INFO |   XGB: Avg Sharpe=0.739, Count=2
+2025-12-29 15:28:59,957 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:28:59,958 | __main__ | INFO |   r2_spy_rf                      | SPY   | rf    | Sharpe=0.747 | Acc=49.8%
+2025-12-29 15:28:59,958 | __main__ | INFO |   r2_spy_xgb                     | SPY   | xgb   | Sharpe=0.747 | Acc=49.8%
+2025-12-29 15:28:59,958 | __main__ | INFO |   r2_qqq_rf                      | QQQ   | rf    | Sharpe=0.730 | Acc=46.2%
+2025-12-29 15:28:59,958 | __main__ | INFO |   r2_qqq_xgb                     | QQQ   | xgb   | Sharpe=0.730 | Acc=45.4%
+2025-12-29 15:28:59,958 | __main__ | INFO | 
+🔍 ROUND 3: Hyperparameter Tuning
+2025-12-29 15:28:59,959 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:28:59,959 | __main__ | INFO | ROUND 3: Running 3 experiments
+2025-12-29 15:28:59,959 | __main__ | INFO | ================================================================================
+
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | Added experiment: r3_gld_xgb_shallow (GLD / xgb)
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | Added experiment: r3_gld_xgb_deep (GLD / xgb)
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | Added experiment: r3_gld_rf_deep (GLD / rf)
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | Starting 3 experiments...
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | 
+[1/3] Running: r3_gld_xgb_shallow
+2025-12-29 15:28:59,959 | ExperimentRunner | INFO | [r3_gld_xgb_shallow] Starting backtest for GLD
+2025-12-29 15:29:04,957 | ExperimentRunner | ERROR | [r3_gld_xgb_shallow] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:29:04,959 | ExperimentRunner | INFO | 
+[2/3] Running: r3_gld_xgb_deep
+2025-12-29 15:29:04,959 | ExperimentRunner | INFO | [r3_gld_xgb_deep] Starting backtest for GLD
+2025-12-29 15:29:09,251 | ExperimentRunner | ERROR | [r3_gld_xgb_deep] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:29:09,252 | ExperimentRunner | INFO | 
+[3/3] Running: r3_gld_rf_deep
+2025-12-29 15:29:09,252 | ExperimentRunner | INFO | [r3_gld_rf_deep] Starting backtest for GLD
+2025-12-29 15:29:16,764 | ExperimentRunner | ERROR | [r3_gld_rf_deep] ❌ Failed: Invalid format specifier '.3f if result.sharpe_ratio else 'N/A'' for object of type 'float'
+2025-12-29 15:29:16,767 | ExperimentRunner | INFO | 
+✅ All 3 experiments completed
+2025-12-29 15:29:16,775 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_152916.json
+2025-12-29 15:29:16,776 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:29:16,777 | __main__ | INFO | ANALYSIS
+2025-12-29 15:29:16,777 | __main__ | INFO | ================================================================================
+2025-12-29 15:29:16,777 | __main__ | INFO | 
+GLD:
+2025-12-29 15:29:16,778 | __main__ | INFO |   Count: 3
+2025-12-29 15:29:16,778 | __main__ | INFO |   Avg Sharpe: 2.510
+2025-12-29 15:29:16,778 | __main__ | INFO |   Max Sharpe: 2.510 (r3_gld_xgb_shallow)
+2025-12-29 15:29:16,778 | __main__ | INFO |   Avg Accuracy: 45.6%
+2025-12-29 15:29:16,778 | __main__ | INFO |   Avg Max DD: -10.1%
+2025-12-29 15:29:16,778 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:29:16,779 | __main__ | INFO |   XGB: Avg Sharpe=2.510, Count=2
+2025-12-29 15:29:16,779 | __main__ | INFO |   RF: Avg Sharpe=2.510, Count=1
+2025-12-29 15:29:16,779 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:29:16,780 | __main__ | INFO |   r3_gld_xgb_shallow             | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:29:16,780 | __main__ | INFO |   r3_gld_xgb_deep                | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:29:16,780 | __main__ | INFO |   r3_gld_rf_deep                 | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:29:16,780 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:29:16,780 | __main__ | INFO | FINAL SUMMARY - ALL ROUNDS COMBINED
+2025-12-29 15:29:16,780 | __main__ | INFO | ================================================================================
+2025-12-29 15:29:16,781 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:29:16,781 | __main__ | INFO | ANALYSIS
+2025-12-29 15:29:16,781 | __main__ | INFO | ================================================================================
+2025-12-29 15:29:16,781 | __main__ | INFO | 
+GLD:
+2025-12-29 15:29:16,781 | __main__ | INFO |   Count: 7
+2025-12-29 15:29:16,782 | __main__ | INFO |   Avg Sharpe: 2.510
+2025-12-29 15:29:16,782 | __main__ | INFO |   Max Sharpe: 2.510 (r1_gld_rf_baseline)
+2025-12-29 15:29:16,782 | __main__ | INFO |   Avg Accuracy: 45.7%
+2025-12-29 15:29:16,782 | __main__ | INFO |   Avg Max DD: -10.1%
+2025-12-29 15:29:16,782 | __main__ | INFO | 
+SPY:
+2025-12-29 15:29:16,782 | __main__ | INFO |   Count: 2
+2025-12-29 15:29:16,782 | __main__ | INFO |   Avg Sharpe: 0.747
+2025-12-29 15:29:16,782 | __main__ | INFO |   Max Sharpe: 0.747 (r2_spy_rf)
+2025-12-29 15:29:16,783 | __main__ | INFO |   Avg Accuracy: 49.8%
+2025-12-29 15:29:16,783 | __main__ | INFO |   Avg Max DD: -18.8%
+2025-12-29 15:29:16,783 | __main__ | INFO | 
+QQQ:
+2025-12-29 15:29:16,783 | __main__ | INFO |   Count: 2
+2025-12-29 15:29:16,783 | __main__ | INFO |   Avg Sharpe: 0.730
+2025-12-29 15:29:16,783 | __main__ | INFO |   Max Sharpe: 0.730 (r2_qqq_rf)
+2025-12-29 15:29:16,783 | __main__ | INFO |   Avg Accuracy: 45.8%
+2025-12-29 15:29:16,783 | __main__ | INFO |   Avg Max DD: -22.8%
+2025-12-29 15:29:16,783 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:29:16,783 | __main__ | INFO |   RF: Avg Sharpe=1.802, Count=5
+2025-12-29 15:29:16,784 | __main__ | INFO |   XGB: Avg Sharpe=1.920, Count=6
+2025-12-29 15:29:16,784 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:29:16,786 | __main__ | INFO |   r1_gld_rf_baseline             | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:29:16,786 | __main__ | INFO |   r1_gld_rf_macro                | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:29:16,786 | __main__ | INFO |   r1_gld_xgb_baseline            | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:29:16,786 | __main__ | INFO |   r1_gld_xgb_macro               | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:29:16,786 | __main__ | INFO |   r3_gld_xgb_shallow             | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:29:16,786 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:29:16,786 | __main__ | INFO | RECOMMENDATIONS FOR PRODUCTION
+2025-12-29 15:29:16,786 | __main__ | INFO | ================================================================================
+2025-12-29 15:29:16,793 | __main__ | INFO | 
+GLD:
+2025-12-29 15:29:16,793 | __main__ | INFO |   Best Experiment: r1_gld_rf_baseline
+2025-12-29 15:29:16,793 | __main__ | INFO |   Model: RF
+2025-12-29 15:29:16,793 | __main__ | INFO |   Sharpe: 2.510
+2025-12-29 15:29:16,793 | __main__ | INFO |   Accuracy: 46.6%
+2025-12-29 15:29:16,793 | __main__ | INFO |   Max Drawdown: -10.1%
+2025-12-29 15:29:16,793 | __main__ | INFO | 
+QQQ:
+2025-12-29 15:29:16,793 | __main__ | INFO |   Best Experiment: r2_qqq_rf
+2025-12-29 15:29:16,793 | __main__ | INFO |   Model: RF
+2025-12-29 15:29:16,793 | __main__ | INFO |   Sharpe: 0.730
+2025-12-29 15:29:16,793 | __main__ | INFO |   Accuracy: 46.2%
+2025-12-29 15:29:16,793 | __main__ | INFO |   Max Drawdown: -22.8%
+2025-12-29 15:29:16,793 | __main__ | INFO | 
+SPY:
+2025-12-29 15:29:16,793 | __main__ | INFO |   Best Experiment: r2_spy_rf
+2025-12-29 15:29:16,793 | __main__ | INFO |   Model: RF
+2025-12-29 15:29:16,793 | __main__ | INFO |   Sharpe: 0.747
+2025-12-29 15:29:16,793 | __main__ | INFO |   Accuracy: 49.8%
+2025-12-29 15:29:16,793 | __main__ | INFO |   Max Drawdown: -18.8%
+2025-12-29 15:33:02,484 | __main__ | INFO | PHASE 2B COMPREHENSIVE TESTING & ANALYSIS
+2025-12-29 15:33:02,485 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:02,485 | __main__ | INFO | 
+🔍 ROUND 1: Feature & Model Testing on GLD
+2025-12-29 15:33:02,485 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:02,485 | __main__ | INFO | ROUND 1: Running 4 experiments
+2025-12-29 15:33:02,485 | __main__ | INFO | ================================================================================
+
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | Added experiment: r1_gld_rf_baseline (GLD / rf)
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | Added experiment: r1_gld_rf_macro (GLD / rf)
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | Added experiment: r1_gld_xgb_baseline (GLD / xgb)
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | Added experiment: r1_gld_xgb_macro (GLD / xgb)
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | Starting 4 experiments...
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | 
+[1/4] Running: r1_gld_rf_baseline
+2025-12-29 15:33:02,485 | ExperimentRunner | INFO | [r1_gld_rf_baseline] Starting backtest for GLD
+2025-12-29 15:33:09,511 | ExperimentRunner | INFO | [r1_gld_rf_baseline] ✅ Success | Acc: 0.466 | Sharpe: 2.510
+2025-12-29 15:33:09,512 | ExperimentRunner | INFO | 
+[2/4] Running: r1_gld_rf_macro
+2025-12-29 15:33:09,512 | ExperimentRunner | INFO | [r1_gld_rf_macro] Starting backtest for GLD
+2025-12-29 15:33:12,578 | ExperimentRunner | INFO | [r1_gld_rf_macro] ✅ Success | Acc: 0.466 | Sharpe: 2.510
+2025-12-29 15:33:12,579 | ExperimentRunner | INFO | 
+[3/4] Running: r1_gld_xgb_baseline
+2025-12-29 15:33:12,579 | ExperimentRunner | INFO | [r1_gld_xgb_baseline] Starting backtest for GLD
+2025-12-29 15:33:15,558 | ExperimentRunner | INFO | [r1_gld_xgb_baseline] ✅ Success | Acc: 0.450 | Sharpe: 2.510
+2025-12-29 15:33:15,559 | ExperimentRunner | INFO | 
+[4/4] Running: r1_gld_xgb_macro
+2025-12-29 15:33:15,559 | ExperimentRunner | INFO | [r1_gld_xgb_macro] Starting backtest for GLD
+2025-12-29 15:33:18,355 | ExperimentRunner | INFO | [r1_gld_xgb_macro] ✅ Success | Acc: 0.450 | Sharpe: 2.510
+2025-12-29 15:33:18,355 | ExperimentRunner | INFO | 
+✅ All 4 experiments completed
+2025-12-29 15:33:18,361 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_153318.json
+2025-12-29 15:33:18,362 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:18,362 | __main__ | INFO | ANALYSIS
+2025-12-29 15:33:18,362 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:18,362 | __main__ | INFO | 
+GLD:
+2025-12-29 15:33:18,362 | __main__ | INFO |   Count: 4
+2025-12-29 15:33:18,363 | __main__ | INFO |   Avg Sharpe: 2.510
+2025-12-29 15:33:18,363 | __main__ | INFO |   Max Sharpe: 2.510 (r1_gld_rf_baseline)
+2025-12-29 15:33:18,363 | __main__ | INFO |   Avg Accuracy: 45.8%
+2025-12-29 15:33:18,363 | __main__ | INFO |   Avg Max DD: -10.1%
+2025-12-29 15:33:18,363 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:33:18,363 | __main__ | INFO |   RF: Avg Sharpe=2.510, Count=2
+2025-12-29 15:33:18,363 | __main__ | INFO |   XGB: Avg Sharpe=2.510, Count=2
+2025-12-29 15:33:18,366 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:33:18,367 | __main__ | INFO |   r1_gld_rf_baseline             | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:33:18,367 | __main__ | INFO |   r1_gld_rf_macro                | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:33:18,367 | __main__ | INFO |   r1_gld_xgb_baseline            | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:18,367 | __main__ | INFO |   r1_gld_xgb_macro               | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:18,367 | __main__ | INFO | 
+🔍 ROUND 2: Cross-Ticker Testing
+2025-12-29 15:33:18,367 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:18,367 | __main__ | INFO | ROUND 2: Running 4 experiments
+2025-12-29 15:33:18,367 | __main__ | INFO | ================================================================================
+
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | Added experiment: r2_spy_rf (SPY / rf)
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | Added experiment: r2_spy_xgb (SPY / xgb)
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | Added experiment: r2_qqq_rf (QQQ / rf)
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | Added experiment: r2_qqq_xgb (QQQ / xgb)
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | Starting 4 experiments...
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | 
+[1/4] Running: r2_spy_rf
+2025-12-29 15:33:18,367 | ExperimentRunner | INFO | [r2_spy_rf] Starting backtest for SPY
+2025-12-29 15:33:21,594 | ExperimentRunner | INFO | [r2_spy_rf] ✅ Success | Acc: 0.494 | Sharpe: 0.747
+2025-12-29 15:33:21,596 | ExperimentRunner | INFO | 
+[2/4] Running: r2_spy_xgb
+2025-12-29 15:33:21,596 | ExperimentRunner | INFO | [r2_spy_xgb] Starting backtest for SPY
+2025-12-29 15:33:23,814 | ExperimentRunner | INFO | [r2_spy_xgb] ✅ Success | Acc: 0.502 | Sharpe: 0.747
+2025-12-29 15:33:23,814 | ExperimentRunner | INFO | 
+[3/4] Running: r2_qqq_rf
+2025-12-29 15:33:23,814 | ExperimentRunner | INFO | [r2_qqq_rf] Starting backtest for QQQ
+2025-12-29 15:33:26,711 | ExperimentRunner | INFO | [r2_qqq_rf] ✅ Success | Acc: 0.466 | Sharpe: 0.730
+2025-12-29 15:33:26,712 | ExperimentRunner | INFO | 
+[4/4] Running: r2_qqq_xgb
+2025-12-29 15:33:26,713 | ExperimentRunner | INFO | [r2_qqq_xgb] Starting backtest for QQQ
+2025-12-29 15:33:28,255 | ExperimentRunner | INFO | [r2_qqq_xgb] ✅ Success | Acc: 0.474 | Sharpe: 0.730
+2025-12-29 15:33:28,256 | ExperimentRunner | INFO | 
+✅ All 4 experiments completed
+2025-12-29 15:33:28,258 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_153328.json
+2025-12-29 15:33:28,259 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:28,259 | __main__ | INFO | ANALYSIS
+2025-12-29 15:33:28,259 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:28,259 | __main__ | INFO | 
+SPY:
+2025-12-29 15:33:28,259 | __main__ | INFO |   Count: 2
+2025-12-29 15:33:28,259 | __main__ | INFO |   Avg Sharpe: 0.747
+2025-12-29 15:33:28,259 | __main__ | INFO |   Max Sharpe: 0.747 (r2_spy_rf)
+2025-12-29 15:33:28,259 | __main__ | INFO |   Avg Accuracy: 49.8%
+2025-12-29 15:33:28,259 | __main__ | INFO |   Avg Max DD: -18.8%
+2025-12-29 15:33:28,259 | __main__ | INFO | 
+QQQ:
+2025-12-29 15:33:28,259 | __main__ | INFO |   Count: 2
+2025-12-29 15:33:28,259 | __main__ | INFO |   Avg Sharpe: 0.730
+2025-12-29 15:33:28,260 | __main__ | INFO |   Max Sharpe: 0.730 (r2_qqq_rf)
+2025-12-29 15:33:28,260 | __main__ | INFO |   Avg Accuracy: 47.0%
+2025-12-29 15:33:28,260 | __main__ | INFO |   Avg Max DD: -22.8%
+2025-12-29 15:33:28,260 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:33:28,260 | __main__ | INFO |   RF: Avg Sharpe=0.739, Count=2
+2025-12-29 15:33:28,260 | __main__ | INFO |   XGB: Avg Sharpe=0.739, Count=2
+2025-12-29 15:33:28,260 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:33:28,261 | __main__ | INFO |   r2_spy_rf                      | SPY   | rf    | Sharpe=0.747 | Acc=49.4%
+2025-12-29 15:33:28,261 | __main__ | INFO |   r2_spy_xgb                     | SPY   | xgb   | Sharpe=0.747 | Acc=50.2%
+2025-12-29 15:33:28,261 | __main__ | INFO |   r2_qqq_rf                      | QQQ   | rf    | Sharpe=0.730 | Acc=46.6%
+2025-12-29 15:33:28,261 | __main__ | INFO |   r2_qqq_xgb                     | QQQ   | xgb   | Sharpe=0.730 | Acc=47.4%
+2025-12-29 15:33:28,261 | __main__ | INFO | 
+🔍 ROUND 3: Hyperparameter Tuning
+2025-12-29 15:33:28,261 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:28,261 | __main__ | INFO | ROUND 3: Running 3 experiments
+2025-12-29 15:33:28,261 | __main__ | INFO | ================================================================================
+
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | Added experiment: r3_gld_xgb_shallow (GLD / xgb)
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | Added experiment: r3_gld_xgb_deep (GLD / xgb)
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | Added experiment: r3_gld_rf_deep (GLD / rf)
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | Starting 3 experiments...
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | 
+[1/3] Running: r3_gld_xgb_shallow
+2025-12-29 15:33:28,261 | ExperimentRunner | INFO | [r3_gld_xgb_shallow] Starting backtest for GLD
+2025-12-29 15:33:31,543 | ExperimentRunner | INFO | [r3_gld_xgb_shallow] ✅ Success | Acc: 0.450 | Sharpe: 2.510
+2025-12-29 15:33:31,544 | ExperimentRunner | INFO | 
+[2/3] Running: r3_gld_xgb_deep
+2025-12-29 15:33:31,544 | ExperimentRunner | INFO | [r3_gld_xgb_deep] Starting backtest for GLD
+2025-12-29 15:33:35,589 | ExperimentRunner | INFO | [r3_gld_xgb_deep] ✅ Success | Acc: 0.450 | Sharpe: 2.510
+2025-12-29 15:33:35,590 | ExperimentRunner | INFO | 
+[3/3] Running: r3_gld_rf_deep
+2025-12-29 15:33:35,591 | ExperimentRunner | INFO | [r3_gld_rf_deep] Starting backtest for GLD
+2025-12-29 15:33:39,005 | ExperimentRunner | INFO | [r3_gld_rf_deep] ✅ Success | Acc: 0.466 | Sharpe: 2.510
+2025-12-29 15:33:39,005 | ExperimentRunner | INFO | 
+✅ All 3 experiments completed
+2025-12-29 15:33:39,008 | ExperimentRunner | INFO | Results saved to results/experiment_results_20251229_153339.json
+2025-12-29 15:33:39,008 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:39,008 | __main__ | INFO | ANALYSIS
+2025-12-29 15:33:39,008 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:39,008 | __main__ | INFO | 
+GLD:
+2025-12-29 15:33:39,008 | __main__ | INFO |   Count: 3
+2025-12-29 15:33:39,008 | __main__ | INFO |   Avg Sharpe: 2.510
+2025-12-29 15:33:39,008 | __main__ | INFO |   Max Sharpe: 2.510 (r3_gld_xgb_shallow)
+2025-12-29 15:33:39,009 | __main__ | INFO |   Avg Accuracy: 45.6%
+2025-12-29 15:33:39,009 | __main__ | INFO |   Avg Max DD: -10.1%
+2025-12-29 15:33:39,009 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:33:39,009 | __main__ | INFO |   XGB: Avg Sharpe=2.510, Count=2
+2025-12-29 15:33:39,009 | __main__ | INFO |   RF: Avg Sharpe=2.510, Count=1
+2025-12-29 15:33:39,009 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:33:39,009 | __main__ | INFO |   r3_gld_xgb_shallow             | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:39,010 | __main__ | INFO |   r3_gld_xgb_deep                | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:39,010 | __main__ | INFO |   r3_gld_rf_deep                 | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:33:39,010 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:39,010 | __main__ | INFO | FINAL SUMMARY - ALL ROUNDS COMBINED
+2025-12-29 15:33:39,010 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:39,010 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:39,010 | __main__ | INFO | ANALYSIS
+2025-12-29 15:33:39,010 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:39,010 | __main__ | INFO | 
+GLD:
+2025-12-29 15:33:39,010 | __main__ | INFO |   Count: 7
+2025-12-29 15:33:39,010 | __main__ | INFO |   Avg Sharpe: 2.510
+2025-12-29 15:33:39,010 | __main__ | INFO |   Max Sharpe: 2.510 (r1_gld_rf_baseline)
+2025-12-29 15:33:39,010 | __main__ | INFO |   Avg Accuracy: 45.7%
+2025-12-29 15:33:39,010 | __main__ | INFO |   Avg Max DD: -10.1%
+2025-12-29 15:33:39,011 | __main__ | INFO | 
+SPY:
+2025-12-29 15:33:39,011 | __main__ | INFO |   Count: 2
+2025-12-29 15:33:39,011 | __main__ | INFO |   Avg Sharpe: 0.747
+2025-12-29 15:33:39,011 | __main__ | INFO |   Max Sharpe: 0.747 (r2_spy_rf)
+2025-12-29 15:33:39,011 | __main__ | INFO |   Avg Accuracy: 49.8%
+2025-12-29 15:33:39,011 | __main__ | INFO |   Avg Max DD: -18.8%
+2025-12-29 15:33:39,011 | __main__ | INFO | 
+QQQ:
+2025-12-29 15:33:39,011 | __main__ | INFO |   Count: 2
+2025-12-29 15:33:39,011 | __main__ | INFO |   Avg Sharpe: 0.730
+2025-12-29 15:33:39,011 | __main__ | INFO |   Max Sharpe: 0.730 (r2_qqq_rf)
+2025-12-29 15:33:39,011 | __main__ | INFO |   Avg Accuracy: 47.0%
+2025-12-29 15:33:39,011 | __main__ | INFO |   Avg Max DD: -22.8%
+2025-12-29 15:33:39,011 | __main__ | INFO | 
+Model Type Comparison:
+2025-12-29 15:33:39,011 | __main__ | INFO |   RF: Avg Sharpe=1.802, Count=5
+2025-12-29 15:33:39,011 | __main__ | INFO |   XGB: Avg Sharpe=1.920, Count=6
+2025-12-29 15:33:39,011 | __main__ | INFO | 
+Top 5 Experiments Overall:
+2025-12-29 15:33:39,012 | __main__ | INFO |   r1_gld_rf_baseline             | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:33:39,012 | __main__ | INFO |   r1_gld_rf_macro                | GLD   | rf    | Sharpe=2.510 | Acc=46.6%
+2025-12-29 15:33:39,012 | __main__ | INFO |   r1_gld_xgb_baseline            | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:39,013 | __main__ | INFO |   r1_gld_xgb_macro               | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:39,013 | __main__ | INFO |   r3_gld_xgb_shallow             | GLD   | xgb   | Sharpe=2.510 | Acc=45.0%
+2025-12-29 15:33:39,013 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:33:39,013 | __main__ | INFO | RECOMMENDATIONS FOR PRODUCTION
+2025-12-29 15:33:39,013 | __main__ | INFO | ================================================================================
+2025-12-29 15:33:39,021 | __main__ | INFO | 
+GLD:
+2025-12-29 15:33:39,021 | __main__ | INFO |   Best Experiment: r1_gld_rf_baseline
+2025-12-29 15:33:39,021 | __main__ | INFO |   Model: RF
+2025-12-29 15:33:39,021 | __main__ | INFO |   Sharpe: 2.510
+2025-12-29 15:33:39,021 | __main__ | INFO |   Accuracy: 46.6%
+2025-12-29 15:33:39,022 | __main__ | INFO |   Max Drawdown: -10.1%
+2025-12-29 15:33:39,022 | __main__ | INFO | 
+QQQ:
+2025-12-29 15:33:39,022 | __main__ | INFO |   Best Experiment: r2_qqq_rf
+2025-12-29 15:33:39,022 | __main__ | INFO |   Model: RF
+2025-12-29 15:33:39,022 | __main__ | INFO |   Sharpe: 0.730
+2025-12-29 15:33:39,022 | __main__ | INFO |   Accuracy: 46.6%
+2025-12-29 15:33:39,022 | __main__ | INFO |   Max Drawdown: -22.8%
+2025-12-29 15:33:39,023 | __main__ | INFO | 
+SPY:
+2025-12-29 15:33:39,023 | __main__ | INFO |   Best Experiment: r2_spy_rf
+2025-12-29 15:33:39,023 | __main__ | INFO |   Model: RF
+2025-12-29 15:33:39,023 | __main__ | INFO |   Sharpe: 0.747
+2025-12-29 15:33:39,023 | __main__ | INFO |   Accuracy: 49.4%
+2025-12-29 15:33:39,023 | __main__ | INFO |   Max Drawdown: -18.8%
+2025-12-29 15:51:37,086 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:51:37,086 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 15:51:37,087 | __main__ | INFO | ================================================================================
+2025-12-29 15:51:37,087 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:52:46,901 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:52:46,902 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 15:52:46,902 | __main__ | INFO | ================================================================================
+2025-12-29 15:52:46,902 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:54:54,910 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:54:54,910 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 15:54:54,910 | __main__ | INFO | ================================================================================
+2025-12-29 15:54:54,910 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:54:54,911 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:54:54,911 | __main__ | INFO | # ROUND 1: GLD Regularization Testing
+2025-12-29 15:54:54,911 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:54:54,911 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] Starting backtest for GLD
+2025-12-29 15:55:07,657 | ExperimentRunner | ERROR | [improved_r1_gld_rf_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:07,657 | __main__ | INFO | 
+⚠️ improved_r1_gld_rf_reg
+2025-12-29 15:55:07,658 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] Starting backtest for GLD
+2025-12-29 15:55:10,924 | ExperimentRunner | ERROR | [improved_r1_gld_xgb_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:10,924 | __main__ | INFO | 
+⚠️ improved_r1_gld_xgb_reg
+2025-12-29 15:55:10,924 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] Starting backtest for GLD
+2025-12-29 15:55:13,360 | ExperimentRunner | ERROR | [improved_r1_gld_gb_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:13,361 | __main__ | INFO | 
+⚠️ improved_r1_gld_gb_reg
+2025-12-29 15:55:13,361 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:55:13,361 | __main__ | INFO | ROUND SUMMARY: ROUND 1: GLD Regularization Testing
+2025-12-29 15:55:13,361 | __main__ | INFO | ================================================================================
+2025-12-29 15:55:13,361 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:55:13,361 | __main__ | INFO | # ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:55:13,361 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:55:13,361 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] Starting backtest for SPY
+2025-12-29 15:55:16,162 | ExperimentRunner | ERROR | [improved_r2_spy_rf_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:16,162 | __main__ | INFO | 
+⚠️ improved_r2_spy_rf_reg
+2025-12-29 15:55:16,162 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] Starting backtest for SPY
+2025-12-29 15:55:19,175 | ExperimentRunner | ERROR | [improved_r2_spy_xgb_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:19,175 | __main__ | INFO | 
+⚠️ improved_r2_spy_xgb_reg
+2025-12-29 15:55:19,175 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] Starting backtest for QQQ
+2025-12-29 15:55:20,256 | ExperimentRunner | ERROR | [improved_r2_qqq_rf_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:20,256 | __main__ | INFO | 
+⚠️ improved_r2_qqq_rf_reg
+2025-12-29 15:55:20,256 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:55:20,256 | __main__ | INFO | ROUND SUMMARY: ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:55:20,256 | __main__ | INFO | ================================================================================
+2025-12-29 15:55:20,256 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:55:20,256 | __main__ | INFO | # ROUND 3: Confirmation Test (Same configs)
+2025-12-29 15:55:20,256 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:55:20,256 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] Starting backtest for GLD
+2025-12-29 15:55:23,249 | ExperimentRunner | ERROR | [improved_r3_gld_rf_reg_confirm] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:23,250 | __main__ | INFO | 
+⚠️ improved_r3_gld_rf_reg_confirm
+2025-12-29 15:55:23,250 | ExperimentRunner | INFO | [improved_r3_spy_rf_reg_confirm] Starting backtest for SPY
+2025-12-29 15:55:25,336 | ExperimentRunner | ERROR | [improved_r3_spy_rf_reg_confirm] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'random_state'
+2025-12-29 15:55:25,337 | __main__ | INFO | 
+⚠️ improved_r3_spy_rf_reg_confirm
+2025-12-29 15:55:25,337 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:55:25,337 | __main__ | INFO | ROUND SUMMARY: ROUND 3: Confirmation Test (Same configs)
+2025-12-29 15:55:25,337 | __main__ | INFO | ================================================================================
+2025-12-29 15:55:25,337 | __main__ | INFO | 
+
+================================================================================
+2025-12-29 15:55:25,337 | __main__ | INFO | FINAL RESULTS: All Rounds Combined
+2025-12-29 15:55:25,337 | __main__ | INFO | ================================================================================
+2025-12-29 15:55:25,337 | __main__ | INFO | 
+Total: 0/8 successful
+2025-12-29 15:55:25,337 | __main__ | INFO | 
+✅ Results saved to improved_results_20251229_155525.json
+2025-12-29 15:55:52,159 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:55:52,160 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 15:55:52,160 | __main__ | INFO | ================================================================================
+2025-12-29 15:55:52,160 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:55:52,160 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:55:52,160 | __main__ | INFO | # ROUND 1: GLD Regularization Testing
+2025-12-29 15:55:52,160 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:55:52,160 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] Starting backtest for GLD
+2025-12-29 15:56:02,610 | ExperimentRunner | ERROR | [improved_r1_gld_rf_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:02,611 | __main__ | INFO | 
+⚠️ improved_r1_gld_rf_reg
+2025-12-29 15:56:02,611 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] Starting backtest for GLD
+2025-12-29 15:56:05,159 | ExperimentRunner | ERROR | [improved_r1_gld_xgb_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:05,160 | __main__ | INFO | 
+⚠️ improved_r1_gld_xgb_reg
+2025-12-29 15:56:05,160 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] Starting backtest for GLD
+2025-12-29 15:56:07,668 | ExperimentRunner | ERROR | [improved_r1_gld_gb_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:07,668 | __main__ | INFO | 
+⚠️ improved_r1_gld_gb_reg
+2025-12-29 15:56:07,668 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:07,668 | __main__ | INFO | ROUND SUMMARY: ROUND 1: GLD Regularization Testing
+2025-12-29 15:56:07,668 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:07,668 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:56:07,669 | __main__ | INFO | # ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:56:07,669 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:56:07,669 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] Starting backtest for SPY
+2025-12-29 15:56:09,919 | ExperimentRunner | ERROR | [improved_r2_spy_rf_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:09,920 | __main__ | INFO | 
+⚠️ improved_r2_spy_rf_reg
+2025-12-29 15:56:09,920 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] Starting backtest for SPY
+2025-12-29 15:56:11,833 | ExperimentRunner | ERROR | [improved_r2_spy_xgb_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:11,833 | __main__ | INFO | 
+⚠️ improved_r2_spy_xgb_reg
+2025-12-29 15:56:11,833 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] Starting backtest for QQQ
+2025-12-29 15:56:13,124 | ExperimentRunner | ERROR | [improved_r2_qqq_rf_reg] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:13,124 | __main__ | INFO | 
+⚠️ improved_r2_qqq_rf_reg
+2025-12-29 15:56:13,124 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:13,124 | __main__ | INFO | ROUND SUMMARY: ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:56:13,124 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:13,125 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:56:13,125 | __main__ | INFO | # ROUND 3: Confirmation Test (Same configs)
+2025-12-29 15:56:13,125 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:56:13,125 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] Starting backtest for GLD
+2025-12-29 15:56:15,403 | ExperimentRunner | ERROR | [improved_r3_gld_rf_reg_confirm] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:15,403 | __main__ | INFO | 
+⚠️ improved_r3_gld_rf_reg_confirm
+2025-12-29 15:56:15,403 | ExperimentRunner | INFO | [improved_r3_spy_rf_reg_confirm] Starting backtest for SPY
+2025-12-29 15:56:17,381 | ExperimentRunner | ERROR | [improved_r3_spy_rf_reg_confirm] ❌ Failed: prediction_model.make_model() got multiple values for keyword argument 'task'
+2025-12-29 15:56:17,381 | __main__ | INFO | 
+⚠️ improved_r3_spy_rf_reg_confirm
+2025-12-29 15:56:17,381 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:17,381 | __main__ | INFO | ROUND SUMMARY: ROUND 3: Confirmation Test (Same configs)
+2025-12-29 15:56:17,381 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:17,381 | __main__ | INFO | 
+
+================================================================================
+2025-12-29 15:56:17,382 | __main__ | INFO | FINAL RESULTS: All Rounds Combined
+2025-12-29 15:56:17,382 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:17,382 | __main__ | INFO | 
+Total: 0/8 successful
+2025-12-29 15:56:17,382 | __main__ | INFO | 
+✅ Results saved to improved_results_20251229_155617.json
+2025-12-29 15:56:39,375 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:39,376 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 15:56:39,377 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:39,377 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:56:39,377 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:56:39,377 | __main__ | INFO | # ROUND 1: GLD Regularization Testing
+2025-12-29 15:56:39,377 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:56:39,377 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] Starting backtest for GLD
+2025-12-29 15:56:50,997 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] ✅ Success | Acc: 0.462 | Sharpe: 2.510
+2025-12-29 15:56:50,998 | __main__ | INFO | 
+✅ improved_r1_gld_rf_reg
+2025-12-29 15:56:50,998 | __main__ | INFO |    Accuracy: 46.2%
+2025-12-29 15:56:50,998 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:56:50,998 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:56:50,998 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] Starting backtest for GLD
+2025-12-29 15:56:54,264 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] ✅ Success | Acc: 0.598 | Sharpe: 2.510
+2025-12-29 15:56:54,264 | __main__ | INFO | 
+✅ improved_r1_gld_xgb_reg
+2025-12-29 15:56:54,264 | __main__ | INFO |    Accuracy: 59.8%
+2025-12-29 15:56:54,264 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:56:54,264 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:56:54,264 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] Starting backtest for GLD
+2025-12-29 15:56:59,793 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] ✅ Success | Acc: 0.446 | Sharpe: 2.510
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+✅ improved_r1_gld_gb_reg
+2025-12-29 15:56:59,796 | __main__ | INFO |    Accuracy: 44.6%
+2025-12-29 15:56:59,796 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:56:59,796 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:59,796 | __main__ | INFO | ROUND SUMMARY: ROUND 1: GLD Regularization Testing
+2025-12-29 15:56:59,796 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:59,796 | __main__ | INFO | Experiments: 3/3 successful
+2025-12-29 15:56:59,796 | __main__ | INFO | Avg Accuracy: 50.2%
+2025-12-29 15:56:59,796 | __main__ | INFO | Avg Sharpe: 2.510
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+Best Accuracy: improved_r1_gld_xgb_reg (59.8%)
+2025-12-29 15:56:59,796 | __main__ | INFO | Best Sharpe: improved_r1_gld_rf_reg (2.510)
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:56:59,796 | __main__ | INFO | # ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:56:59,796 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:56:59,796 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] Starting backtest for SPY
+2025-12-29 15:57:02,708 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] ✅ Success | Acc: 0.490 | Sharpe: 0.747
+2025-12-29 15:57:02,709 | __main__ | INFO | 
+✅ improved_r2_spy_rf_reg
+2025-12-29 15:57:02,709 | __main__ | INFO |    Accuracy: 49.0%
+2025-12-29 15:57:02,709 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 15:57:02,709 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 15:57:02,709 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] Starting backtest for SPY
+2025-12-29 15:57:04,936 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] ✅ Success | Acc: 0.506 | Sharpe: 0.747
+2025-12-29 15:57:04,936 | __main__ | INFO | 
+✅ improved_r2_spy_xgb_reg
+2025-12-29 15:57:04,936 | __main__ | INFO |    Accuracy: 50.6%
+2025-12-29 15:57:04,936 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 15:57:04,936 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 15:57:04,936 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] Starting backtest for QQQ
+2025-12-29 15:57:06,648 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] ✅ Success | Acc: 0.478 | Sharpe: 0.730
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+✅ improved_r2_qqq_rf_reg
+2025-12-29 15:57:06,649 | __main__ | INFO |    Accuracy: 47.8%
+2025-12-29 15:57:06,649 | __main__ | INFO |    Sharpe: 0.730
+2025-12-29 15:57:06,649 | __main__ | INFO |    Max DD: -22.8%
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:57:06,649 | __main__ | INFO | ROUND SUMMARY: ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:57:06,649 | __main__ | INFO | ================================================================================
+2025-12-29 15:57:06,649 | __main__ | INFO | Experiments: 3/3 successful
+2025-12-29 15:57:06,649 | __main__ | INFO | Avg Accuracy: 49.1%
+2025-12-29 15:57:06,649 | __main__ | INFO | Avg Sharpe: 0.742
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+Best Accuracy: improved_r2_spy_xgb_reg (50.6%)
+2025-12-29 15:57:06,649 | __main__ | INFO | Best Sharpe: improved_r2_spy_rf_reg (0.747)
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:57:06,649 | __main__ | INFO | # ROUND 3: Confirmation Test (Same configs)
+2025-12-29 15:57:06,649 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:57:06,649 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] Starting backtest for GLD
+2025-12-29 15:57:09,650 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] ✅ Success | Acc: 0.462 | Sharpe: 2.510
+2025-12-29 15:57:09,651 | __main__ | INFO | 
+✅ improved_r3_gld_rf_reg_confirm
+2025-12-29 15:57:09,651 | __main__ | INFO |    Accuracy: 46.2%
+2025-12-29 15:57:09,651 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:57:09,651 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:57:09,651 | ExperimentRunner | INFO | [improved_r3_spy_rf_reg_confirm] Starting backtest for SPY
+2025-12-29 16:06:15,891 | __main__ | INFO | 
+================================================================================
+2025-12-29 16:06:15,893 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 16:06:15,893 | __main__ | INFO | ================================================================================
+2025-12-29 16:06:15,893 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 16:06:15,893 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 16:06:15,893 | __main__ | INFO | # ROUND 1: GLD Regularization Testing
+2025-12-29 16:06:15,893 | __main__ | INFO | ################################################################################
+
+2025-12-29 16:06:15,893 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] Starting backtest for GLD
+2025-12-29 16:06:22,697 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] ✅ Success | Acc: 0.462 | Sharpe: 2.510
+2025-12-29 16:06:22,699 | __main__ | INFO | 
+✅ improved_r1_gld_rf_reg
+2025-12-29 16:06:22,699 | __main__ | INFO |    Accuracy: 46.2%
+2025-12-29 16:06:22,699 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 16:06:22,699 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 16:06:22,699 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] Starting backtest for GLD
+2025-12-29 16:06:26,338 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] ✅ Success | Acc: 0.598 | Sharpe: 2.510
+2025-12-29 16:06:26,339 | __main__ | INFO | 
+✅ improved_r1_gld_xgb_reg
+2025-12-29 16:06:26,339 | __main__ | INFO |    Accuracy: 59.8%
+2025-12-29 16:06:26,339 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 16:06:26,339 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 16:06:26,340 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] Starting backtest for GLD
+2025-12-29 16:06:31,292 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] ✅ Success | Acc: 0.446 | Sharpe: 2.510
+2025-12-29 16:06:31,293 | __main__ | INFO | 
+✅ improved_r1_gld_gb_reg
+2025-12-29 16:06:31,293 | __main__ | INFO |    Accuracy: 44.6%
+2025-12-29 16:06:31,293 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 16:06:31,293 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 16:06:31,293 | __main__ | INFO | 
+================================================================================
+2025-12-29 16:06:31,293 | __main__ | INFO | ROUND SUMMARY: ROUND 1: GLD Regularization Testing
+2025-12-29 16:06:31,293 | __main__ | INFO | ================================================================================
+2025-12-29 16:06:31,293 | __main__ | INFO | Experiments: 3/3 successful
+2025-12-29 16:06:31,293 | __main__ | INFO | Avg Accuracy: 50.2%
+2025-12-29 16:06:31,293 | __main__ | INFO | Avg Sharpe: 2.510
+2025-12-29 16:06:31,293 | __main__ | INFO | 
+Best Accuracy: improved_r1_gld_xgb_reg (59.8%)
+2025-12-29 16:06:31,293 | __main__ | INFO | Best Sharpe: improved_r1_gld_rf_reg (2.510)
+2025-12-29 16:06:31,293 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 16:06:31,293 | __main__ | INFO | # ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 16:06:31,293 | __main__ | INFO | ################################################################################
+
+2025-12-29 16:06:31,293 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] Starting backtest for SPY
+2025-12-29 16:06:34,224 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] ✅ Success | Acc: 0.490 | Sharpe: 0.747
+2025-12-29 16:06:34,225 | __main__ | INFO | 
+✅ improved_r2_spy_rf_reg
+2025-12-29 16:06:34,225 | __main__ | INFO |    Accuracy: 49.0%
+2025-12-29 16:06:34,225 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 16:06:34,225 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 16:06:34,225 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] Starting backtest for SPY
+2025-12-29 16:06:36,406 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] ✅ Success | Acc: 0.490 | Sharpe: 0.747
+2025-12-29 16:06:36,406 | __main__ | INFO | 
+✅ improved_r2_spy_xgb_reg
+2025-12-29 16:06:36,406 | __main__ | INFO |    Accuracy: 49.0%
+2025-12-29 16:06:36,406 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 16:06:36,406 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 16:06:36,407 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] Starting backtest for QQQ
+2025-12-29 16:06:38,301 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] ✅ Success | Acc: 0.478 | Sharpe: 0.730
+2025-12-29 16:06:38,301 | __main__ | INFO | 
+✅ improved_r2_qqq_rf_reg
+2025-12-29 16:06:38,301 | __main__ | INFO |    Accuracy: 47.8%
+2025-12-29 16:06:38,301 | __main__ | INFO |    Sharpe: 0.730
+2025-12-29 16:06:38,301 | __main__ | INFO |    Max DD: -22.8%
+2025-12-29 16:06:38,301 | __main__ | INFO | 
+================================================================================
+2025-12-29 16:06:38,301 | __main__ | INFO | ROUND SUMMARY: ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 16:06:38,301 | __main__ | INFO | ================================================================================
+2025-12-29 16:06:38,301 | __main__ | INFO | Experiments: 3/3 successful
+2025-12-29 16:06:38,301 | __main__ | INFO | Avg Accuracy: 48.6%
+2025-12-29 16:06:38,301 | __main__ | INFO | Avg Sharpe: 0.742
+2025-12-29 16:06:38,301 | __main__ | INFO | 
+Best Accuracy: improved_r2_spy_rf_reg (49.0%)
+2025-12-29 16:06:38,301 | __main__ | INFO | Best Sharpe: improved_r2_spy_rf_reg (0.747)
+2025-12-29 16:06:38,301 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 16:06:38,301 | __main__ | INFO | # ROUND 3: Confirmation Test (Same configs)
+2025-12-29 16:06:38,301 | __main__ | INFO | ################################################################################
+
+2025-12-29 16:06:38,301 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] Starting backtest for GLD
+2025-12-29 16:06:41,533 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] ✅ Success | Acc: 0.462 | Sharpe: 2.510
+2025-12-29 16:06:41,535 | __main__ | INFO | 
+✅ improved_r3_gld_rf_reg_confirm
+2025-12-29 16:06:41,535 | __main__ | INFO |    Accuracy: 46.2%
+2025-12-29 16:06:41,535 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 16:06:41,535 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 16:06:41,535 | ExperimentRunner | INFO | [improved_r3_spy_rf_reg_confirm] Starting backtest for SPY
+2025-12-29 16:06:44,354 | ExperimentRunner | INFO | [improved_r3_spy_rf_reg_confirm] ✅ Success | Acc: 0.490 | Sharpe: 0.747
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+✅ improved_r3_spy_rf_reg_confirm
+2025-12-29 16:06:44,355 | __main__ | INFO |    Accuracy: 49.0%
+2025-12-29 16:06:44,355 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 16:06:44,355 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+================================================================================
+2025-12-29 16:06:44,355 | __main__ | INFO | ROUND SUMMARY: ROUND 3: Confirmation Test (Same configs)
+2025-12-29 16:06:44,355 | __main__ | INFO | ================================================================================
+2025-12-29 16:06:44,355 | __main__ | INFO | Experiments: 2/2 successful
+2025-12-29 16:06:44,355 | __main__ | INFO | Avg Accuracy: 47.6%
+2025-12-29 16:06:44,355 | __main__ | INFO | Avg Sharpe: 1.629
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+Best Accuracy: improved_r3_spy_rf_reg_confirm (49.0%)
+2025-12-29 16:06:44,355 | __main__ | INFO | Best Sharpe: improved_r3_gld_rf_reg_confirm (2.510)
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+
+================================================================================
+2025-12-29 16:06:44,355 | __main__ | INFO | FINAL RESULTS: All Rounds Combined
+2025-12-29 16:06:44,355 | __main__ | INFO | ================================================================================
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+Total: 8/8 successful
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+By Ticker:
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+  GLD:
+2025-12-29 16:06:44,355 | __main__ | INFO |     Avg Accuracy: 49.2%
+2025-12-29 16:06:44,355 | __main__ | INFO |     Avg Sharpe: 2.510
+2025-12-29 16:06:44,355 | __main__ | INFO |     Experiments: 4
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+  QQQ:
+2025-12-29 16:06:44,355 | __main__ | INFO |     Avg Accuracy: 47.8%
+2025-12-29 16:06:44,355 | __main__ | INFO |     Avg Sharpe: 0.730
+2025-12-29 16:06:44,355 | __main__ | INFO |     Experiments: 1
+2025-12-29 16:06:44,355 | __main__ | INFO | 
+  SPY:
+2025-12-29 16:06:44,355 | __main__ | INFO |     Avg Accuracy: 49.0%
+2025-12-29 16:06:44,356 | __main__ | INFO |     Avg Sharpe: 0.747
+2025-12-29 16:06:44,356 | __main__ | INFO |     Experiments: 3
+2025-12-29 16:06:44,356 | __main__ | INFO | 
+Top 5 by Sharpe:
+2025-12-29 16:06:44,356 | __main__ | INFO |   1. improved_r1_gld_rf_reg: Sharpe=2.510, Acc=46.2%
+2025-12-29 16:06:44,356 | __main__ | INFO |   2. improved_r1_gld_xgb_reg: Sharpe=2.510, Acc=59.8%
+2025-12-29 16:06:44,356 | __main__ | INFO |   3. improved_r1_gld_gb_reg: Sharpe=2.510, Acc=44.6%
+2025-12-29 16:06:44,356 | __main__ | INFO |   4. improved_r3_gld_rf_reg_confirm: Sharpe=2.510, Acc=46.2%
+2025-12-29 16:06:44,356 | __main__ | INFO |   5. improved_r2_spy_rf_reg: Sharpe=0.747, Acc=49.0%
+2025-12-29 16:06:44,356 | __main__ | INFO | 
+✅ Results saved to improved_results_20251229_160644.json

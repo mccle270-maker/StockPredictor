@@ -1,0 +1,130 @@
+2025-12-29 15:56:34.151 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:56:34.153 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:56:34.153 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:56:39,375 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:39,376 | __main__ | INFO | PHASE 2B IMPROVED: Confidence Filtering + Regularization
+2025-12-29 15:56:39,377 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:39,377 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 15:56:39,377 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:56:39,377 | __main__ | INFO | # ROUND 1: GLD Regularization Testing
+2025-12-29 15:56:39,377 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:56:39,377 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] Starting backtest for GLD
+2025-12-29 15:56:39.377 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:56:39.377 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:39.578 
+  [33m[1mWarning:[0m to view this Streamlit app on a browser, run it with the following
+  command:
+
+    streamlit run test_improved_phase2b.py [ARGUMENTS]
+2025-12-29 15:56:39.578 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:39.578 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:39.578 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:39.926 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:39.926 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:39.926 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:43.835 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:43.838 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:43.838 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:43.838 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:44.071 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:44.071 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:44.071 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:50,997 | ExperimentRunner | INFO | [improved_r1_gld_rf_reg] ✅ Success | Acc: 0.462 | Sharpe: 2.510
+2025-12-29 15:56:50,998 | __main__ | INFO | 
+✅ improved_r1_gld_rf_reg
+2025-12-29 15:56:50,998 | __main__ | INFO |    Accuracy: 46.2%
+2025-12-29 15:56:50,998 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:56:50,998 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:56:50,998 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] Starting backtest for GLD
+2025-12-29 15:56:54,264 | ExperimentRunner | INFO | [improved_r1_gld_xgb_reg] ✅ Success | Acc: 0.598 | Sharpe: 2.510
+2025-12-29 15:56:54,264 | __main__ | INFO | 
+✅ improved_r1_gld_xgb_reg
+2025-12-29 15:56:54,264 | __main__ | INFO |    Accuracy: 59.8%
+2025-12-29 15:56:54,264 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:56:54,264 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:56:54,264 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] Starting backtest for GLD
+2025-12-29 15:56:59,793 | ExperimentRunner | INFO | [improved_r1_gld_gb_reg] ✅ Success | Acc: 0.446 | Sharpe: 2.510
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+✅ improved_r1_gld_gb_reg
+2025-12-29 15:56:59,796 | __main__ | INFO |    Accuracy: 44.6%
+2025-12-29 15:56:59,796 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:56:59,796 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:56:59,796 | __main__ | INFO | ROUND SUMMARY: ROUND 1: GLD Regularization Testing
+2025-12-29 15:56:59,796 | __main__ | INFO | ================================================================================
+2025-12-29 15:56:59,796 | __main__ | INFO | Experiments: 3/3 successful
+2025-12-29 15:56:59,796 | __main__ | INFO | Avg Accuracy: 50.2%
+2025-12-29 15:56:59,796 | __main__ | INFO | Avg Sharpe: 2.510
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+Best Accuracy: improved_r1_gld_xgb_reg (59.8%)
+2025-12-29 15:56:59,796 | __main__ | INFO | Best Sharpe: improved_r1_gld_rf_reg (2.510)
+2025-12-29 15:56:59,796 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:56:59,796 | __main__ | INFO | # ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:56:59,796 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:56:59,796 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] Starting backtest for SPY
+2025-12-29 15:56:59.799 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:59.799 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:59.800 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:56:59.800 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:00.192 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:00.192 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:00.192 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:02,708 | ExperimentRunner | INFO | [improved_r2_spy_rf_reg] ✅ Success | Acc: 0.490 | Sharpe: 0.747
+2025-12-29 15:57:02,709 | __main__ | INFO | 
+✅ improved_r2_spy_rf_reg
+2025-12-29 15:57:02,709 | __main__ | INFO |    Accuracy: 49.0%
+2025-12-29 15:57:02,709 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 15:57:02,709 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 15:57:02,709 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] Starting backtest for SPY
+2025-12-29 15:57:04,936 | ExperimentRunner | INFO | [improved_r2_spy_xgb_reg] ✅ Success | Acc: 0.506 | Sharpe: 0.747
+2025-12-29 15:57:04,936 | __main__ | INFO | 
+✅ improved_r2_spy_xgb_reg
+2025-12-29 15:57:04,936 | __main__ | INFO |    Accuracy: 50.6%
+2025-12-29 15:57:04,936 | __main__ | INFO |    Sharpe: 0.747
+2025-12-29 15:57:04,936 | __main__ | INFO |    Max DD: -18.8%
+2025-12-29 15:57:04,936 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] Starting backtest for QQQ
+2025-12-29 15:57:04.936 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:04.936 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:04.936 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:04.936 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:05.107 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:05.107 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:05.107 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:57:06,648 | ExperimentRunner | INFO | [improved_r2_qqq_rf_reg] ✅ Success | Acc: 0.478 | Sharpe: 0.730
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+✅ improved_r2_qqq_rf_reg
+2025-12-29 15:57:06,649 | __main__ | INFO |    Accuracy: 47.8%
+2025-12-29 15:57:06,649 | __main__ | INFO |    Sharpe: 0.730
+2025-12-29 15:57:06,649 | __main__ | INFO |    Max DD: -22.8%
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+================================================================================
+2025-12-29 15:57:06,649 | __main__ | INFO | ROUND SUMMARY: ROUND 2: Cross-Ticker Validation (Improved)
+2025-12-29 15:57:06,649 | __main__ | INFO | ================================================================================
+2025-12-29 15:57:06,649 | __main__ | INFO | Experiments: 3/3 successful
+2025-12-29 15:57:06,649 | __main__ | INFO | Avg Accuracy: 49.1%
+2025-12-29 15:57:06,649 | __main__ | INFO | Avg Sharpe: 0.742
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+Best Accuracy: improved_r2_spy_xgb_reg (50.6%)
+2025-12-29 15:57:06,649 | __main__ | INFO | Best Sharpe: improved_r2_spy_rf_reg (0.747)
+2025-12-29 15:57:06,649 | __main__ | INFO | 
+
+################################################################################
+2025-12-29 15:57:06,649 | __main__ | INFO | # ROUND 3: Confirmation Test (Same configs)
+2025-12-29 15:57:06,649 | __main__ | INFO | ################################################################################
+
+2025-12-29 15:57:06,649 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] Starting backtest for GLD
+2025-12-29 15:57:09,650 | ExperimentRunner | INFO | [improved_r3_gld_rf_reg_confirm] ✅ Success | Acc: 0.462 | Sharpe: 2.510
+2025-12-29 15:57:09,651 | __main__ | INFO | 
+✅ improved_r3_gld_rf_reg_confirm
+2025-12-29 15:57:09,651 | __main__ | INFO |    Accuracy: 46.2%
+2025-12-29 15:57:09,651 | __main__ | INFO |    Sharpe: 2.510
+2025-12-29 15:57:09,651 | __main__ | INFO |    Max DD: -10.1%
+2025-12-29 15:57:09,651 | ExperimentRunner | INFO | [improved_r3_spy_rf_reg_confirm] Starting backtest for SPY

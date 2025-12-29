@@ -59,6 +59,7 @@ class ModelConfig:
     max_depth: Optional[int] = None
     learning_rate: Optional[float] = None
     min_samples_leaf: Optional[int] = None
+    min_samples_split: Optional[int] = None
     subsample: Optional[float] = None
     reg_lambda: Optional[float] = None
     reg_alpha: Optional[float] = None
@@ -66,8 +67,8 @@ class ModelConfig:
     def to_dict(self) -> Dict[str, Any]:
         """Convert to hyperparameter dict for model creation."""
         d = asdict(self)
-        # Remove None values
-        return {k: v for k, v in d.items() if v is not None and k != 'model_type'}
+        # Remove None values and fields that shouldn't go to make_model
+        return {k: v for k, v in d.items() if v is not None and k not in ('model_type', 'task', 'random_state')}
 
 
 @dataclass
@@ -163,9 +164,20 @@ class ExperimentResult:
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize to dict, excluding None values."""
+        """Serialize to dict, converting all values to JSON-serializable types."""
         d = asdict(self)
-        return {k: v for k, v in d.items() if v is not None}
+        result = {}
+        for k, v in d.items():
+            if v is None:
+                continue
+            # Convert numpy types to Python types for JSON serialization
+            if isinstance(v, (np.float32, np.float64)):
+                result[k] = float(v)
+            elif isinstance(v, (np.int32, np.int64)):
+                result[k] = int(v)
+            else:
+                result[k] = v
+        return result
     
     def sharpe_adjusted(self, num_experiments: int = 1) -> float:
         """
@@ -371,8 +383,8 @@ class ExperimentRunner:
             # Train model
             model = make_model(
                 model_type=config.model.model_type,
-                random_state=config.model.random_state,
                 task=config.model.task,
+                **config.model.to_dict()  # Pass hyperparameters (includes random_state)
             )
             model.fit(X_train, y_train)
             
@@ -406,10 +418,11 @@ class ExperimentRunner:
             result.num_folds = 1  # Simple split, not walk-forward
             result.status = "success"
             
+            sharpe_str = f"{result.sharpe_ratio:.3f}" if result.sharpe_ratio is not None else "N/A"
             logger.info(
                 f"[{config.experiment_id}] ✅ Success | "
                 f"Acc: {result.accuracy:.3f} | "
-                f"Sharpe: {result.sharpe_ratio:.3f if result.sharpe_ratio else 'N/A'}"
+                f"Sharpe: {sharpe_str}"
             )
             
         except Exception as e:

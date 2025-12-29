@@ -1,0 +1,130 @@
+{
+  "experiments": [
+    {
+      "experiment_id": "improved_gld_rf_confidence",
+      "description": "GLD Random Forest with confidence filtering (threshold 0.001)",
+      "ticker": "GLD",
+      "period": "5y",
+      "model": {
+        "model_type": "rf",
+        "n_estimators": 100,
+        "max_depth": 7,
+        "min_samples_leaf": 20,
+        "min_samples_split": 50,
+        "random_state": 42
+      },
+      "features": {
+        "name": "baseline"
+      },
+      "backtest": {
+        "start_date": "2020-01-01",
+        "end_date": "2025-12-29",
+        "initial_capital": 100000,
+        "position_size": 0.1,
+        "confidence_threshold": 0.001
+      }
+    },
+    {
+      "experiment_id": "improved_gld_xgb_confidence",
+      "description": "GLD XGBoost with regularization & confidence filtering",
+      "ticker": "GLD",
+      "period": "5y",
+      "model": {
+        "model_type": "xgb",
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.05,
+        "reg_lambda": 2.0,
+        "reg_alpha": 0.5,
+        "random_state": 42
+      },
+      "features": {
+        "name": "baseline"
+      },
+      "backtest": {
+        "confidence_threshold": 0.001
+      }
+    },
+    {
+      "experiment_id": "improved_spy_rf_confidence",
+      "description": "SPY Random Forest with regularization & confidence filtering (threshold 0.002)",
+      "ticker": "SPY",
+      "period": "5y",
+      "model": {
+        "model_type": "rf",
+        "n_estimators": 100,
+        "max_depth": 7,
+        "min_samples_leaf": 20,
+        "min_samples_split": 50,
+        "random_state": 42
+      },
+      "features": {
+        "name": "baseline"
+      },
+      "backtest": {
+        "confidence_threshold": 0.002
+      }
+    },
+    {
+      "experiment_id": "improved_spy_xgb_confidence",
+      "description": "SPY XGBoost with regularization & confidence filtering",
+      "ticker": "SPY",
+      "period": "5y",
+      "model": {
+        "model_type": "xgb",
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.05,
+        "reg_lambda": 2.0,
+        "reg_alpha": 0.5,
+        "random_state": 42
+      },
+      "features": {
+        "name": "baseline"
+      },
+      "backtest": {
+        "confidence_threshold": 0.002
+      }
+    },
+    {
+      "experiment_id": "improved_qqq_rf_confidence",
+      "description": "QQQ Random Forest with regularization & confidence filtering",
+      "ticker": "QQQ",
+      "period": "5y",
+      "model": {
+        "model_type": "rf",
+        "n_estimators": 100,
+        "max_depth": 7,
+        "min_samples_leaf": 20,
+        "min_samples_split": 50,
+        "random_state": 42
+      },
+      "features": {
+        "name": "baseline"
+      },
+      "backtest": {
+        "confidence_threshold": 0.002
+      }
+    },
+    {
+      "experiment_id": "improved_gld_gb_confidence",
+      "description": "GLD GradientBoosting with regularization & confidence filtering",
+      "ticker": "GLD",
+      "period": "5y",
+      "model": {
+        "model_type": "gbrt",
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "random_state": 42
+      },
+      "features": {
+        "name": "baseline"
+      },
+      "backtest": {
+        "confidence_threshold": 0.001
+      }
+    }
+  ]
+}

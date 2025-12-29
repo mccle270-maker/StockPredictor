@@ -1129,38 +1129,83 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     return hist
 
 
-def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"):
+def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg", **kwargs):
+    """
+    Create a model with hyperparameters.
+    
+    Args:
+        model_type: "rf", "xgb", "gbrt", "linreg"
+        random_state: Random seed
+        task: "reg" (regression) or "clf" (classification)
+        **kwargs: Additional hyperparameters (max_depth, n_estimators, learning_rate, etc.)
+    """
     if task == "clf":
         if model_type == "xgb":
-            return XGBClassifier(
-                n_estimators=300, learning_rate=0.05, max_depth=4, random_state=random_state,
-                tree_method="hist", verbosity=0, subsample=0.8, colsample_bytree=0.7,
-                min_child_weight=5, reg_lambda=1.0
-            )
-        return RandomForestClassifier(
-            n_estimators=300, max_depth=6, min_samples_leaf=50,
-            random_state=random_state, n_jobs=-1
-        )
+            params = {
+                'n_estimators': kwargs.get('n_estimators', 300),
+                'learning_rate': kwargs.get('learning_rate', 0.05),
+                'max_depth': kwargs.get('max_depth', 4),
+                'random_state': random_state,
+                'tree_method': "hist",
+                'verbosity': 0,
+                'subsample': kwargs.get('subsample', 0.8),
+                'colsample_bytree': 0.7,
+                'min_child_weight': 5,
+                'reg_lambda': kwargs.get('reg_lambda', 1.0),
+                'reg_alpha': kwargs.get('reg_alpha', 0.0),
+            }
+            return XGBClassifier(**params)
+        
+        # RandomForest classifier
+        params = {
+            'n_estimators': kwargs.get('n_estimators', 300),
+            'max_depth': kwargs.get('max_depth', 6),
+            'min_samples_leaf': kwargs.get('min_samples_leaf', 50),
+            'min_samples_split': kwargs.get('min_samples_split', 2),
+            'random_state': random_state,
+            'n_jobs': -1
+        }
+        return RandomForestClassifier(**params)
 
     if model_type == "linreg":
         return LinearRegression()
 
     if model_type == "gbrt":
-        return GradientBoostingRegressor(
-            n_estimators=300, learning_rate=0.05, max_depth=4, random_state=random_state
-        )
+        params = {
+            'n_estimators': kwargs.get('n_estimators', 300),
+            'learning_rate': kwargs.get('learning_rate', 0.05),
+            'max_depth': kwargs.get('max_depth', 4),
+            'subsample': kwargs.get('subsample', 1.0),
+            'random_state': random_state,
+        }
+        return GradientBoostingRegressor(**params)
 
     if model_type == "xgb":
-        return XGBRegressor(
-            n_estimators=300, learning_rate=0.05, max_depth=4, random_state=random_state,
-            tree_method="hist", verbosity=0, subsample=0.8, colsample_bytree=0.7,
-            min_child_weight=5, reg_lambda=1.0
-        )
+        params = {
+            'n_estimators': kwargs.get('n_estimators', 300),
+            'learning_rate': kwargs.get('learning_rate', 0.05),
+            'max_depth': kwargs.get('max_depth', 4),
+            'random_state': random_state,
+            'tree_method': "hist",
+            'verbosity': 0,
+            'subsample': kwargs.get('subsample', 0.8),
+            'colsample_bytree': 0.7,
+            'min_child_weight': 5,
+            'reg_lambda': kwargs.get('reg_lambda', 1.0),
+            'reg_alpha': kwargs.get('reg_alpha', 0.0),
+        }
+        return XGBRegressor(**params)
 
-    return RandomForestRegressor(
-        n_estimators=300, max_depth=8, min_samples_leaf=50,
-        random_state=random_state, n_jobs=-1
-    )
+    # RandomForest regressor (default)
+    params = {
+        'n_estimators': kwargs.get('n_estimators', 300),
+        'max_depth': kwargs.get('max_depth', 8),
+        'min_samples_leaf': kwargs.get('min_samples_leaf', 50),
+        'min_samples_split': kwargs.get('min_samples_split', 2),
+        'random_state': random_state,
+        'n_jobs': -1
+    }
+    return RandomForestRegressor(**params)
 
 
 def prune_weak_features(model, X, y, threshold=0.01):
@@ -2040,6 +2085,10 @@ def predict_next_for_ticker(
     if use_vol_scaled_target:
         pred_ret = pred_ret * float(last_vol_20d)
 
+    # NEW: Calculate confidence score (absolute prediction magnitude)
+    # Higher |pred_ret| = higher confidence model has in the prediction
+    confidence_score = float(abs(pred_ret))
+
     pred_price = float(last_close * (1 + pred_ret))
 
     prob_up = None
@@ -2085,6 +2134,7 @@ def predict_next_for_ticker(
         "vol_20d": last_vol_20d,
         "pe_ratio": pe_ratio,
         "pred_next_ret": pred_ret,
+        "confidence_score": confidence_score,  # NEW: Prediction confidence (|prediction magnitude|)
         "pred_next_price": pred_price,
         "prob_up": prob_up,
         "prob_down": prob_down,
