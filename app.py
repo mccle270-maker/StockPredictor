@@ -193,9 +193,9 @@ FRICTION_PRESETS = {
 }
 
 OPTIONS_PRESETS = {
-    "Default": dict(dte_min=0, dte_max=45, width_pct=0.05, prefer_spreads=True),
-    "Loose": dict(dte_min=0, dte_max=90, width_pct=0.10, prefer_spreads=True),
-    "Strict": dict(dte_min=0, dte_max=21, width_pct=0.03, prefer_spreads=True),
+    "Default": dict(dte_min=3, dte_max=45, width_pct=0.05, prefer_spreads=True),
+    "Loose": dict(dte_min=3, dte_max=90, width_pct=0.10, prefer_spreads=True),
+    "Strict": dict(dte_min=3, dte_max=21, width_pct=0.03, prefer_spreads=True),
 }
 
 def _parse_int(s: str, default: int | None = None) -> int | None:
@@ -906,7 +906,7 @@ def run_app():
     if "trade_mode" not in locals():
         trade_mode = "Options if suggested"
     if "dte_min" not in locals():
-        dte_min = 0
+        dte_min = 3  # At least 3 days to expiration to avoid rapid decay
     if "dte_max" not in locals():
         dte_max = 45
     if "max_strike" not in locals():

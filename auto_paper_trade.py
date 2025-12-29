@@ -781,7 +781,9 @@ def main():
         if asset == "option":
             strategy = str(spec.get("strategy", "")).upper().strip()
 
-            dte_min = int(spec.get("dte_min", 0))
+            # Default: 3 DTE minimum to avoid rapid decay, 60 DTE maximum
+            # This ensures options have a few days of life to allow for profitable exit
+            dte_min = int(spec.get("dte_min", 3))
             dte_max = int(spec.get("dte_max", 60))  # Extended from 45 to 60 days
             max_premium = float(spec.get("max_premium", 500))  # dollars per 1-lot / spread
             qty = int(spec.get("qty", 1))
