@@ -1,0 +1,339 @@
+{
+  "experiments": [
+    {
+      "experiment_id": "phase2b_baseline_rf",
+      "ticker": "GLD",
+      "description": "Baseline RF on GLD - production ready ticker",
+      "model": {
+        "model_type": "rf",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 2
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "baseline",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_baseline_xgb",
+      "ticker": "GLD",
+      "description": "Baseline XGB on GLD - with regularization",
+      "model": {
+        "model_type": "xgb",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.05,
+        "min_samples_leaf": null,
+        "subsample": 0.8,
+        "reg_lambda": 5.0,
+        "reg_alpha": 0.1
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "baseline",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_macro_rf",
+      "ticker": "GLD",
+      "description": "RF with FRED macro features",
+      "model": {
+        "model_type": "rf",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 2
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "with_macro",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": true,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_sentiment_rf",
+      "ticker": "GLD",
+      "description": "RF with news sentiment features",
+      "model": {
+        "model_type": "rf",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 2
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "with_sentiment",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": true,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_full_features_rf",
+      "ticker": "GLD",
+      "description": "RF with all features (macro + sentiment)",
+      "model": {
+        "model_type": "rf",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 2
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "full_features",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": true,
+        "include_sentiment": true,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_elasticnet_select_rf",
+      "ticker": "GLD",
+      "description": "RF with ElasticNet feature selection",
+      "model": {
+        "model_type": "rf",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 2
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": true
+      },
+      "features": {
+        "name": "elasticnet_selected",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": true,
+        "include_sentiment": true,
+        "include_fundamentals": false,
+        "use_elasticnet": true,
+        "elasticnet_l1_ratio": 0.5,
+        "elasticnet_cv_folds": 5
+      }
+    },
+    {
+      "experiment_id": "phase2b_xgb_depth_sweep_d3",
+      "ticker": "QQQ",
+      "description": "XGB with max_depth=3 (more regularization)",
+      "model": {
+        "model_type": "xgb",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "reg_lambda": 5.0,
+        "reg_alpha": 0.1
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "baseline",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_xgb_depth_sweep_d4",
+      "ticker": "QQQ",
+      "description": "XGB with max_depth=4",
+      "model": {
+        "model_type": "xgb",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": 4,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "reg_lambda": 5.0,
+        "reg_alpha": 0.1
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "baseline",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_xgb_depth_sweep_d5",
+      "ticker": "QQQ",
+      "description": "XGB with max_depth=5",
+      "model": {
+        "model_type": "xgb",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.05,
+        "subsample": 0.8,
+        "reg_lambda": 5.0,
+        "reg_alpha": 0.1
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "baseline",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    },
+    {
+      "experiment_id": "phase2b_rf_all_tiers",
+      "ticker": "SPY",
+      "description": "RF baseline on SPY (Tier 1 candidate)",
+      "model": {
+        "model_type": "rf",
+        "random_state": 42,
+        "task": "reg",
+        "n_estimators": 100,
+        "max_depth": null,
+        "min_samples_leaf": 2
+      },
+      "backtest": {
+        "period": "5y",
+        "horizon": 1,
+        "train_years": 2,
+        "test_years": 1,
+        "step_days": null,
+        "threshold": 0.002,
+        "use_feature_selection": false
+      },
+      "features": {
+        "name": "baseline",
+        "include_price": true,
+        "include_volume": true,
+        "include_technical": true,
+        "include_macro": false,
+        "include_sentiment": false,
+        "include_fundamentals": false,
+        "use_elasticnet": false
+      }
+    }
+  ]
+}

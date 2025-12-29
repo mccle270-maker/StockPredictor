@@ -1,0 +1,316 @@
+2025-12-29 15:00:59.845 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:00:59.847 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:00:59.847 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:01:05,909 | INFO | 
+================================================================================
+PHASE 2: WALK-FORWARD BACKTEST
+================================================================================
+Test Date: 2025-12-29 15:01:05.909863
+Tickers: 10
+
+2025-12-29 15:01:05,910 | INFO | 
+================================================================================
+Backtesting AAPL
+================================================================================
+2025-12-29 15:01:05.910 No runtime found, using MemoryCacheStorageManager
+2025-12-29 15:01:05.910 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:06.163 
+  [33m[1mWarning:[0m to view this Streamlit app on a browser, run it with the following
+  command:
+
+    streamlit run phase2_backtest.py [ARGUMENTS]
+2025-12-29 15:01:06.163 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:06.163 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:06.163 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:06.637 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:06.637 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:06.637 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.323 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.324 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.324 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.324 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.484 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.484 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:07.484 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:20,239 | INFO | AAPL: 499 samples, 143 features
+2025-12-29 15:01:20,644 | INFO |   RF         | Test Acc: 0.520 | RMSE Ratio: 0.784 | Overfit: YES
+2025-12-29 15:01:21,356 | INFO |   XGB        | Test Acc: 0.480 | RMSE Ratio: 4.508 | Overfit: YES
+2025-12-29 15:01:21,357 | INFO |   Best Model: RF (0.520)
+2025-12-29 15:01:21,357 | INFO |   Sharpe Ratio: 1.595
+2025-12-29 15:01:21,357 | INFO | 
+================================================================================
+Backtesting MSFT
+================================================================================
+2025-12-29 15:01:21.357 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:21.357 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:21.358 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:21.358 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:21.527 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:21.527 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:21.527 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:32,176 | INFO | MSFT: 499 samples, 143 features
+2025-12-29 15:01:32,857 | INFO |   RF         | Test Acc: 0.400 | RMSE Ratio: 0.811 | Overfit: YES
+2025-12-29 15:01:33,301 | INFO |   XGB        | Test Acc: 0.470 | RMSE Ratio: 5.271 | Overfit: YES
+2025-12-29 15:01:33,302 | INFO |   Best Model: XGB (0.470)
+2025-12-29 15:01:33,302 | INFO |   Sharpe Ratio: 0.635
+2025-12-29 15:01:33,302 | INFO | 
+================================================================================
+Backtesting NVDA
+================================================================================
+2025-12-29 15:01:33.304 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:33.304 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:33.304 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:33.304 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:33.433 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:33.433 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:33.433 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:35,018 | INFO | NVDA: 499 samples, 143 features
+2025-12-29 15:01:35,459 | INFO |   RF         | Test Acc: 0.510 | RMSE Ratio: 0.654 | Overfit: NO
+2025-12-29 15:01:36,059 | INFO |   XGB        | Test Acc: 0.550 | RMSE Ratio: 4.920 | Overfit: YES
+2025-12-29 15:01:36,059 | INFO |   Best Model: XGB (0.550)
+2025-12-29 15:01:36,059 | INFO |   Sharpe Ratio: 0.318
+2025-12-29 15:01:36,059 | INFO | 
+================================================================================
+Backtesting TSLA
+================================================================================
+2025-12-29 15:01:36.060 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:36.060 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:36.060 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:36.060 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:36.177 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:36.177 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:36.177 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:46,966 | INFO | TSLA: 499 samples, 143 features
+2025-12-29 15:01:47,331 | INFO |   RF         | Test Acc: 0.470 | RMSE Ratio: 0.721 | Overfit: YES
+2025-12-29 15:01:47,799 | INFO |   XGB        | Test Acc: 0.520 | RMSE Ratio: 4.840 | Overfit: YES
+2025-12-29 15:01:47,799 | INFO |   Best Model: XGB (0.520)
+2025-12-29 15:01:47,799 | INFO |   Sharpe Ratio: 1.919
+2025-12-29 15:01:47,799 | INFO | 
+================================================================================
+Backtesting AMD
+================================================================================
+2025-12-29 15:01:47.800 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:47.800 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:47.801 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:47.802 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:47.948 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:47.948 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:47.948 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:58,510 | INFO | AMD: 499 samples, 143 features
+2025-12-29 15:01:58,878 | INFO |   RF         | Test Acc: 0.450 | RMSE Ratio: 1.343 | Overfit: YES
+2025-12-29 15:01:59,288 | INFO |   XGB        | Test Acc: 0.450 | RMSE Ratio: 8.344 | Overfit: YES
+2025-12-29 15:01:59,288 | INFO |   Best Model: RF (0.450)
+2025-12-29 15:01:59,288 | INFO |   Sharpe Ratio: 0.318
+2025-12-29 15:01:59,288 | INFO | 
+================================================================================
+Backtesting AMZN
+================================================================================
+2025-12-29 15:01:59.289 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:59.289 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:59.289 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:59.289 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:59.445 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:59.445 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:01:59.445 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:00,138 | INFO | AMZN: 499 samples, 143 features
+2025-12-29 15:02:00,460 | INFO |   RF         | Test Acc: 0.450 | RMSE Ratio: 1.037 | Overfit: YES
+2025-12-29 15:02:00,892 | INFO |   XGB        | Test Acc: 0.440 | RMSE Ratio: 6.913 | Overfit: YES
+2025-12-29 15:02:00,892 | INFO |   Best Model: RF (0.450)
+2025-12-29 15:02:00,892 | INFO |   Sharpe Ratio: 1.919
+2025-12-29 15:02:00,892 | INFO | 
+================================================================================
+Backtesting GLD
+================================================================================
+2025-12-29 15:02:00.892 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:00.892 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:00.892 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:00.892 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:01.013 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:01.013 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:01.013 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:10,754 | INFO | GLD: 499 samples, 143 features
+2025-12-29 15:02:11,078 | INFO |   RF         | Test Acc: 0.600 | RMSE Ratio: 1.342 | Overfit: NO
+2025-12-29 15:02:11,512 | INFO |   XGB        | Test Acc: 0.420 | RMSE Ratio: 9.416 | Overfit: YES
+2025-12-29 15:02:11,512 | INFO |   Best Model: RF (0.600)
+2025-12-29 15:02:11,512 | INFO |   Sharpe Ratio: 3.925
+2025-12-29 15:02:11,513 | INFO | 
+================================================================================
+Backtesting SPY
+================================================================================
+2025-12-29 15:02:11.513 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:11.513 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:11.513 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:11.514 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:11.669 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:11.669 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:11.670 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13,090 | INFO | SPY: 499 samples, 143 features
+2025-12-29 15:02:13,436 | INFO |   RF         | Test Acc: 0.510 | RMSE Ratio: 0.673 | Overfit: YES
+2025-12-29 15:02:13,822 | INFO |   XGB        | Test Acc: 0.550 | RMSE Ratio: 3.180 | Overfit: YES
+2025-12-29 15:02:13,822 | INFO |   Best Model: XGB (0.550)
+2025-12-29 15:02:13,822 | INFO |   Sharpe Ratio: 2.573
+2025-12-29 15:02:13,822 | INFO | 
+================================================================================
+Backtesting QQQ
+================================================================================
+2025-12-29 15:02:13.822 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13.822 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13.822 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13.822 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13.948 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13.948 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:13.948 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:16,372 | INFO | QQQ: 499 samples, 143 features
+2025-12-29 15:02:16,714 | INFO |   RF         | Test Acc: 0.560 | RMSE Ratio: 0.732 | Overfit: NO
+2025-12-29 15:02:17,164 | INFO |   XGB        | Test Acc: 0.580 | RMSE Ratio: 3.854 | Overfit: YES
+2025-12-29 15:02:17,165 | INFO |   Best Model: XGB (0.580)
+2025-12-29 15:02:17,165 | INFO |   Sharpe Ratio: 2.573
+2025-12-29 15:02:17,165 | INFO | 
+================================================================================
+Backtesting IWM
+================================================================================
+2025-12-29 15:02:17.165 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:17.165 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:17.165 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:17.165 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:17.283 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:17.283 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:17.283 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-29 15:02:18,315 | INFO | IWM: 499 samples, 143 features
+2025-12-29 15:02:18,647 | INFO |   RF         | Test Acc: 0.510 | RMSE Ratio: 0.913 | Overfit: YES
+2025-12-29 15:02:19,084 | INFO |   XGB        | Test Acc: 0.500 | RMSE Ratio: 6.211 | Overfit: YES
+2025-12-29 15:02:19,084 | INFO |   Best Model: RF (0.510)
+2025-12-29 15:02:19,084 | INFO |   Sharpe Ratio: 1.274
+2025-12-29 15:02:19,085 | INFO | 
+================================================================================
+PHASE 2 SUMMARY
+================================================================================
+2025-12-29 15:02:19,085 | INFO | 
+Results: 10/10 tickers passed
+2025-12-29 15:02:19,085 | INFO | Average Accuracy: 0.520
+2025-12-29 15:02:19,085 | INFO | Average Sharpe: 1.705
+2025-12-29 15:02:19,085 | INFO | Average Win Rate: 0.553
+2025-12-29 15:02:19,085 | INFO | 
+Ticker   Model    Accuracy   Sharpe     Status         
+2025-12-29 15:02:19,085 | INFO | ------------------------------------------------------------
+2025-12-29 15:02:19,085 | INFO | AAPL     rf       0.520      1.595      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | MSFT     xgb      0.470      0.635      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | NVDA     xgb      0.550      0.318      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | TSLA     xgb      0.520      1.919      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | AMD      rf       0.450      0.318      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | AMZN     rf       0.450      1.919      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | GLD      rf       0.600      3.925      ✅ PASS         
+2025-12-29 15:02:19,085 | INFO | SPY      xgb      0.550      2.573      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | QQQ      xgb      0.580      2.573      ✅ PASS         
+2025-12-29 15:02:19,085 | INFO | IWM      rf       0.510      1.274      ⚠️  CAUTION    
+2025-12-29 15:02:19,085 | INFO | 
+🟡 NEEDS REVIEW
+[GAF-CNN] Loading model from gaf_cnn_updown.keras...
+[GAF-CNN] Loaded successfully.
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+[get_news_sentiment] Failed for AAPL: HTTPSConnectionPool(host='api.marketaux.com', port=443): Read timed out. (read timeout=10)
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+[get_news_sentiment] Failed for MSFT: HTTPSConnectionPool(host='api.marketaux.com', port=443): Read timed out. (read timeout=10)
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(1, 0, 1))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+[get_news_sentiment] Failed for TSLA: HTTPSConnectionPool(host='api.marketaux.com', port=443): Read timed out. (read timeout=10)
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+[get_news_sentiment] Failed for AMD: HTTPSConnectionPool(host='api.marketaux.com', port=443): Read timed out. (read timeout=10)
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(3, 0, 1))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(3, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+⚠️  ARIMA prediction failed: 'ARIMA' object has no attribute 'get_forecast'
+✅ Added ARIMA predictions (order=(0, 0, 0))
+Missing: ['fund_pe_trailing', 'fund_pb', 'fund_marketcap', 'news_sentiment', 'news_count', 'mkt_ret_1d', 'term_spread', 't10y', 'vix', 'unrate', 'cpi', 'oas', 'fed_funds']
+GBM cols present: ['gbm_mu_60d', 'gbm_sig_60d', 'gbm_prob_up_1d', 'gbm_exp_ret_1d', 'gbm_p05_ret_1d', 'gbm_p95_ret_1d', 'gbm_prob_up_5d', 'gbm_exp_ret_5d', 'gbm_p05_ret_5d', 'gbm_p95_ret_5d']
+hist rows: 500 range: 2024-01-02 00:00:00-05:00 - 2025-12-29 00:00:00-05:00
+df rows: 499 range: 2024-01-02 00:00:00-05:00 - 2025-12-26 00:00:00-05:00
+Traceback (most recent call last):
+  File "/Users/jakobmccleary/Desktop/Stock Predictor/phase2_backtest.py", line 144, in <module>
+    results = main()
+              ^^^^^^
+  File "/Users/jakobmccleary/Desktop/Stock Predictor/phase2_backtest.py", line 136, in main
+    json.dump(all_results, f, indent=2)
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/__init__.py", line 179, in dump
+    for chunk in iterable:
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 432, in _iterencode
+    yield from _iterencode_dict(o, _current_indent_level)
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  [Previous line repeated 1 more time]
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/json/encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type bool is not JSON serializable
