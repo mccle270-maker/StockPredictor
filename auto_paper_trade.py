@@ -680,8 +680,8 @@ def main():
             hist = None
             try:
                 import yfinance as yf
-                hist = yf.download(symbol, period="1d", progress=False)
-                last_price = float(hist["Close"].iloc[-1]) if hist is not None and not hist.empty else 0
+                hist = yf.download(symbol, period="1d", progress=False, auto_adjust=False)
+                last_price = float(hist["Close"].iloc[-1].item()) if hist is not None and not hist.empty else 0
             except Exception:
                 last_price = 0
             
@@ -752,8 +752,8 @@ def main():
             hist = None
             try:
                 import yfinance as yf
-                hist = yf.download(symbol, period="1d", progress=False)
-                last_price = float(hist["Close"].iloc[-1]) if hist is not None and not hist.empty else 0
+                hist = yf.download(symbol, period="1d", progress=False, auto_adjust=False)
+                last_price = float(hist["Close"].iloc[-1].item()) if hist is not None and not hist.empty else 0
             except Exception:
                 last_price = 0
             
@@ -838,11 +838,14 @@ def main():
                     time_in_force=TimeInForce.DAY,
                     limit_price=round(float(ask), 2),
                 )
-                submitted = trade_client.submit_order(order_data=order)
-                print(
-                    f"{datetime.now(timezone.utc).isoformat()} {symbol} {strategy} "
-                    f"-> {opt_sym} @ {ask:.2f} (limit) -> {submitted.id}"
-                )
+                try:
+                    submitted = trade_client.submit_order(order_data=order)
+                    print(
+                        f"{datetime.now(timezone.utc).isoformat()} {symbol} {strategy} "
+                        f"-> {opt_sym} @ {ask:.2f} (limit) -> {submitted.id}"
+                    )
+                except Exception as e:
+                    print(f"{symbol}: {strategy} order failed: {e}")
                 continue
 
             # --- spreads (MLEG) as LIMIT orders ---
@@ -881,11 +884,14 @@ def main():
                     limit_price=limit_price,
                     legs=legs,
                 )
-                submitted = trade_client.submit_order(order_data=req)
-                print(
-                    f"{datetime.now(timezone.utc).isoformat()} {symbol} BULL_CALL_SPREAD "
-                    f"-> long={long_call} short={short_call} limit={limit_price:.2f} -> {submitted.id}"
-                )
+                try:
+                    submitted = trade_client.submit_order(order_data=req)
+                    print(
+                        f"{datetime.now(timezone.utc).isoformat()} {symbol} BULL_CALL_SPREAD "
+                        f"-> long={long_call} short={short_call} limit={limit_price:.2f} -> {submitted.id}"
+                    )
+                except Exception as e:
+                    print(f"{symbol}: BULL_CALL_SPREAD order failed: {e}")
                 continue
 
             if strategy == "BEAR_PUT_SPREAD":
@@ -922,11 +928,14 @@ def main():
                     limit_price=limit_price,
                     legs=legs,
                 )
-                submitted = trade_client.submit_order(order_data=req)
-                print(
-                    f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
-                    f"-> long={long_put} short={short_put} limit={limit_price:.2f} -> {submitted.id}"
-                )
+                try:
+                    submitted = trade_client.submit_order(order_data=req)
+                    print(
+                        f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
+                        f"-> long={long_put} short={short_put} limit={limit_price:.2f} -> {submitted.id}"
+                    )
+                except Exception as e:
+                    print(f"{symbol}: BEAR_PUT_SPREAD order failed: {e}")
                 continue
 
             if strategy == "IRON_CONDOR":
