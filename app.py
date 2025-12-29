@@ -1159,7 +1159,7 @@ def run_app():
 
                             strat = resultsexec.copy()
                             strat["position"] = np.where(
-                                strat["predictedreturn"] > (signal_threshold_pct / 100.0), 1.0, 0.0
+                                strat["predicted_return"] > (signal_threshold_pct / 100.0), 1.0, 0.0
                             )
 
                             stratret_nocost = strat["actual_return"] * strat["position"]
