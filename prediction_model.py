@@ -47,6 +47,23 @@ import statsmodels.api as sm
 
 from xgboost import XGBRegressor, XGBClassifier
 
+# Import model improvements
+try:
+    from model_improvements import (
+        add_enhanced_features,
+        optimize_threshold_for_fold,
+        apply_volatility_weighting,
+        DirectionClassifier,
+        apply_position_holding,
+        ModelEnsemble,
+        apply_kelly_sizing,
+        apply_all_improvements,
+    )
+    HAS_IMPROVEMENTS = True
+except ImportError:
+    print("[prediction_model] Warning: model_improvements module not found, enhancements disabled")
+    HAS_IMPROVEMENTS = False
+
 try:
     from sklearn.linear_model import ElasticNetCV
     from sklearn.preprocessing import StandardScaler
@@ -604,6 +621,15 @@ FEATURE_COLUMNS = [
     "regime_covid",
     "regime_high_corr", "regime_low_corr",
     "bull_streak", "bear_streak",
+    # PHASE 3: Enhanced features (volatility-adjusted, cross-sectional, lagged)
+    "ret_vol_adjusted", "vol_percentile_rank", "vol_regime_strength",
+    "momentum_5d_vol_adj", "momentum_20d_vol_adj",
+    "mean_reversion_signal", "momentum_confirmation",
+    "ret_1d_lag_2", "ret_1d_lag_3", "ret_1d_lag_4", "ret_1d_lag_5",
+    "vol_20d_lag_2", "vol_20d_lag_3", "vol_20d_lag_4", "vol_20d_lag_5",
+    "rsi14_lag_2", "rsi14_lag_3", "rsi14_lag_4", "rsi14_lag_5",
+    "ret_1d_rolling_mean_10", "ret_1d_rolling_std_10", "vol_20d_rolling_mean_10",
+    "ret_vol_correlation", "price_action_strength",
 ]
 
 
@@ -1289,6 +1315,10 @@ def build_features_and_target(
             hist = add_price_features(hist)
             hist = add_regime_features(hist)  # PHASE 2: Add regime detection
             
+            # Add enhanced features (volatility-adjusted, cross-sectional, lagged)
+            if HAS_IMPROVEMENTS:
+                hist = add_enhanced_features(hist)
+            
             # PHASE 3: Add TA-Lib and Pandas-TA indicators
             try:
                 from talib_integration import add_talib_indicators
@@ -1576,6 +1606,14 @@ def walkforward_cross_sectional(
     basket_z_col: str = "retzscore20d",
     basket_mode: str = "gate",
     feature_selection: str = "best",  # "none", "elasticnet", "ols", "best" (compare both, pick winner)
+    # NEW IMPROVEMENT PARAMETERS
+    enable_threshold_optimization: bool = True,
+    enable_volatility_weighting: bool = True,
+    enable_position_holding: bool = True,
+    enable_kelly_criterion: bool = False,
+    position_holding_days: int = 3,
+    use_ensemble: bool = False,
+    use_classification: bool = False,
 ) -> pd.DataFrame:
     print(f"[WF] Building panel for {len(tickers)} tickers...")
     panel = build_panel_features_and_target(tickers, period=period, horizon=horizon)
@@ -1679,7 +1717,13 @@ def walkforward_cross_sectional(
         np.random.seed(42)
         X_train = X_train + np.random.normal(0, 1e-8, X_train.shape)
 
-        model = make_model(model_type, random_state=42)
+        # Use ensemble if requested
+        if use_ensemble and HAS_IMPROVEMENTS:
+            print(f"[WF] Fold {fold_idx}: Using model ensemble (RF + GB + XGB)")
+            model = ModelEnsemble(include_xgb=True)
+        else:
+            model = make_model(model_type, random_state=42)
+        
         model.fit(X_train, y_train)
 
         # PREDICTION
@@ -1692,7 +1736,30 @@ def walkforward_cross_sectional(
 
         test_df = test_df.copy()
         test_df["pred"] = y_pred
+        test_df["predicted_return"] = y_pred  # Alias for improvements module
+        test_df["actual_return"] = test_df["target"]  # Alias for improvements module
         test_df["rank_pct"] = test_df.groupby("date")["pred"].rank(pct=True, method="average")
+        
+        # APPLY IMPROVEMENTS if enabled and module available
+        if HAS_IMPROVEMENTS and (enable_threshold_optimization or enable_volatility_weighting or 
+                                  enable_position_holding or enable_kelly_criterion):
+            print(f"[WF] Fold {fold_idx}: Applying improvements (threshold_opt={enable_threshold_optimization}, "
+                  f"vol_weight={enable_volatility_weighting}, holding={enable_position_holding}, kelly={enable_kelly_criterion})")
+            
+            positions_improved, metrics_improved = apply_all_improvements(
+                test_df,
+                pred_col="predicted_return",
+                actual_col="actual_return",
+                vol_col="vol_20d" if "vol_20d" in test_df.columns else None,
+                enable_threshold_opt=enable_threshold_optimization,
+                enable_vol_weighting=enable_volatility_weighting,
+                enable_holding=enable_position_holding,
+                enable_kelly=enable_kelly_criterion,
+                hold_days=position_holding_days,
+            )
+            print(f"[WF] Fold {fold_idx}: Improved Sharpe={metrics_improved['sharpe']:.3f}, "
+                  f"Hit Rate={metrics_improved['hit_rate']:.1%}, Threshold={metrics_improved['threshold']:.4f}")
+
 
         # INITIAL VERY LENIENT MASKS JUST TO AVOID EMPTY DAYS
         base_long_mask = test_df["rank_pct"] <= 0.30
