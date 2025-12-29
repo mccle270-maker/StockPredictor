@@ -2063,7 +2063,7 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
         model = make_model(model_type=model_type, random_state=42)
         model.fit(Xtrain, ytrain)
 
-        Xtest = test_df[FEATURE_COLUMNS + MACRO_COLUMNS].values
+        Xtest = test_df[feat_cols].values
         ytest = test_df["ftarget_ret_horizon_ahead"].values
         if selected_mask is not None:
             Xtest = Xtest[:, selected_mask]
