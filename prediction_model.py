@@ -450,7 +450,7 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
 
 
 FUNDAMENTAL_COLUMNS = ["fund_pe_trailing", "fund_pb", "fund_marketcap"]
-MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix"]
+MACRO_COLUMNS = ["mkt_ret_1d", "term_spread", "t10y", "vix", "unrate", "cpi", "oas", "fed_funds"]
 macro_cache = {}
 
 FRED_API_KEY = os.environ.get("FRED_API_KEY")
@@ -555,16 +555,30 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         s10 = get_fred_series("DGS10", start_date, end_date)
         s3m = get_fred_series("DGS3MO", start_date, end_date)
         vix = get_fred_series("VIXCLS", start_date, end_date)
+        
+        # === NEW: TIER 1 Macro Expansion (FRED API) ===
+        unrate = get_fred_series("UNRATE", start_date, end_date)  # Unemployment rate
+        cpi = get_fred_series("CPIAUCSL", start_date, end_date)   # CPI (all urban consumers)
+        oas = get_fred_series("BAMLH0A0HYM2", start_date, end_date)  # HY OAS spread
+        fed_funds = get_fred_series("FEDFUNDS", start_date, end_date)  # Fed Funds Rate
 
         # PHASE 1 FIX: Fill NaNs BEFORE reindex to prevent look-ahead bias at fold boundaries
         s10_filled = s10.fillna(method='ffill').fillna(method='bfill')
         s3m_filled = s3m.fillna(method='ffill').fillna(method='bfill')
         vix_filled = vix.fillna(method='ffill').fillna(method='bfill')
+        unrate_filled = unrate.fillna(method='ffill').fillna(method='bfill')
+        cpi_filled = cpi.fillna(method='ffill').fillna(method='bfill')
+        oas_filled = oas.fillna(method='ffill').fillna(method='bfill')
+        fed_funds_filled = fed_funds.fillna(method='ffill').fillna(method='bfill')
 
         df_dates = df.index.normalize().tz_localize(None)
         df["t10y"] = s10_filled.reindex(df_dates).values
         df["t3m"] = s3m_filled.reindex(df_dates).values
         df["vix"] = vix_filled.reindex(df_dates).values
+        df["unrate"] = unrate_filled.reindex(df_dates).values
+        df["cpi"] = cpi_filled.reindex(df_dates).values
+        df["oas"] = oas_filled.reindex(df_dates).values
+        df["fed_funds"] = fed_funds_filled.reindex(df_dates).values
         df["term_spread"] = df["t10y"] - df["t3m"]
 
         macro_cache[key] = df
@@ -630,6 +644,12 @@ FEATURE_COLUMNS = [
     "rsi14_lag_2", "rsi14_lag_3", "rsi14_lag_4", "rsi14_lag_5",
     "ret_1d_rolling_mean_10", "ret_1d_rolling_std_10", "vol_20d_rolling_mean_10",
     "ret_vol_correlation", "price_action_strength",
+    # TIER 1: Support/Resistance Features
+    "dist_from_50d_high", "dist_from_50d_low", "dist_from_52w_high",
+    # TIER 1: Divergence Detection Features
+    "rsi_price_divergence", "macd_price_divergence",
+    # TIER 1: News Sentiment Features
+    "news_sentiment", "news_count",
 ]
 
 
@@ -1077,6 +1097,32 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["month"] = hist.index.month
     hist["is_month_end"] = (hist.index.day > 25).astype(int)
 
+    # === NEW: Support/Resistance Features (TIER 1 Implementation) ===
+    # Distance to 50-day high (mean reversion signal)
+    high_50d = close.rolling(50).max()
+    hist["dist_from_50d_high"] = ((close - high_50d) / (high_50d + 1e-9)).shift(1)
+    
+    # Distance to 50-day low (support level)
+    low_50d = close.rolling(50).min()
+    hist["dist_from_50d_low"] = ((close - low_50d) / (low_50d + 1e-9)).shift(1)
+    
+    # Distance to 52-week high (longer-term trend)
+    high_252d = close.rolling(252).max()
+    hist["dist_from_52w_high"] = ((close - high_252d) / (high_252d + 1e-9)).shift(1)
+
+    # === NEW: Divergence Detection Features (TIER 1 Implementation) ===
+    # RSI divergence: RSI going up but price going down (or vice versa)
+    ret_5d_change = close.pct_change(5)
+    rsi_5d_change = hist["rsi14"].diff(5) if "rsi14" in hist.columns else 0
+    hist["rsi_price_divergence"] = (rsi_5d_change * -ret_5d_change).shift(1)
+    
+    # MACD divergence: MACD strength vs price momentum
+    if "macdhist" in hist.columns:
+        macd_5d_change = hist["macdhist"].diff(5)
+        hist["macd_price_divergence"] = (macd_5d_change * -ret_5d_change).shift(1)
+    else:
+        hist["macd_price_divergence"] = 0.0
+
     # Add advanced momentum/volatility clustering/regime features
     hist = add_advanced_features(hist)
 
@@ -1366,6 +1412,20 @@ def build_features_and_target(
                     hist[k] = v
             except Exception as e:
                 print(f"[build_features_and_target] Warning: Could not fetch fundamental data: {e}")
+
+            # === NEW: TIER 1 News Sentiment (Marketaux API) ===
+            try:
+                from data_fetch import get_news_sentiment
+                sentiment_data = get_news_sentiment(ticker, lookback_days=7)
+                hist["news_sentiment"] = sentiment_data.get("sentiment_score", 0.0)
+                hist["news_count"] = sentiment_data.get("article_count", 0)
+                # Forward fill sentiment scores within the period
+                hist["news_sentiment"] = hist["news_sentiment"].ffill().bfill().fillna(0.0)
+                hist["news_count"] = hist["news_count"].ffill().bfill().fillna(0)
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: Could not fetch news sentiment: {e}")
+                hist["news_sentiment"] = 0.0
+                hist["news_count"] = 0
 
             raw_target = hist["Close"].pct_change(horizon).shift(-horizon)
             hist["ftarget_ret_horizon_ahead"] = (raw_target / (hist["vol_20d"] + 1e-9)) if use_vol_scaled_target else raw_target

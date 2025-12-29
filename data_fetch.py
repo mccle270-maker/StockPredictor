@@ -469,3 +469,58 @@ def get_atm_greeks(ticker, risk_free_rate=0.04):
         "call_mispricing": call_mispricing,
         "put_mispricing": put_mispricing,
     }
+
+
+# === NEW: TIER 1 News Sentiment (Marketaux API) ===
+def get_news_sentiment(ticker: str, lookback_days: int = 7) -> dict:
+    """
+    Fetch news sentiment for a ticker from Marketaux API (free tier).
+    Returns aggregated sentiment score (range: -1 to 1) and article count.
+    
+    Args:
+        ticker: Stock ticker (e.g., "AAPL")
+        lookback_days: How many days back to fetch news (default 7 days)
+    
+    Returns:
+        dict with keys: 'sentiment_score' (float), 'article_count' (int)
+    """
+    api_key = os.getenv("MARKETAUX_API_KEY", "")
+    if not api_key:
+        # Free tier doesn't require API key, but performance is limited
+        api_key = "free"
+    
+    try:
+        # Marketaux API endpoint
+        url = "https://api.marketaux.com/v1/news/all"
+        params = {
+            "symbols": ticker,
+            "filter_entities": "true",
+            "limit": 100,
+            "apikey": api_key
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        
+        if "data" not in data or not data["data"]:
+            return {"sentiment_score": 0.0, "article_count": 0}
+        
+        # Aggregate sentiment from all articles
+        articles = data["data"]
+        sentiments = []
+        
+        for article in articles:
+            # Sentiment range typically -1 (very negative) to 1 (very positive)
+            if "sentiment" in article and article["sentiment"] is not None:
+                sentiments.append(float(article["sentiment"]))
+        
+        if not sentiments:
+            return {"sentiment_score": 0.0, "article_count": len(articles)}
+        
+        avg_sentiment = np.mean(sentiments)
+        return {"sentiment_score": float(avg_sentiment), "article_count": len(articles)}
+        
+    except Exception as e:
+        print(f"[get_news_sentiment] Failed for {ticker}: {e}")
+        return {"sentiment_score": 0.0, "article_count": 0}
+
