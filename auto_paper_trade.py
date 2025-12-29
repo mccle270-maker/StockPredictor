@@ -621,7 +621,17 @@ def main():
                 side=side,
                 time_in_force=TimeInForce.DAY,
             )
-            submitted = trade_client.submit_order(order_data=order)
+            
+            # Try to submit order with error handling for non-tradeable assets
+            try:
+                submitted = trade_client.submit_order(order_data=order)
+            except Exception as e:
+                error_msg = str(e)
+                if "not found" in error_msg.lower():
+                    print(f"{symbol}: Asset not found on Alpaca (likely non-US market) -> skipping")
+                else:
+                    print(f"{symbol}: Order submission failed: {e}")
+                continue
             
             # Get last price for entry
             hist = None

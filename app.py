@@ -417,6 +417,21 @@ def _build_display_df(pred_df: pd.DataFrame, display_horizon: int):
     return display
 
 
+def is_us_tradeable_symbol(ticker: str) -> bool:
+    """
+    Check if symbol is tradeable on Alpaca (US stocks only).
+    Non-US symbols contain periods (e.g., LYC.AX for Australian stocks).
+    """
+    ticker_clean = str(ticker).upper().strip()
+    # Filter out non-US markets (have periods like LSE.L, TSE, AX, etc.)
+    if "." in ticker_clean:
+        # Common non-US exchanges
+        non_us_markers = [".AX", ".L", ".TO", ".V", ".NZ", ".AS", ".KL", ".SG", ".HK"]
+        if any(ticker_clean.endswith(marker) for marker in non_us_markers):
+            return False
+    return True
+
+
 def build_signals_from_pred_df(
     pred_df: pd.DataFrame,
     *,
@@ -437,6 +452,11 @@ def build_signals_from_pred_df(
     for _, row in pred_df.iterrows():
         tk = str(row.get("ticker", "")).upper().strip()
         if not tk:
+            continue
+        
+        # Filter out non-US tradeable symbols
+        if not is_us_tradeable_symbol(tk):
+            print(f"{tk}: Non-US market symbol, skipping (not supported by Alpaca paper trading)")
             continue
 
         pred = float(row.get("pred_next_ret") or 0.0)
