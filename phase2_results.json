@@ -1,0 +1,408 @@
+{
+  "AAPL": {
+    "ticker": "AAPL",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.017549184570234924,
+        "test_rmse": 0.013754024446661517,
+        "rmse_ratio": 0.7836968546751533,
+        "train_accuracy": 0.6867167919799498,
+        "test_accuracy": 0.52,
+        "accuracy_delta": 0.16671679197994982,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.0036803484704868725,
+        "test_rmse": 0.01659418807271135,
+        "rmse_ratio": 4.507638493271109,
+        "train_accuracy": 0.9523809523809523,
+        "test_accuracy": 0.48,
+        "accuracy_delta": 0.47238095238095235,
+        "overfitting": true
+      }
+    },
+    "best_model": "rf",
+    "best_accuracy": 0.52,
+    "issues": [
+      "rf: Overfitting detected (ratio=0.78)",
+      "xgb: Overfitting detected (ratio=4.51)",
+      "xgb: Low accuracy (0.480)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features",
+      "\u2713 Good Sharpe ratio (1.595)"
+    ],
+    "sharpe_ratio": 1.595444863470093,
+    "win_rate": 0.55
+  },
+  "MSFT": {
+    "ticker": "MSFT",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.013808409851308349,
+        "test_rmse": 0.0112041851536735,
+        "rmse_ratio": 0.8113442409424888,
+        "train_accuracy": 0.6691729323308271,
+        "test_accuracy": 0.4,
+        "accuracy_delta": 0.26917293233082706,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.002397903364230615,
+        "test_rmse": 0.013083185577229066,
+        "rmse_ratio": 5.453819346084893,
+        "train_accuracy": 0.9598997493734336,
+        "test_accuracy": 0.47,
+        "accuracy_delta": 0.4898997493734336,
+        "overfitting": true
+      }
+    },
+    "best_model": "xgb",
+    "best_accuracy": 0.47,
+    "issues": [
+      "rf: Overfitting detected (ratio=0.81)",
+      "rf: Low accuracy (0.400)",
+      "xgb: Overfitting detected (ratio=5.45)",
+      "xgb: Low accuracy (0.470)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features"
+    ],
+    "sharpe_ratio": 0.6354876373089665,
+    "win_rate": 0.52
+  },
+  "NVDA": {
+    "ticker": "NVDA",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.03258946092545198,
+        "test_rmse": 0.02132494273889671,
+        "rmse_ratio": 0.6543308113277617,
+        "train_accuracy": 0.6390977443609023,
+        "test_accuracy": 0.51,
+        "accuracy_delta": 0.12909774436090227,
+        "overfitting": false
+      },
+      "xgb": {
+        "train_rmse": 0.005296109630744776,
+        "test_rmse": 0.025589422300553062,
+        "rmse_ratio": 4.830827391608125,
+        "train_accuracy": 0.9448621553884712,
+        "test_accuracy": 0.53,
+        "accuracy_delta": 0.41486215538847115,
+        "overfitting": true
+      }
+    },
+    "best_model": "xgb",
+    "best_accuracy": 0.53,
+    "issues": [
+      "rf: Low accuracy (0.510)",
+      "xgb: Overfitting detected (ratio=4.83)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features"
+    ],
+    "sharpe_ratio": 0.3175530391818405,
+    "win_rate": 0.51
+  },
+  "TSLA": {
+    "ticker": "TSLA",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.04048955902148981,
+        "test_rmse": 0.029211344622099466,
+        "rmse_ratio": 0.7214359427983186,
+        "train_accuracy": 0.6466165413533834,
+        "test_accuracy": 0.47,
+        "accuracy_delta": 0.17661654135338345,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.006753695143823659,
+        "test_rmse": 0.0326925740531114,
+        "rmse_ratio": 4.83997772764101,
+        "train_accuracy": 0.9523809523809523,
+        "test_accuracy": 0.52,
+        "accuracy_delta": 0.4323809523809523,
+        "overfitting": true
+      }
+    },
+    "best_model": "xgb",
+    "best_accuracy": 0.52,
+    "issues": [
+      "rf: Overfitting detected (ratio=0.72)",
+      "rf: Low accuracy (0.470)",
+      "xgb: Overfitting detected (ratio=4.84)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features",
+      "\u2713 Good Sharpe ratio (1.919)"
+    ],
+    "sharpe_ratio": 1.9188025816625365,
+    "win_rate": 0.56
+  },
+  "AMD": {
+    "ticker": "AMD",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.03082659136597465,
+        "test_rmse": 0.04138821071799369,
+        "rmse_ratio": 1.3425703690777189,
+        "train_accuracy": 0.6416040100250626,
+        "test_accuracy": 0.45,
+        "accuracy_delta": 0.1916040100250626,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.005577438230034391,
+        "test_rmse": 0.04654549422963248,
+        "rmse_ratio": 8.343821749075014,
+        "train_accuracy": 0.9398496240601504,
+        "test_accuracy": 0.45,
+        "accuracy_delta": 0.48984962406015037,
+        "overfitting": true
+      }
+    },
+    "best_model": "rf",
+    "best_accuracy": 0.45,
+    "issues": [
+      "rf: Overfitting detected (ratio=1.34)",
+      "rf: Low accuracy (0.450)",
+      "xgb: Overfitting detected (ratio=8.34)",
+      "xgb: Low accuracy (0.450)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features"
+    ],
+    "sharpe_ratio": 0.3175530391818405,
+    "win_rate": 0.51
+  },
+  "AMZN": {
+    "ticker": "AMZN",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.01890192568490644,
+        "test_rmse": 0.019605952991613544,
+        "rmse_ratio": 1.0371914548269348,
+        "train_accuracy": 0.6466165413533834,
+        "test_accuracy": 0.45,
+        "accuracy_delta": 0.1966165413533834,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.0030545788614873737,
+        "test_rmse": 0.021123447201451723,
+        "rmse_ratio": 6.913075446257471,
+        "train_accuracy": 0.9674185463659147,
+        "test_accuracy": 0.44,
+        "accuracy_delta": 0.5274185463659147,
+        "overfitting": true
+      }
+    },
+    "best_model": "rf",
+    "best_accuracy": 0.45,
+    "issues": [
+      "rf: Overfitting detected (ratio=1.04)",
+      "rf: Low accuracy (0.450)",
+      "xgb: Overfitting detected (ratio=6.91)",
+      "xgb: Low accuracy (0.440)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features",
+      "\u2713 Good Sharpe ratio (1.919)"
+    ],
+    "sharpe_ratio": 1.9188025816625365,
+    "win_rate": 0.56
+  },
+  "GLD": {
+    "ticker": "GLD",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.009958323197833824,
+        "test_rmse": 0.013368014398455284,
+        "rmse_ratio": 1.3422613297018877,
+        "train_accuracy": 0.6466165413533834,
+        "test_accuracy": 0.6,
+        "accuracy_delta": 0.046616541353383445,
+        "overfitting": false
+      },
+      "xgb": {
+        "train_rmse": 0.0015350259672694826,
+        "test_rmse": 0.014462550139715957,
+        "rmse_ratio": 9.415563569817325,
+        "train_accuracy": 0.9573934837092731,
+        "test_accuracy": 0.42,
+        "accuracy_delta": 0.5373934837092731,
+        "overfitting": true
+      }
+    },
+    "best_model": "rf",
+    "best_accuracy": 0.6,
+    "issues": [
+      "xgb: Overfitting detected (ratio=9.42)",
+      "xgb: Low accuracy (0.420)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "\u2713 Strong accuracy (0.600), ready for deployment",
+      "\u2713 Good Sharpe ratio (3.925)"
+    ],
+    "sharpe_ratio": 3.9245781232923203,
+    "win_rate": 0.62
+  },
+  "SPY": {
+    "ticker": "SPY",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.010513382024982601,
+        "test_rmse": 0.007072847366389369,
+        "rmse_ratio": 0.6726831257970268,
+        "train_accuracy": 0.6842105263157895,
+        "test_accuracy": 0.51,
+        "accuracy_delta": 0.17421052631578948,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.002288160554872502,
+        "test_rmse": 0.007746984298723048,
+        "rmse_ratio": 3.3842031229454443,
+        "train_accuracy": 0.9323308270676691,
+        "test_accuracy": 0.49,
+        "accuracy_delta": 0.44233082706766913,
+        "overfitting": true
+      }
+    },
+    "best_model": "rf",
+    "best_accuracy": 0.51,
+    "issues": [
+      "rf: Overfitting detected (ratio=0.67)",
+      "rf: Low accuracy (0.510)",
+      "xgb: Overfitting detected (ratio=3.38)",
+      "xgb: Low accuracy (0.490)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features",
+      "\u2713 Good Sharpe ratio (2.573)"
+    ],
+    "sharpe_ratio": 2.5730648703181926,
+    "win_rate": 0.58
+  },
+  "QQQ": {
+    "ticker": "QQQ",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.013324723376280384,
+        "test_rmse": 0.009759613031845858,
+        "rmse_ratio": 0.7323889860431775,
+        "train_accuracy": 0.6416040100250626,
+        "test_accuracy": 0.56,
+        "accuracy_delta": 0.08160401002506257,
+        "overfitting": false
+      },
+      "xgb": {
+        "train_rmse": 0.0027637727508193874,
+        "test_rmse": 0.0106555308709919,
+        "rmse_ratio": 3.854034971891976,
+        "train_accuracy": 0.9448621553884712,
+        "test_accuracy": 0.58,
+        "accuracy_delta": 0.3648621553884712,
+        "overfitting": true
+      }
+    },
+    "best_model": "xgb",
+    "best_accuracy": 0.58,
+    "issues": [
+      "xgb: Overfitting detected (ratio=3.85)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "\u2713 Good Sharpe ratio (2.573)"
+    ],
+    "sharpe_ratio": 2.5730648703181926,
+    "win_rate": 0.58
+  },
+  "IWM": {
+    "ticker": "IWM",
+    "total_samples": 499,
+    "train_samples": 399,
+    "test_samples": 100,
+    "features": 143,
+    "models": {
+      "rf": {
+        "train_rmse": 0.013413619301093077,
+        "test_rmse": 0.012252789737231791,
+        "rmse_ratio": 0.913390791211897,
+        "train_accuracy": 0.6691729323308271,
+        "test_accuracy": 0.51,
+        "accuracy_delta": 0.15917293233082708,
+        "overfitting": true
+      },
+      "xgb": {
+        "train_rmse": 0.002212983809673536,
+        "test_rmse": 0.013751191455852843,
+        "rmse_ratio": 6.2110623373892375,
+        "train_accuracy": 0.9699248120300752,
+        "test_accuracy": 0.5,
+        "accuracy_delta": 0.4699248120300752,
+        "overfitting": true
+      }
+    },
+    "best_model": "rf",
+    "best_accuracy": 0.51,
+    "issues": [
+      "rf: Overfitting detected (ratio=0.91)",
+      "rf: Low accuracy (0.510)",
+      "xgb: Overfitting detected (ratio=6.21)",
+      "xgb: Low accuracy (0.500)"
+    ],
+    "recommendations": [
+      "Add regularization or reduce features",
+      "Add regularization or reduce features",
+      "\u2713 Good Sharpe ratio (1.274)"
+    ],
+    "sharpe_ratio": 1.2740415582648827,
+    "win_rate": 0.54
+  }
+}
