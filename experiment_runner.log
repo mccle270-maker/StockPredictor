@@ -920,3 +920,319 @@ Top 5 by Sharpe:
 2025-12-29 16:06:44,356 | __main__ | INFO |   5. improved_r2_spy_rf_reg: Sharpe=0.747, Acc=49.0%
 2025-12-29 16:06:44,356 | __main__ | INFO | 
 ✅ Results saved to improved_results_20251229_160644.json
+2025-12-29 20:09:55,838 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 20:12:50,205 | yfinance | ERROR | Failed to get ticker 'AAPL' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:12:50,691 | yfinance | ERROR | $AAPL: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:12:53,036 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:12:53,042 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:12:53,043 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:12:53,959 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:12:54,389 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:12:54,999 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:12:55,425 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:12:55,939 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=AAPL&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:12:57,678 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=AAPL&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:12:58,251 | yfinance | ERROR | Failed to get ticker 'GLD' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:12:58,716 | yfinance | ERROR | $GLD: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:13:00,406 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:13:00,909 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:13:01,388 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/GLD?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=GLD&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:13:02,103 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 20:13:02,602 | yfinance | ERROR | Failed to get ticker 'MSFT' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:13:03,079 | yfinance | ERROR | $MSFT: possibly delisted; no price data found  (period=6mo)
+2025-12-29 20:15:51,316 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:15:51,753 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:15:53,472 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:15:53,475 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:15:53,476 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:15:54,480 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:15:54,929 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:15:55,497 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:15:55,989 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:15:56,475 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:15:58,370 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:00,205 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:00,657 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:01,105 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:18,442 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:18,915 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:20,632 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:20,636 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:16:20,636 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:16:21,515 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:21,951 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:22,576 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:23,035 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:23,457 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:25,256 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:27,141 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:27,899 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:28,356 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:28,565 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:28,984 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=2y)
+2025-12-29 20:16:30,075 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:30,086 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:16:30,087 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:16:30,117 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:30,547 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=2y)
+2025-12-29 20:16:31,093 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:31,953 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=2y)
+2025-12-29 20:16:32,567 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:46,958 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:47,408 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:49,018 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:49,029 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:16:49,030 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:16:50,243 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:50,724 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:51,353 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:51,829 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:52,270 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:54,018 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:55,875 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:56,353 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:16:57,035 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:16:57,247 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:57,720 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=2y)
+2025-12-29 20:16:58,828 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:58,838 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:16:58,838 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:16:58,866 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:16:59,343 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=2y)
+2025-12-29 20:16:59,915 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:17:00,436 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=2y)
+2025-12-29 20:17:00,918 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:17:01,535 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 20:23:24,003 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:23:24,444 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=3mo)
+2025-12-29 20:23:24,447 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:23:24,891 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:23:26,941 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:23:26,945 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:23:26,945 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:23:27,922 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:23:28,380 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:23:28,957 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:23:29,440 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:23:30,421 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:23:32,589 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:23:34,355 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:23:34,794 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=1y)
+2025-12-29 20:23:35,755 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:14,774 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_spy_rf (SPY / rf)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_spy_xgb (SPY / xgb)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_spy_gbrt (SPY / gbrt)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_qqq_rf (QQQ / rf)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_qqq_xgb (QQQ / xgb)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_qqq_gbrt (QQQ / gbrt)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_gld_rf (GLD / rf)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_gld_xgb (GLD / xgb)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_gld_gbrt (GLD / gbrt)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_aapl_rf (AAPL / rf)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_aapl_xgb (AAPL / xgb)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_aapl_gbrt (AAPL / gbrt)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_msft_rf (MSFT / rf)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_msft_xgb (MSFT / xgb)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Added experiment: audit_msft_gbrt (MSFT / gbrt)
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | Starting 15 experiments...
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | 
+[1/15] Running: audit_spy_rf
+2025-12-29 20:35:14,777 | ExperimentRunner | INFO | [audit_spy_rf] Starting backtest for SPY
+2025-12-29 20:35:15,657 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:16,141 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:18,270 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:18,283 | yfinance | ERROR | 
+1 Failed download:
+2025-12-29 20:35:18,283 | yfinance | ERROR | ['^GSPC']: YFTzMissingError('$%ticker%: possibly delisted; no timezone found')
+2025-12-29 20:35:20,025 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:20,827 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:21,403 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:21,862 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:22,352 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:23,764 | ExperimentRunner | INFO | [audit_spy_rf] ✅ Success | Acc: 0.478 | Sharpe: 0.703
+2025-12-29 20:35:23,764 | ExperimentRunner | INFO | 
+[2/15] Running: audit_spy_xgb
+2025-12-29 20:35:23,764 | ExperimentRunner | INFO | [audit_spy_xgb] Starting backtest for SPY
+2025-12-29 20:35:26,981 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:27,466 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:27,969 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:28,484 | ExperimentRunner | INFO | [audit_spy_xgb] ✅ Success | Acc: 0.482 | Sharpe: 0.703
+2025-12-29 20:35:28,484 | ExperimentRunner | INFO | 
+[3/15] Running: audit_spy_gbrt
+2025-12-29 20:35:28,484 | ExperimentRunner | INFO | [audit_spy_gbrt] Starting backtest for SPY
+2025-12-29 20:35:31,714 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:32,229 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:32,715 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:36,116 | ExperimentRunner | INFO | [audit_spy_gbrt] ✅ Success | Acc: 0.454 | Sharpe: 0.703
+2025-12-29 20:35:36,117 | ExperimentRunner | INFO | 
+[4/15] Running: audit_qqq_rf
+2025-12-29 20:35:36,117 | ExperimentRunner | INFO | [audit_qqq_rf] Starting backtest for QQQ
+2025-12-29 20:35:36,567 | yfinance | ERROR | Failed to get ticker 'QQQ' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:37,037 | yfinance | ERROR | $QQQ: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:39,418 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:39,868 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:40,354 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=QQQ&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:42,094 | ExperimentRunner | INFO | [audit_qqq_rf] ✅ Success | Acc: 0.490 | Sharpe: 0.715
+2025-12-29 20:35:42,095 | ExperimentRunner | INFO | 
+[5/15] Running: audit_qqq_xgb
+2025-12-29 20:35:42,095 | ExperimentRunner | INFO | [audit_qqq_xgb] Starting backtest for QQQ
+2025-12-29 20:35:44,505 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:44,958 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:45,428 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=QQQ&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:45,986 | ExperimentRunner | INFO | [audit_qqq_xgb] ✅ Success | Acc: 0.454 | Sharpe: 0.715
+2025-12-29 20:35:45,986 | ExperimentRunner | INFO | 
+[6/15] Running: audit_qqq_gbrt
+2025-12-29 20:35:45,986 | ExperimentRunner | INFO | [audit_qqq_gbrt] Starting backtest for QQQ
+2025-12-29 20:35:48,588 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:49,070 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:49,534 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=QQQ&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:35:53,203 | ExperimentRunner | INFO | [audit_qqq_gbrt] ✅ Success | Acc: 0.506 | Sharpe: 0.715
+2025-12-29 20:35:53,204 | ExperimentRunner | INFO | 
+[7/15] Running: audit_gld_rf
+2025-12-29 20:35:53,204 | ExperimentRunner | INFO | [audit_gld_rf] Starting backtest for GLD
+2025-12-29 20:35:53,630 | yfinance | ERROR | Failed to get ticker 'GLD' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:54,028 | yfinance | ERROR | $GLD: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:58,709 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:35:59,189 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:35:59,673 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/GLD?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=GLD&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:01,004 | ExperimentRunner | INFO | [audit_gld_rf] ✅ Success | Acc: 0.442 | Sharpe: 2.510
+2025-12-29 20:36:01,005 | ExperimentRunner | INFO | 
+[8/15] Running: audit_gld_xgb
+2025-12-29 20:36:01,005 | ExperimentRunner | INFO | [audit_gld_xgb] Starting backtest for GLD
+2025-12-29 20:36:05,625 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:06,140 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:06,619 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/GLD?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=GLD&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:07,136 | ExperimentRunner | INFO | [audit_gld_xgb] ✅ Success | Acc: 0.446 | Sharpe: 2.510
+2025-12-29 20:36:07,137 | ExperimentRunner | INFO | 
+[9/15] Running: audit_gld_gbrt
+2025-12-29 20:36:07,137 | ExperimentRunner | INFO | [audit_gld_gbrt] Starting backtest for GLD
+2025-12-29 20:36:11,627 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:12,114 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:12,594 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/GLD?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=GLD&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:15,983 | ExperimentRunner | INFO | [audit_gld_gbrt] ✅ Success | Acc: 0.426 | Sharpe: 2.510
+2025-12-29 20:36:15,983 | ExperimentRunner | INFO | 
+[10/15] Running: audit_aapl_rf
+2025-12-29 20:36:15,983 | ExperimentRunner | INFO | [audit_aapl_rf] Starting backtest for AAPL
+2025-12-29 20:36:16,455 | yfinance | ERROR | Failed to get ticker 'AAPL' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:16,976 | yfinance | ERROR | $AAPL: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:19,704 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:20,198 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:20,683 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=AAPL&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:22,024 | ExperimentRunner | INFO | [audit_aapl_rf] ✅ Success | Acc: 0.474 | Sharpe: 0.273
+2025-12-29 20:36:22,025 | ExperimentRunner | INFO | 
+[11/15] Running: audit_aapl_xgb
+2025-12-29 20:36:22,025 | ExperimentRunner | INFO | [audit_aapl_xgb] Starting backtest for AAPL
+2025-12-29 20:36:24,787 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:25,306 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:25,780 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=AAPL&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:26,276 | ExperimentRunner | INFO | [audit_aapl_xgb] ✅ Success | Acc: 0.554 | Sharpe: 0.273
+2025-12-29 20:36:26,276 | ExperimentRunner | INFO | 
+[12/15] Running: audit_aapl_gbrt
+2025-12-29 20:36:26,276 | ExperimentRunner | INFO | [audit_aapl_gbrt] Starting backtest for AAPL
+2025-12-29 20:36:28,947 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:29,546 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:29,977 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/AAPL?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=AAPL&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:33,382 | ExperimentRunner | INFO | [audit_aapl_gbrt] ✅ Success | Acc: 0.534 | Sharpe: 0.273
+2025-12-29 20:36:33,383 | ExperimentRunner | INFO | 
+[13/15] Running: audit_msft_rf
+2025-12-29 20:36:33,383 | ExperimentRunner | INFO | [audit_msft_rf] Starting backtest for MSFT
+2025-12-29 20:36:33,816 | yfinance | ERROR | Failed to get ticker 'MSFT' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:34,289 | yfinance | ERROR | $MSFT: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:37,859 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:38,348 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:38,833 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/MSFT?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=MSFT&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:40,506 | ExperimentRunner | INFO | [audit_msft_rf] ✅ Success | Acc: 0.466 | Sharpe: 0.476
+2025-12-29 20:36:40,506 | ExperimentRunner | INFO | 
+[14/15] Running: audit_msft_xgb
+2025-12-29 20:36:40,506 | ExperimentRunner | INFO | [audit_msft_xgb] Starting backtest for MSFT
+2025-12-29 20:36:43,246 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:43,738 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:44,204 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/MSFT?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=MSFT&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:44,706 | ExperimentRunner | INFO | [audit_msft_xgb] ✅ Success | Acc: 0.494 | Sharpe: 0.476
+2025-12-29 20:36:44,706 | ExperimentRunner | INFO | 
+[15/15] Running: audit_msft_gbrt
+2025-12-29 20:36:44,706 | ExperimentRunner | INFO | [audit_msft_gbrt] Starting backtest for MSFT
+2025-12-29 20:36:47,509 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:36:47,967 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:36:48,402 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/MSFT?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=MSFT&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:36:51,895 | ExperimentRunner | INFO | [audit_msft_gbrt] ✅ Success | Acc: 0.454 | Sharpe: 0.476
+2025-12-29 20:36:51,895 | ExperimentRunner | INFO | 
+✅ All 15 experiments completed
+2025-12-29 20:40:05,199 | ExperimentRunner | INFO | ExperimentRunner initialized. Results dir: results
+2025-12-29 20:40:05,202 | ExperimentRunner | INFO | Added experiment: spx_fix_spy_rf (SPY / rf)
+2025-12-29 20:40:05,202 | ExperimentRunner | INFO | Added experiment: spx_fix_spy_xgb (SPY / xgb)
+2025-12-29 20:40:05,202 | ExperimentRunner | INFO | Added experiment: spx_fix_qqq_rf (QQQ / rf)
+2025-12-29 20:40:05,202 | ExperimentRunner | INFO | Added experiment: spx_fix_qqq_xgb (QQQ / xgb)
+2025-12-29 20:40:05,202 | ExperimentRunner | INFO | Added experiment: spx_fix_gld_rf (GLD / rf)
+2025-12-29 20:40:05,203 | ExperimentRunner | INFO | Added experiment: spx_fix_gld_xgb (GLD / xgb)
+2025-12-29 20:40:05,203 | ExperimentRunner | INFO | Starting 6 experiments...
+2025-12-29 20:40:05,203 | ExperimentRunner | INFO | 
+[1/6] Running: spx_fix_spy_rf
+2025-12-29 20:40:05,203 | ExperimentRunner | INFO | [spx_fix_spy_rf] Starting backtest for SPY
+2025-12-29 20:40:06,029 | yfinance | ERROR | Failed to get ticker 'SPY' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:06,477 | yfinance | ERROR | $SPY: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:08,259 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:08,711 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:09,267 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:09,715 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:10,143 | yfinance | ERROR | Failed to get ticker '^SPX' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:10,571 | yfinance | ERROR | $^SPX: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:11,135 | yfinance | ERROR | Failed to get ticker '^SPX' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:11,546 | yfinance | ERROR | $^SPX: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:11,986 | yfinance | ERROR | Failed to get ticker 'SPX' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:12,392 | yfinance | ERROR | $SPX: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:12,940 | yfinance | ERROR | Failed to get ticker 'SPX' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:13,370 | yfinance | ERROR | $SPX: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:16,826 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:17,312 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:17,787 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:40:19,153 | ExperimentRunner | INFO | [spx_fix_spy_rf] ✅ Success | Acc: 0.514 | Sharpe: 0.703
+2025-12-29 20:40:19,154 | ExperimentRunner | INFO | 
+[2/6] Running: spx_fix_spy_xgb
+2025-12-29 20:40:19,154 | ExperimentRunner | INFO | [spx_fix_spy_xgb] Starting backtest for SPY
+2025-12-29 20:40:22,211 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:22,689 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:23,162 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/SPY?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=SPY&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:40:23,643 | ExperimentRunner | INFO | [spx_fix_spy_xgb] ✅ Success | Acc: 0.474 | Sharpe: 0.703
+2025-12-29 20:40:23,643 | ExperimentRunner | INFO | 
+[3/6] Running: spx_fix_qqq_rf
+2025-12-29 20:40:23,643 | ExperimentRunner | INFO | [spx_fix_qqq_rf] Starting backtest for QQQ
+2025-12-29 20:40:24,105 | yfinance | ERROR | Failed to get ticker 'QQQ' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:24,548 | yfinance | ERROR | $QQQ: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:27,023 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:27,514 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:28,034 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=QQQ&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:40:29,542 | ExperimentRunner | INFO | [spx_fix_qqq_rf] ✅ Success | Acc: 0.526 | Sharpe: 0.715
+2025-12-29 20:40:29,542 | ExperimentRunner | INFO | 
+[4/6] Running: spx_fix_qqq_xgb
+2025-12-29 20:40:29,542 | ExperimentRunner | INFO | [spx_fix_qqq_xgb] Starting backtest for QQQ
+2025-12-29 20:40:31,893 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:32,359 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:32,842 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/QQQ?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=QQQ&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:40:33,278 | ExperimentRunner | INFO | [spx_fix_qqq_xgb] ✅ Success | Acc: 0.454 | Sharpe: 0.715
+2025-12-29 20:40:33,278 | ExperimentRunner | INFO | 
+[5/6] Running: spx_fix_gld_rf
+2025-12-29 20:40:33,279 | ExperimentRunner | INFO | [spx_fix_gld_rf] Starting backtest for GLD
+2025-12-29 20:40:33,726 | yfinance | ERROR | Failed to get ticker 'GLD' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:34,206 | yfinance | ERROR | $GLD: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:38,456 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:38,924 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:39,443 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/GLD?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=GLD&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:40:40,673 | ExperimentRunner | INFO | [spx_fix_gld_rf] ✅ Success | Acc: 0.474 | Sharpe: 2.510
+2025-12-29 20:40:40,673 | ExperimentRunner | INFO | 
+[6/6] Running: spx_fix_gld_xgb
+2025-12-29 20:40:40,673 | ExperimentRunner | INFO | [spx_fix_gld_xgb] Starting backtest for GLD
+2025-12-29 20:40:44,880 | yfinance | ERROR | Failed to get ticker '^GSPC' reason: Expecting value: line 1 column 1 (char 0)
+2025-12-29 20:40:45,368 | yfinance | ERROR | $^GSPC: possibly delisted; no price data found  (period=5y)
+2025-12-29 20:40:45,846 | yfinance | ERROR | 429 Client Error: Too Many Requests for url: https://query2.finance.yahoo.com/v10/finance/quoteSummary/GLD?modules=financialData%2CquoteType%2CdefaultKeyStatistics%2CassetProfile%2CsummaryDetail&corsDomain=finance.yahoo.com&formatted=false&symbol=GLD&crumb=Edge%3A+Too+Many+Requests
+2025-12-29 20:40:46,282 | ExperimentRunner | INFO | [spx_fix_gld_xgb] ✅ Success | Acc: 0.470 | Sharpe: 2.510
+2025-12-29 20:40:46,282 | ExperimentRunner | INFO | 
+✅ All 6 experiments completed

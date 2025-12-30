@@ -6,34 +6,80 @@ from scipy.stats import norm
 # ---- SPX cache (avoid repeated yf.download("^GSPC") per ticker) ----
 _SPX_CACHE = {}
 
+
+def _spx_days_to_period(start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> str:
+    """Map a date span to an approximate yf period string with a small buffer."""
+    days = max(1, (end_ts - start_ts).days + 5)
+    if days >= 3650:
+        return "10y"
+    if days >= 1825:
+        return "5y"
+    if days >= 1095:
+        return "3y"
+    if days >= 730:
+        return "2y"
+    if days >= 365:
+        return "1y"
+    if days >= 180:
+        return "6mo"
+    return "3mo"
+
+
 def _get_spx(start, end, tz=None):
     """
     Fetch SPX once (cached) for a given date range + timezone-ness, and normalize columns/index.
 
-    tz:
-      - None => tz-naive index
-      - timezone string / tzinfo => tz-aware index localized to tz
+    Robust fallback chain:
+    1) ^GSPC (primary)
+    2) ^SPX / SPX proxies
+    3) SPY / VOO ETFs as market proxy
+    Uses existing get_price_history fallbacks (Stooq, raw Yahoo) to survive 429s.
     """
-    start_ts = pd.Timestamp(start)
-    end_ts = pd.Timestamp(end)
 
-    # Cache key: normalize dates, also include tz so tz-aware and tz-naive don't clash
-    key = (start_ts.tz_localize(None), end_ts.tz_localize(None), str(tz))
+    start_ts = pd.Timestamp(start).tz_localize(None)
+    end_ts = pd.Timestamp(end).tz_localize(None)
+
+    # Cache key includes tz so tz-aware and tz-naive don't clash
+    key = (start_ts, end_ts, str(tz))
     if key in _SPX_CACHE:
         return _SPX_CACHE[key]
 
-    spx = yf.download("^GSPC", start=key[0], end=key[1], progress=False)
+    period = _spx_days_to_period(start_ts, end_ts)
+    candidates = ["^GSPC", "^SPX", "SPX", "SPY", "VOO"]
 
-    # If yfinance returns MultiIndex columns, flatten them
-    if isinstance(spx.columns, pd.MultiIndex):
-        spx.columns = spx.columns.get_level_values(0)
+    spx = pd.DataFrame()
+    for sym in candidates:
+        try:
+            df = get_price_history(sym, period=period, interval="1d")
+            if df is None or df.empty:
+                continue
 
-    # Make SPX index match the caller's timezone-ness
-    idx = pd.DatetimeIndex(spx.index)
-    if tz is not None:
-        spx.index = idx.tz_localize(tz)
+            # Normalize columns if yfinance returned multi-index (handled in get_price_history but keep safe)
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
+            # Restrict to requested window
+            df = df.loc[(df.index.tz_localize(None) >= start_ts) & (df.index.tz_localize(None) <= end_ts)]
+            if df.empty:
+                continue
+
+            spx = df.copy()
+            break
+        except Exception as e:
+            print(f"[_get_spx] {sym} failed: {e}")
+            continue
+
+    # If nothing worked, return empty DataFrame (caller will handle)
+    if spx is None or spx.empty:
+        print("[_get_spx] Warning: all SPX proxies failed; returning empty DataFrame")
+        spx = pd.DataFrame()
     else:
-        spx.index = idx.tz_localize(None)
+        # Make index match caller tz
+        idx = pd.DatetimeIndex(spx.index)
+        if tz is not None:
+            spx.index = idx.tz_localize(tz)
+        else:
+            spx.index = idx.tz_localize(None)
 
     _SPX_CACHE[key] = spx
     return spx
@@ -539,12 +585,45 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     if key in macro_cache:
         return macro_cache[key]
 
-    hist = get_price_history(symbol, period=period, interval="1d")
+    # Robust fallback: try primary index then proxies
+    candidates = [symbol, "^SPX", "SPX", "SPY", "VOO"]
+    hist = pd.DataFrame()
+    for sym in candidates:
+        try:
+            hist = get_price_history(sym, period=period, interval="1d")
+            if hist is not None and not hist.empty:
+                break
+        except Exception as e:
+            print(f"[get_macro_df] {sym} failed: {e}")
+            continue
+
+    if hist is None or hist.empty:
+        # Synthetic zero series fallback to keep macro columns populated during outages/429s
+        print(f"[get_macro_df] Warning: price history unavailable for proxies {candidates} (period={period}); using synthetic zero macro series")
+
+        # Approximate business-day length for the requested period
+        period_days_map = {
+            "10y": 252 * 10,
+            "5y": 252 * 5,
+            "3y": 252 * 3,
+            "2y": 252 * 2,
+            "1y": 252,
+            "6mo": 252 // 2,
+            "3mo": 252 // 4,
+        }
+        days = period_days_map.get(period, 252)
+        idx = pd.date_range(end=pd.Timestamp.today().normalize(), periods=days, freq="B")
+        hist = pd.DataFrame(index=idx, data={"Close": 100.0})
+
     df = pd.DataFrame(index=hist.index)
-    df["mkt_ret_1d"] = hist["Close"].pct_change()
+    df["mkt_ret_1d"] = hist.get("Close", pd.Series(index=hist.index, data=100.0)).pct_change().fillna(0.0)
+
+    # Pre-seed macro columns with zeros so downstream filtering retains them even if FRED is unavailable
+    for base_col in ["t10y", "t3m", "vix", "unrate", "cpi", "oas", "fed_funds", "term_spread"]:
+        df[base_col] = 0.0
 
     if FRED_API_KEY is None:
-        print("[get_macro_df] FRED_API_KEY not set; using only mkt_ret_1d")
+        print("[get_macro_df] FRED_API_KEY not set; using zero-filled macro features + mkt_ret_1d")
         macro_cache[key] = df
         return df
 
@@ -585,6 +664,7 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         return df
     except Exception as e:
         print(f"[get_macro_df] FRED fetch failed: {e}")
+        # Keep zero-filled macro placeholders so callers retain columns
         macro_cache[key] = df
         return df
 
@@ -1440,6 +1520,10 @@ def build_features_and_target(
                 hist = hist.join(macro_df, how="left")
             except Exception as e:
                 print(f"[build_features_and_target] Warning: Could not fetch macro data: {e}")
+                # Ensure macro columns exist so downstream filters keep them
+                for c in MACRO_COLUMNS:
+                    if c not in hist.columns:
+                        hist[c] = 0.0
             
             # Fill missing macro columns with NaN, then forward/backward fill
             for c in MACRO_COLUMNS:

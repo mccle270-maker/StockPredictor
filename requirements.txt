@@ -9,3 +9,11 @@ statsmodels
 pyts
 matplotlib
 plotly
+alpaca-trade-api
+streamlit-extras
+streamlit-aggrid
+streamlit-plotly-events
+streamlit-authenticator
+streamlit-lottie
+pandas-ta
+streamlit-option-menu

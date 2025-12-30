@@ -9,7 +9,14 @@ import requests
 import streamlit as st
 import yfinance as yf
 from scipy.stats import norm
-from yfinance.exceptions import YFRateLimitError
+
+# Handle yfinance version compatibility
+try:
+    from yfinance.exceptions import YFRateLimitError
+except ImportError:
+    # Fallback for newer yfinance versions
+    class YFRateLimitError(Exception):
+        pass
 
 import os
 import requests
