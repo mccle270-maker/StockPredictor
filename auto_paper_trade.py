@@ -1,7 +1,8 @@
-import os, json
+import os, json, math
 from pathlib import Path
 from datetime import datetime, timezone, date, timedelta
 from dataclasses import dataclass, asdict, field
+from typing import Optional
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -52,6 +53,7 @@ class TradeRecord:
     # Metadata
     strategy: str | None = None  # e.g., "BUY_CALL", "BULL_CALL_SPREAD"
     signal_strength: float | None = None  # e.g., predicted return
+    underlying: str | None = None  # For options to aid duplicate suppression
     notes: str = ""
     
     def to_dict(self) -> dict:
@@ -137,6 +139,7 @@ class TradeLog:
         entry_price: float,
         strategy: str | None = None,
         signal_strength: float | None = None,
+        underlying: str | None = None,
         notes: str = "",
     ) -> TradeRecord:
         """Record a new trade entry."""
@@ -152,6 +155,7 @@ class TradeLog:
             entry_time=now.isoformat(),
             strategy=strategy,
             signal_strength=signal_strength,
+            underlying=underlying,
             notes=notes,
         )
         self.trades[trade_id] = record
@@ -201,6 +205,48 @@ class TradeLog:
         """Get list of closed (filled) trades."""
         return [tr for tr in self.trades.values() if tr.pnl is not None]
 
+    def close_by_symbol(self, symbol: str, exit_price: float):
+        """Close the oldest open trade for a symbol using the provided exit price."""
+        open_trades = [tr for tr in self.trades.values() if tr.pnl is None and tr.symbol.upper() == symbol.upper()]
+        if not open_trades:
+            return None
+        # close the earliest entry
+        tr = sorted(open_trades, key=lambda x: x.entry_time or "")[0]
+        now = datetime.now(timezone.utc)
+        tr.close(
+            exit_price=exit_price,
+            exit_date=now.date().isoformat(),
+            exit_time=now.isoformat(),
+        )
+        self.save()
+        return tr
+
+    def has_trade_today(
+        self,
+        symbol: str,
+        asset_type: str | None = None,
+        strategy: str | None = None,
+        underlying: str | None = None,
+    ) -> bool:
+        """Return True if a trade matching symbol/asset/strategy/underlying exists today."""
+        today = date.today().isoformat()
+        sym_u = symbol.upper()
+        under_u = underlying.upper() if underlying else None
+
+        for tr in self.trades.values():
+            if tr.entry_date != today:
+                continue
+            if asset_type and (tr.asset_type or "").lower() != asset_type.lower():
+                continue
+            if strategy and (tr.strategy or "").upper() != strategy.upper():
+                continue
+
+            tr_under = (tr.underlying or tr.symbol).upper()
+            if tr.symbol.upper() == sym_u or tr_under == sym_u or (under_u and tr_under == under_u):
+                return True
+
+        return False
+
 
 def load_signals() -> dict:
     if not SIGNALS_PATH.exists():
@@ -213,7 +259,52 @@ def load_signals() -> dict:
 
 
 def shares_for(symbol: str) -> float:
-    return 1
+    """
+    Default share sizing. Falls back to env DEFAULT_STOCK_QTY (float) or 1.
+    Per-symbol overrides supported via env STOCK_QTY_<SYMBOL> (e.g., STOCK_QTY_SPY=5).
+    """
+    env_key = f"STOCK_QTY_{symbol.upper()}"
+    if env_key in os.environ:
+        try:
+            return float(os.environ[env_key])
+        except Exception:
+            pass
+
+    try:
+        return float(os.environ.get("DEFAULT_STOCK_QTY", 1))
+    except Exception:
+        return 1
+
+
+def env_bool_local(name: str, default: bool = False) -> bool:
+    v = os.environ.get(name)
+    if v is None:
+        return default
+    return str(v).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def fetch_last_close(symbol: str) -> float:
+    try:
+        import yfinance as yf
+        hist = yf.download(symbol, period="1d", progress=False, auto_adjust=False)
+        return float(hist["Close"].iloc[-1].item()) if hist is not None and not hist.empty else 0.0
+    except Exception:
+        return 0.0
+
+
+def compute_risk_qty(buying_power: float, price: float, fallback_qty: float = 1.0) -> int:
+    """
+    Risk-based sizing: floor((buying_power * RISK_PER_TRADE_PCT) / price).
+    Defaults: USE_RISK_SIZING=1, RISK_PER_TRADE_PCT=0.005 (0.5% of BP per trade).
+    """
+    use_risk = env_bool_local("USE_RISK_SIZING", True)
+    risk_pct = float(os.environ.get("RISK_PER_TRADE_PCT", "0.005"))
+
+    if not use_risk or price <= 0 or buying_power <= 0 or risk_pct <= 0:
+        return int(fallback_qty)
+
+    qty = math.floor((buying_power * risk_pct) / price)
+    return max(int(qty), int(fallback_qty)) if qty > 0 else int(fallback_qty)
 
 
 def _get_latest_bid_ask(option_data_client: OptionHistoricalDataClient, option_symbol: str):
@@ -625,12 +716,143 @@ def pick_iron_condor(
     return None, None, None, None, None
 
 
+def maybe_close_for_targets(
+    trade_client: TradingClient,
+    trade_log: TradeLog,
+    positions: list,
+    take_profit_pct: float,
+    stop_loss_pct: float,
+):
+    """
+    Scan open positions and close if P/L breaches take-profit or stop-loss thresholds.
+    take_profit_pct/stop_loss_pct expressed as decimals (e.g., 0.05 = +5%, -0.03 = -3%).
+    """
+    if take_profit_pct is None and stop_loss_pct is None:
+        return
+
+    for p in positions:
+        try:
+            symbol = p.symbol
+            entry_price = float(p.avg_entry_price)
+            current_price = float(p.current_price)
+            side = p.side.lower()  # 'long' or 'short'
+
+            if entry_price <= 0:
+                continue
+
+            if side == "long":
+                ret_pct = (current_price / entry_price) - 1.0
+            else:  # short
+                ret_pct = (entry_price / current_price) - 1.0
+
+            should_take = take_profit_pct is not None and ret_pct >= take_profit_pct
+            should_stop = stop_loss_pct is not None and ret_pct <= -abs(stop_loss_pct)
+
+            if not (should_take or should_stop):
+                continue
+
+            action = "take-profit" if should_take else "stop-loss"
+            side_to_close = OrderSide.SELL if side == "long" else OrderSide.BUY
+            qty = float(p.qty)
+
+            order = MarketOrderRequest(
+                symbol=symbol,
+                qty=qty,
+                side=side_to_close,
+                time_in_force=TimeInForce.DAY,
+            )
+            try:
+                submitted = trade_client.submit_order(order_data=order)
+                # Log the close in trade log
+                closed = trade_log.close_by_symbol(symbol, current_price)
+                print(
+                    f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} exit @ {current_price:.2f} -> {submitted.id}; ret={ret_pct:.4f}"
+                )
+            except Exception as e:
+                print(f"{symbol}: {action} close failed: {e}")
+        except Exception as e:
+            print(f"[auto-exit] Error processing position {getattr(p, 'symbol', '?')}: {e}")
+
+
+def maybe_close_on_pred_target(
+    trade_client: TradingClient,
+    trade_log: TradeLog,
+    positions: list,
+    enable: bool,
+    min_positive: float = 0.001,
+):
+    """
+    Close when live return >= predicted target stored in TradeLog.signal_strength.
+    Only triggers for positive predicted returns above min_positive. Shorts use absolute target.
+    """
+    if not enable:
+        return
+
+    # Map symbol -> current price/side/qty from positions
+    pos_map = {p.symbol.upper(): p for p in positions}
+
+    for tr in trade_log.get_open_trades():
+        try:
+            sym = tr.symbol.upper()
+            if tr.signal_strength is None:
+                continue
+            target = float(tr.signal_strength)
+            if target <= 0:
+                continue
+            target = max(target, min_positive)
+
+            p = pos_map.get(sym)
+            if p is None:
+                continue
+
+            entry_price = float(tr.entry_price)
+            current_price = float(p.current_price)
+            side = p.side.lower()
+
+            if entry_price <= 0:
+                continue
+
+            if side == "long":
+                ret_pct = (current_price / entry_price) - 1.0
+            else:  # short
+                ret_pct = (entry_price / current_price) - 1.0
+
+            if ret_pct < target:
+                continue
+
+            side_to_close = OrderSide.SELL if side == "long" else OrderSide.BUY
+            qty = float(p.qty)
+            order = MarketOrderRequest(
+                symbol=sym,
+                qty=qty,
+                side=side_to_close,
+                time_in_force=TimeInForce.DAY,
+            )
+            try:
+                submitted = trade_client.submit_order(order_data=order)
+                closed = trade_log.close_by_symbol(sym, current_price)
+                print(
+                    f"{datetime.now(timezone.utc).isoformat()} {sym} pred-target exit @ {current_price:.2f} -> {submitted.id}; ret={ret_pct:.4f} target={target:.4f}"
+                )
+            except Exception as e:
+                print(f"{sym}: pred-target close failed: {e}")
+        except Exception as e:
+            print(f"[pred-target-exit] error on {getattr(tr, 'symbol', '?')}: {e}")
+
+
 def main():
     key = os.environ["APCA_API_KEY_ID"]
     secret = os.environ["APCA_API_SECRET_KEY"]
 
     trade_client = TradingClient(key, secret, paper=True)
     option_data_client = OptionHistoricalDataClient(key, secret)
+
+    try:
+        account = trade_client.get_account()
+        buying_power = float(getattr(account, "buying_power", 0) or getattr(account, "cash", 0) or 0)
+    except Exception as e:
+        print(f"[Trade Log] Warning: could not fetch account info for sizing: {e}")
+        buying_power = 0.0
     
     # Initialize trade log
     trade_log = TradeLog(TRADE_LOG_PATH)
@@ -640,6 +862,22 @@ def main():
 
     positions = trade_client.get_all_positions()
     held = {p.symbol for p in positions}
+
+    # Auto take-profit / stop-loss on existing positions before new entries
+    try:
+        take_profit_pct = float(os.environ.get("TAKE_PROFIT_PCT", "0.05")) if os.environ.get("TAKE_PROFIT_PCT") else None
+        stop_loss_pct = float(os.environ.get("STOP_LOSS_PCT", None)) if os.environ.get("STOP_LOSS_PCT") else None
+        maybe_close_for_targets(trade_client, trade_log, positions, take_profit_pct, stop_loss_pct)
+    except Exception as e:
+        print(f"[auto-exit] skipped due to config/error: {e}")
+
+    # Auto close when live return meets predicted target from signal_strength
+    try:
+        use_pred_target = env_bool_local("PRED_TARGET_EXIT", True)
+        min_positive = float(os.environ.get("PRED_TARGET_MIN", "0.001"))
+        maybe_close_on_pred_target(trade_client, trade_log, positions, use_pred_target, min_positive=min_positive)
+    except Exception as e:
+        print(f"[pred-target-exit] skipped due to config/error: {e}")
 
     signals = load_signals()
     print("signals.json path:", str(SIGNALS_PATH))
@@ -682,6 +920,10 @@ def main():
                 print(f"{symbol}: invalid action '{action}', treating as HOLD")
                 action = "HOLD"
 
+            if trade_log.has_trade_today(symbol, asset_type="stock", underlying=symbol):
+                print(f"{symbol}: skipped duplicate signal (already traded today)")
+                continue
+
             if action == "HOLD":
                 print(f"{symbol}: HOLD")
                 continue
@@ -693,21 +935,19 @@ def main():
                 continue
 
             side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
+            last_price = fetch_last_close(symbol)
+            qty_default = shares_for(symbol)
+            qty = compute_risk_qty(buying_power, last_price, qty_default)
+
             order = MarketOrderRequest(
                 symbol=symbol,
-                qty=shares_for(symbol),
+                qty=qty,
                 side=side,
                 time_in_force=TimeInForce.DAY,
             )
             submitted = trade_client.submit_order(order_data=order)
             # Get last price for entry
-            hist = None
-            try:
-                import yfinance as yf
-                hist = yf.download(symbol, period="1d", progress=False, auto_adjust=False)
-                last_price = float(hist["Close"].iloc[-1].item()) if hist is not None and not hist.empty else 0
-            except Exception:
-                last_price = 0
+            last_price = last_price if last_price is not None else fetch_last_close(symbol)
             
             # Log trade
             trade_log.add_trade(
@@ -715,8 +955,9 @@ def main():
                 symbol=symbol,
                 asset_type="stock",
                 side=action,
-                qty=shares_for(symbol),
+                qty=qty,
                 entry_price=last_price,
+                underlying=symbol,
                 notes=f"Simple signal from signals.json",
             )
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} -> {submitted.id}")
@@ -727,7 +968,8 @@ def main():
         # ===== STOCKS =====
         if asset == "stock":
             action = str(spec.get("action", "HOLD")).upper()
-            qty = float(spec.get("qty", 1))
+            explicit_qty = spec.get("qty", None)
+            qty = float(explicit_qty) if explicit_qty is not None else float(shares_for(symbol))
 
             if action not in {"BUY", "SHORT", "SELL", "HOLD"}:
                 print(f"{symbol}: invalid action '{action}', treating as HOLD")
@@ -743,6 +985,10 @@ def main():
                 print(f"{symbol}: HOLD")
                 continue
 
+            if trade_log.has_trade_today(symbol, asset_type="stock", underlying=symbol):
+                print(f"{symbol}: skipped duplicate signal (already traded today)")
+                continue
+
             # Map actions to Alpaca order side
             if action == "BUY":
                 side = OrderSide.BUY
@@ -754,6 +1000,10 @@ def main():
                 side = OrderSide.SELL
                 order_desc = f"SELL {int(qty)} shares"
             
+            last_price = fetch_last_close(symbol)
+            if explicit_qty is None or str(spec.get("sizing", "")).lower() == "risk":
+                qty = compute_risk_qty(buying_power, last_price, qty)
+
             order = MarketOrderRequest(
                 symbol=symbol,
                 qty=qty,
@@ -773,13 +1023,7 @@ def main():
                 continue
             
             # Get last price for entry
-            hist = None
-            try:
-                import yfinance as yf
-                hist = yf.download(symbol, period="1d", progress=False, auto_adjust=False)
-                last_price = float(hist["Close"].iloc[-1].item()) if hist is not None and not hist.empty else 0
-            except Exception:
-                last_price = 0
+            last_price = last_price if last_price is not None else fetch_last_close(symbol)
             
             # Log trade with signal strength if available
             signal_strength = spec.get("pred_next_ret", None)
@@ -796,6 +1040,7 @@ def main():
                 qty=qty,
                 entry_price=last_price,
                 signal_strength=signal_strength,
+                underlying=symbol,
                 notes=f"Signal from portfolio engine ({int(qty)} qty)",
             )
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {order_desc} -> {submitted.id}")
@@ -804,6 +1049,10 @@ def main():
         # ===== OPTIONS =====
         if asset == "option":
             strategy = str(spec.get("strategy", "")).upper().strip()
+
+            if trade_log.has_trade_today(symbol, asset_type="option", strategy=strategy, underlying=symbol):
+                print(f"{symbol}: skipped duplicate option signal (already traded {strategy} today)")
+                continue
 
             # Default: 3 DTE minimum to avoid rapid decay, 60 DTE maximum
             # This ensures options have a few days of life to allow for profitable exit
@@ -819,6 +1068,12 @@ def main():
                 max_strike = None
 
             width_pct = float(spec.get("width_pct", 0.05))
+
+            signal_strength = spec.get("pred_next_ret", None)
+            try:
+                signal_strength = float(signal_strength) if signal_strength is not None else None
+            except Exception:
+                signal_strength = None
 
             if dte_min < 0:
                 dte_min = 0
@@ -870,6 +1125,19 @@ def main():
                         f"{datetime.now(timezone.utc).isoformat()} {symbol} {strategy} "
                         f"-> {opt_sym} @ {ask:.2f} (limit) -> {submitted.id}"
                     )
+
+                    trade_log.add_trade(
+                        trade_id=submitted.id,
+                        symbol=opt_sym,
+                        asset_type="option",
+                        side="BUY",
+                        qty=qty,
+                        entry_price=float(ask),
+                        strategy=strategy,
+                        signal_strength=signal_strength,
+                        underlying=symbol,
+                        notes=f"{strategy} on {symbol} @ {ask:.2f} (limit)",
+                    )
                 except Exception as e:
                     print(f"{symbol}: {strategy} order failed: {e}")
                 continue
@@ -916,6 +1184,22 @@ def main():
                         f"{datetime.now(timezone.utc).isoformat()} {symbol} BULL_CALL_SPREAD "
                         f"-> long={long_call} short={short_call} limit={limit_price:.2f} -> {submitted.id}"
                     )
+
+                    trade_log.add_trade(
+                        trade_id=submitted.id,
+                        symbol=symbol,
+                        asset_type="option",
+                        side="BUY",
+                        qty=qty,
+                        entry_price=float(limit_price),
+                        strategy=strategy,
+                        signal_strength=signal_strength,
+                        underlying=symbol,
+                        notes=(
+                            f"BULL_CALL_SPREAD long={long_call} short={short_call} "
+                            f"limit={limit_price:.2f} qty={qty}"
+                        ),
+                    )
                 except Exception as e:
                     print(f"{symbol}: BULL_CALL_SPREAD order failed: {e}")
                 continue
@@ -959,6 +1243,22 @@ def main():
                     print(
                         f"{datetime.now(timezone.utc).isoformat()} {symbol} BEAR_PUT_SPREAD "
                         f"-> long={long_put} short={short_put} limit={limit_price:.2f} -> {submitted.id}"
+                    )
+
+                    trade_log.add_trade(
+                        trade_id=submitted.id,
+                        symbol=symbol,
+                        asset_type="option",
+                        side="BUY",
+                        qty=qty,
+                        entry_price=float(limit_price),
+                        strategy=strategy,
+                        signal_strength=signal_strength,
+                        underlying=symbol,
+                        notes=(
+                            f"BEAR_PUT_SPREAD long={long_put} short={short_put} "
+                            f"limit={limit_price:.2f} qty={qty}"
+                        ),
                     )
                 except Exception as e:
                     print(f"{symbol}: BEAR_PUT_SPREAD order failed: {e}")
@@ -1009,6 +1309,22 @@ def main():
                         f"{datetime.now(timezone.utc).isoformat()} {symbol} IRON_CONDOR "
                         f"-> call spread: {short_call}/{long_call}, put spread: {short_put}/{long_put}, "
                         f"limit={limit_price:.2f} (credit) -> {submitted.id}"
+                    )
+
+                    trade_log.add_trade(
+                        trade_id=submitted.id,
+                        symbol=symbol,
+                        asset_type="option",
+                        side="SELL",  # credit strategy
+                        qty=qty,
+                        entry_price=float(limit_price),
+                        strategy=strategy,
+                        signal_strength=signal_strength,
+                        underlying=symbol,
+                        notes=(
+                            f"IRON_CONDOR call {short_call}/{long_call}, put {short_put}/{long_put}, "
+                            f"limit={limit_price:.2f} qty={qty}"
+                        ),
                     )
                 except Exception as e:
                     print(f"{symbol}: IRON_CONDOR order failed: {e}")
@@ -1064,6 +1380,7 @@ def main():
                     qty=qty,
                     entry_price=0,  # Futures typically executed at market; set to 0 as placeholder
                     strategy=contract,
+                    underlying=futures_symbol,
                     notes=f"Futures contract {contract}",
                 )
                 print(f"{datetime.now(timezone.utc).isoformat()} {symbol} (futures {contract}) {action} -> {submitted.id}")

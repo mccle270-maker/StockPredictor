@@ -17,3 +17,5 @@ streamlit-authenticator
 streamlit-lottie
 pandas-ta
 streamlit-option-menu
+fastapi
+uvicorn[standard]

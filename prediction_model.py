@@ -1,10 +1,15 @@
 import os, datetime as dt, requests
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import yfinance as yf
 from scipy.stats import norm
 # ---- SPX cache (avoid repeated yf.download("^GSPC") per ticker) ----
 _SPX_CACHE = {}
+BASE_DIR = Path(__file__).resolve().parent
+MACRO_CACHE_DIR = BASE_DIR / ".cache" / "macro"
+MACRO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _spx_days_to_period(start_ts: pd.Timestamp, end_ts: pd.Timestamp) -> str:
@@ -167,7 +172,7 @@ def env_bool(name: str, default: bool = False) -> bool:
     return str(v).strip().lower() in ("1", "true", "yes", "y", "on")
 
 
-USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", False)
+USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", True)
 try:
     ELASTICNET_L1_RATIO = float(os.environ.get("ELASTICNET_L1_RATIO", 0.5))
 except Exception:
@@ -279,18 +284,25 @@ def price_atm_call_for_ticker(
         return None
 
 
+import importlib
+
 gafcnn = None
+GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
+
 try:
-    from tensorflow import keras
-    GAF_CNN_MODEL_PATH = "gaf_cnn_updown.keras"
+    tf_keras = importlib.import_module("tensorflow.keras")
+    keras = tf_keras
     if os.path.exists(GAF_CNN_MODEL_PATH):
         print(f"[GAF-CNN] Loading model from {GAF_CNN_MODEL_PATH}...")
         gafcnn = keras.models.load_model(GAF_CNN_MODEL_PATH)
         print("[GAF-CNN] Loaded successfully.")
     else:
         print(f"[GAF-CNN] Model file not found at {GAF_CNN_MODEL_PATH}. probup_gaf will be None.")
+except ModuleNotFoundError:
+    print("[GAF-CNN] TensorFlow/Keras not installed; probup_gaf will be None.")
+    gafcnn = None
 except Exception as e:
-    print(f"[GAF-CNN] TensorFlow/Keras not available or failed to load model: {e}. probup_gaf will be None.")
+    print(f"[GAF-CNN] TensorFlow/Keras failed to load model: {e}. probup_gaf will be None.")
     gafcnn = None
 
 def make_t1_from_horizon(index: pd.DatetimeIndex, horizon: int) -> pd.Series:
@@ -502,6 +514,81 @@ macro_cache = {}
 FRED_API_KEY = os.environ.get("FRED_API_KEY")
 
 
+def _ordered_feature_groups(all_feature_names: list[str]) -> list[str]:
+    """
+    Group similar features into logical vectors (momentum, volatility, trend, volume, pattern, regime,
+    macro, fundamentals, gbm/ARIMA/news), then flatten into a final ordered list.
+    This preserves (n_samples, n_features) shape and keeps compatibility with RF/XGB.
+    """
+
+    group_defs: dict[str, list[str]] = {
+        # Momentum / returns
+        "momentum": [
+            "ret_1d", "ret_3d", "ret_5d", "ret_20d",
+            "cumret_3d", "cumret_5d", "ret_zscore_20d",
+            "rel_strength_1d", "rel_strength_3d", "rel_momentum_5d",
+            "gap_ret_1d", "intraday_ret_1d",
+            "rsi_change_1d", "rsi_change_3d", "rsi_overbought", "rsi_oversold",
+        ],
+        # Volatility / range
+        "volatility": [
+            "vol_10d", "vol_20d", "vol_60d", "vol_ratio_10_60",
+            "vol_roll_mean_20", "vol_roll_std_20", "vol_regime_high",
+            "atr_14", "range_atr_ratio", "vol_20d_std", "ret_vol_interaction",
+        ],
+        # Trend / moving averages / oscillators
+        "trend": [
+            "sma_ratio_10_50", "price_to_ma50", "ma_20", "ma_20_slope",
+            "bb_mid", "bb_upper", "bb_lower", "bb_pctb",
+            "macd", "macdsignal", "macdhist", "adx_14", "rsi14",
+        ],
+        # Volume
+        "volume": [
+            "volume_price_corr", "volume_trend", "vol_ma_20", "vol_spike_20",
+            "volume_zscore", "dollar_volume", "dollar_volume_20d_avg",
+        ],
+        # Price pattern / seasonality
+        "pattern": [
+            "high_low_ratio", "daily_range", "close_position", "hl_range",
+            "body_to_range", "upper_wick_to_range", "lower_wick_to_range",
+            "day_of_week", "month", "is_month_end",
+        ],
+        # Regime/state flags (these may be added by model_improvements)
+        "regime": [
+            "regime_bull", "regime_bear", "regime_vix_low", "regime_vix_medium", "regime_vix_high",
+            "regime_covid", "regime_high_corr", "regime_low_corr", "regime_bull_streak", "regime_bear_streak",
+        ],
+        # Fundamentals
+        "fundamentals": FUNDAMENTAL_COLUMNS,
+        # Macro
+        "macro": MACRO_COLUMNS,
+        # GBM-derived
+        "gbm": [c for c in all_feature_names if c.startswith("gbm_")],
+        # ARIMA-derived
+        "arima": [c for c in all_feature_names if c.startswith("arima_")],
+        # News
+        "news": ["news_sentiment", "news_count"],
+    }
+
+    ordered: list[str] = []
+    for cols in group_defs.values():
+        ordered.extend(cols)
+
+    # Keep any remaining features (e.g., enhanced features) in original order
+    remaining = [c for c in all_feature_names if c not in ordered]
+    ordered.extend(remaining)
+    # Deduplicate while preserving order
+    seen = set()
+    final_order = []
+    for c in ordered:
+        if c not in seen:
+            seen.add(c)
+            final_order.append(c)
+    return final_order
+
+
+
+
 # Strip timezone so downstream comparisons don't thrash...
 def get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
     if FRED_API_KEY is None:
@@ -585,6 +672,25 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     if key in macro_cache:
         return macro_cache[key]
 
+    safe_sym = symbol.replace("^", "").replace("/", "-").upper()
+    cache_file = MACRO_CACHE_DIR / f"{safe_sym}_{period}.pkl"
+
+    def _save_cache(df: pd.DataFrame):
+        try:
+            df.to_pickle(cache_file)
+        except Exception as e:
+            print(f"[get_macro_df] Warning: failed to persist macro cache {cache_file}: {e}")
+
+    # Try on-disk cache first to avoid repeated API pulls across runs
+    if cache_file.exists():
+        try:
+            cached = pd.read_pickle(cache_file)
+            if cached is not None and not cached.empty:
+                macro_cache[key] = cached
+                return cached
+        except Exception as e:
+            print(f"[get_macro_df] Warning: failed to read macro cache {cache_file}: {e}")
+
     # Robust fallback: try primary index then proxies
     candidates = [symbol, "^SPX", "SPX", "SPY", "VOO"]
     hist = pd.DataFrame()
@@ -625,6 +731,7 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
     if FRED_API_KEY is None:
         print("[get_macro_df] FRED_API_KEY not set; using zero-filled macro features + mkt_ret_1d")
         macro_cache[key] = df
+        _save_cache(df)
         return df
 
     try:
@@ -661,11 +768,13 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         df["term_spread"] = df["t10y"] - df["t3m"]
 
         macro_cache[key] = df
+        _save_cache(df)
         return df
     except Exception as e:
         print(f"[get_macro_df] FRED fetch failed: {e}")
         # Keep zero-filled macro placeholders so callers retain columns
         macro_cache[key] = df
+        _save_cache(df)
         return df
 
 
@@ -731,6 +840,9 @@ FEATURE_COLUMNS = [
     # TIER 1: News Sentiment Features
     "news_sentiment", "news_count",
 ]
+
+# Ordered feature list grouped by logical vectors for consistent stacking
+FEAT_GROUP_ORDER = _ordered_feature_groups(FEATURE_COLUMNS + MACRO_COLUMNS)
 
 
 def add_advanced_features(hist: pd.DataFrame) -> pd.DataFrame:
@@ -1571,17 +1683,19 @@ def build_features_and_target(
             data_quality_macro = hist[macro_cols_available].isna().sum() / len(hist)
             macro_cols_available = [c for c in macro_cols_available if data_quality_macro[c] < 0.5]
             
+            # Order features by logical vectors (momentum, volatility, trend, volume, pattern, regime, macro, fundamentals, gbm/arima/news)
             feat_cols = feat_cols_available + macro_cols_available
+            ordered_feat_cols = [c for c in FEAT_GROUP_ORDER if c in feat_cols] + [c for c in feat_cols if c not in FEAT_GROUP_ORDER]
             
             # Fill remaining NaNs with forward fill, then backward fill
-            hist[feat_cols] = hist[feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
+            hist[ordered_feat_cols] = hist[ordered_feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
 
             # IMPORTANT: Get the actual last close BEFORE dropna
             # This is the most recent price in the raw data
             actual_last_close = hist["Close"].iloc[-1]
             actual_last_date = hist.index[-1]
 
-            cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
+            cols_needed = ordered_feat_cols + ["ftarget_ret_horizon_ahead"]
             df = hist[cols_needed].dropna().copy()
 
             print("hist rows:", len(hist), "range:", hist.index.min(), "-", hist.index.max())
@@ -1604,11 +1718,12 @@ def build_features_and_target(
                     prob_up_gaf = None
             # --------------------------------------------------------------
 
-            X = df[feat_cols].values
+            # Concatenate grouped vectors into final feature matrix (n_samples, n_features)
+            X = df[ordered_feat_cols].values
             y = df["ftarget_ret_horizon_ahead"].values
 
             last_row = df.iloc[-1]
-            last_row_features = last_row[feat_cols].values
+            last_row_features = last_row[ordered_feat_cols].values
             # Use the actual most recent close price from raw history, not df (which is dropna'd)
             last_close = float(actual_last_close)
             last_vol_20d = last_row["vol_20d"]
