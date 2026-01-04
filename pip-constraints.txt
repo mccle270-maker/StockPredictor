@@ -1,0 +1,24 @@
+# Pins to keep pip from backtracking; includes Snowflake deps and key libs
+snowflake-snowpark-python==1.41.0
+snowflake-connector-python==3.16.0
+cloudpickle==3.0.0
+
+# Core stack to avoid resolver thrash
+numpy==2.2.6
+pandas==2.3.3
+matplotlib==3.10.0
+# urllib3 2.x drops packages.six; pin to 1.26.x to satisfy downstream imports
+urllib3==1.26.20
+alpaca-trade-api==3.2.0
+websocket-client==1.8.0
+# scikit-learn pin to avoid pulling deprecated sklearn meta-package
+scikit-learn==1.5.2
+pyts==0.13.0
+# statsmodels pin to ensure wheel on py3.12 macOS arm64
+statsmodels==0.14.4
+# scipy pin to a wheel build to avoid gfortran build
+scipy==1.13.1
+# xgboost pin to wheel to avoid cmake build
+xgboost==1.7.6
+# streamlit pin to satisfy authenticator/plotly-events
+streamlit==1.52.2

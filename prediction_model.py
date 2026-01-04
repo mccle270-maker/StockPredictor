@@ -2374,11 +2374,17 @@ def track_predictions(ticker, period="1y", model_type="rf", horizon=1):
 
         hist["ftarget_ret_horizon_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
 
-        # Use only columns that actually exist
+        # Use only columns that actually exist and have reasonable coverage
         feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
         macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
         feat_cols = feat_cols_available + macro_cols_available
-        
+
+        # Drop features that are mostly missing, then fill remaining gaps to avoid wiping out the dataset
+        data_quality = hist[feat_cols].isna().sum() / len(hist)
+        feat_cols = [c for c in feat_cols if data_quality[c] < 0.5]
+
+        hist[feat_cols] = hist[feat_cols].fillna(method="ffill").fillna(method="bfill").fillna(0)
+
         cols_needed = feat_cols + ["ftarget_ret_horizon_ahead"]
         df = hist[cols_needed].dropna().copy()
 

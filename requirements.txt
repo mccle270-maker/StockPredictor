@@ -19,3 +19,4 @@ pandas-ta
 streamlit-option-menu
 fastapi
 uvicorn[standard]
+python-dotenv
