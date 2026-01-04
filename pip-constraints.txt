@@ -10,6 +10,7 @@ matplotlib==3.10.0
 # urllib3 2.x drops packages.six; pin to 1.26.x to satisfy downstream imports
 urllib3==1.26.20
 alpaca-trade-api==3.2.0
+alpaca-py==0.32.0
 websocket-client==1.8.0
 # scikit-learn pin to avoid pulling deprecated sklearn meta-package
 scikit-learn==1.5.2

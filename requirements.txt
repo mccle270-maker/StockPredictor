@@ -10,6 +10,7 @@ pyts
 matplotlib
 plotly
 alpaca-trade-api
+alpaca-py
 streamlit-extras
 streamlit-aggrid
 streamlit-plotly-events
