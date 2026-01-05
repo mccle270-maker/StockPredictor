@@ -1,5 +1,91 @@
 {
-  "TSLA": {
+  "CVX": {
+    "asset": "stock",
+    "action": "BUY",
+    "qty": 2,
+    "pred_next_ret": 0.016491403803229332,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "XOM": {
+    "asset": "stock",
+    "action": "HOLD",
+    "qty": 1,
+    "pred_next_ret": 0.004748976323753595,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "COP": {
+    "asset": "stock",
+    "action": "SHORT",
+    "qty": 2,
+    "pred_next_ret": -0.0153434406965971,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "OXY": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 3,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 2,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor (high IV, harvest premium)",
+    "pred_next_ret": -0.010936552658677101,
+    "last_close": 42.380001068115234,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "EOG": {
+    "asset": "stock",
+    "action": "SHORT",
+    "qty": 2,
+    "pred_next_ret": -0.017317896708846092,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "FANG": {
+    "asset": "option",
+    "strategy": "BULL_CALL_SPREAD",
+    "dte_min": 3,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 3,
+    "raw_strategy_text": "BULLISH: Buy Calls or Bull Call Spread",
+    "pred_next_ret": 0.02704050950706005,
+    "last_close": 152.33999633789062,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "VLO": {
     "asset": "option",
     "strategy": "BEAR_PUT_SPREAD",
     "dte_min": 3,
@@ -9,109 +95,113 @@
     "width_pct": 0.05,
     "qty": 3,
     "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.04030530899763107,
-    "last_close": 438.07000732421875,
+    "pred_next_ret": -0.03251570463180542,
+    "last_close": 165.30999755859375,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
     }
   },
-  "SPY": {
+  "PSX": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 3,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 1,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor (high IV, harvest premium)",
+    "pred_next_ret": -0.008150854147970676,
+    "last_close": 130.57000732421875,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "MPC": {
     "asset": "stock",
     "action": "BUY",
+    "qty": 3,
+    "pred_next_ret": 0.02241368219256401,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "PBF": {
+    "asset": "option",
+    "strategy": "BULL_CALL_SPREAD",
+    "dte_min": 3,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 3,
+    "raw_strategy_text": "BULLISH: Buy Calls or Bull Call Spread",
+    "pred_next_ret": 0.02567289024591446,
+    "last_close": 28.530000686645508,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "BKR": {
+    "asset": "option",
+    "strategy": "BUY_PUT",
+    "dte_min": 3,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
+    "qty": 3,
+    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
+    "pred_next_ret": -0.03385632112622261,
+    "last_close": 47.13999938964844,
+    "execution": {
+      "delay_days": 1,
+      "half_spread_bps": 2.0,
+      "slippage_bps": 3.0,
+      "fee_bps": 0.0
+    }
+  },
+  "HAL": {
+    "asset": "option",
+    "strategy": "IRON_CONDOR",
+    "dte_min": 3,
+    "dte_max": 45,
+    "max_strike": 500.0,
+    "max_premium": 500.0,
+    "width_pct": 0.05,
     "qty": 2,
-    "pred_next_ret": 0.016195004805922508,
+    "raw_strategy_text": "NEUTRAL: Sell Iron Condor (high IV, harvest premium)",
+    "pred_next_ret": -0.010556408204138279,
+    "last_close": 29.600000381469727,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
     }
   },
-  "IWM": {
-    "asset": "stock",
-    "action": "HOLD",
-    "qty": 1,
-    "pred_next_ret": -0.0021632497664541006,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
-    }
-  },
-  "XLF": {
+  "SLB": {
     "asset": "stock",
     "action": "SHORT",
     "qty": 2,
-    "pred_next_ret": -0.01665058173239231,
+    "pred_next_ret": -0.016246747225522995,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
-    },
-    "context": {
-      "model_type": "xgb",
-      "period": "5y",
-      "horizon": 5,
-      "friction_preset": "Default",
-      "options_preset": "Default",
-      "budget_per_contract": 500.0,
-      "signal_threshold_pct": 0.005
-    },
-    "accuracy": {
-      "direction_accuracy": null,
-      "sharpe_signal_w_cost": null,
-      "dsr_signal_w_cost": null,
-      "n": null
     }
   }
 }

@@ -130,6 +130,14 @@ from pyts.image import GramianAngularField
 
 import matplotlib.pyplot as plt
 
+# Long-horizon analog/regime layer (side-car)
+try:
+    from long_horizon import predict_long_horizon, LongHorizonResult
+    HAS_LONG_HORIZON = True
+except Exception as e:
+    print(f"[prediction_model] Warning: long_horizon module unavailable: {e}")
+    HAS_LONG_HORIZON = False
+
 def vol_target_position_size(signal, vol_20d, target_vol=0.15):
     """Vectorized volatility targeting - FIXED."""
     import numpy as np
@@ -175,8 +183,10 @@ def env_bool(name: str, default: bool = False) -> bool:
 USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", True)
 try:
     ELASTICNET_L1_RATIO = float(os.environ.get("ELASTICNET_L1_RATIO", 0.5))
+    ELASTICNET_MINFEATURES = int(os.environ.get("ELASTICNET_MINFEATURES", 12))
 except Exception:
     ELASTICNET_L1_RATIO = 0.5
+    ELASTICNET_MINFEATURES = 12
 
 try:
     ELASTICNET_CV_FOLDS = int(os.environ.get("ELASTICNET_CV_FOLDS", 5))
@@ -839,6 +849,9 @@ FEATURE_COLUMNS = [
     "rsi_price_divergence", "macd_price_divergence",
     # TIER 1: News Sentiment Features
     "news_sentiment", "news_count",
+    # Energy/oil sensitivity features
+    "crude_ret_1d", "crude_ret_5d", "brent_wti_spread",
+    "dxy_ret_5d", "crude_corr_20d", "crude_beta_60d", "crude_rel_strength_20d",
 ]
 
 # Ordered feature list grouped by logical vectors for consistent stacking
@@ -1068,6 +1081,92 @@ def add_regime_features(hist: pd.DataFrame) -> pd.DataFrame:
     hist["bear_streak"] = bear_streak.groupby((bear_streak != bear_streak.shift()).cumsum()).cumcount() + 1
     hist["bear_streak"] = hist["bear_streak"] * hist["regime_bear"]
     
+    return hist
+
+
+# Cache for external series (crude, brent, dollar proxy) to avoid repeat fetches
+ENERGY_CACHE: dict[tuple[str, str], pd.DataFrame] = {}
+
+
+def _get_energy_series(symbol: str, period: str = "5y") -> pd.DataFrame:
+    key = (symbol, period)
+    if key in ENERGY_CACHE:
+        return ENERGY_CACHE[key]
+    try:
+        df = get_price_history(symbol, period=period, interval="1d")
+        ENERGY_CACHE[key] = df if df is not None else pd.DataFrame()
+    except Exception as e:
+        print(f"[add_energy_features] Fetch failed for {symbol} ({period}): {e}")
+        ENERGY_CACHE[key] = pd.DataFrame()
+    return ENERGY_CACHE[key]
+
+
+def add_energy_features(hist: pd.DataFrame, ticker: str, period: str = "5y") -> pd.DataFrame:
+    """Adds crude/dollar sensitivity features for energy-heavy tickers (e.g., XOM, CVX).
+
+    All features are lagged by 1 day to avoid look-ahead bias and are safely filled to 0 when
+    external series are unavailable.
+    """
+    hist = hist.copy()
+    if hist.empty:
+        return hist
+
+    crude = _get_energy_series("CL=F", period)
+    brent = _get_energy_series("BZ=F", period)
+    dxy = _get_energy_series("UUP", period)  # USD proxy (inverse relationship)
+
+    # If crude missing, create zero placeholders and exit early
+    if crude is None or crude.empty or "Close" not in crude.columns:
+        for col in [
+            "crude_ret_1d", "crude_ret_5d", "brent_wti_spread",
+            "dxy_ret_5d", "crude_corr_20d", "crude_beta_60d", "crude_rel_strength_20d",
+        ]:
+            hist[col] = 0.0
+        return hist
+
+    crude_close = crude["Close"].copy()
+    crude_ret = crude_close.pct_change()
+    brent_close = brent["Close"] if brent is not None and "Close" in brent.columns else pd.Series(dtype=float)
+    dxy_close = dxy["Close"] if dxy is not None and "Close" in dxy.columns else pd.Series(dtype=float)
+
+    idx = hist.index
+    crude_ret_1d = crude_ret.shift(1).reindex(idx).ffill().bfill()
+    crude_ret_5d = crude_close.pct_change(5).shift(1).reindex(idx).ffill().bfill()
+    hist["crude_ret_1d"] = crude_ret_1d
+    hist["crude_ret_5d"] = crude_ret_5d
+
+    if not brent_close.empty:
+        spread = (brent_close - crude_close) / (crude_close.abs() + 1e-9)
+        hist["brent_wti_spread"] = spread.shift(1).reindex(idx).ffill().bfill()
+    else:
+        hist["brent_wti_spread"] = 0.0
+
+    if not dxy_close.empty:
+        hist["dxy_ret_5d"] = dxy_close.pct_change(5).shift(1).reindex(idx).ffill().bfill()
+    else:
+        hist["dxy_ret_5d"] = 0.0
+
+    # Rolling correlation/beta to crude
+    sym_ret = hist["Close"].pct_change()
+    combined = pd.DataFrame({"sym": sym_ret, "crude": crude_ret}).dropna()
+    if not combined.empty:
+        rolling_corr = combined["sym"].rolling(20).corr(combined["crude"])
+        rolling_cov = combined["sym"].rolling(60).cov(combined["crude"])
+        rolling_var = combined["crude"].rolling(60).var()
+        beta = (rolling_cov / (rolling_var + 1e-9))
+
+        hist["crude_corr_20d"] = rolling_corr.shift(1).reindex(idx).ffill().bfill()
+        hist["crude_beta_60d"] = beta.shift(1).reindex(idx).ffill().bfill()
+    else:
+        hist["crude_corr_20d"] = 0.0
+        hist["crude_beta_60d"] = 0.0
+
+    # Relative strength: equity 20d cumulative vs crude 20d cumulative
+    sym_cum20 = (1 + sym_ret.fillna(0)).rolling(20).apply(lambda x: np.prod(x) - 1, raw=True)
+    crude_cum20 = (1 + crude_ret.fillna(0)).rolling(20).apply(lambda x: np.prod(x) - 1, raw=True)
+    rel_strength = (sym_cum20 - crude_cum20).shift(1)
+    hist["crude_rel_strength_20d"] = rel_strength.reindex(idx).ffill().bfill()
+
     return hist
 
 
@@ -1453,6 +1552,12 @@ def select_features_elasticnet_timeseries(
     nsplits = int(max(3, nsplits))
     nsplits = int(min(nsplits, max(3, len(y) // 50)))
 
+    # Allow env override to keep more near-cutoff features
+    try:
+        minfeatures = int(os.environ.get("ELASTICNET_MINFEATURES", minfeatures))
+    except Exception:
+        pass
+
     Xdf = pd.DataFrame(X, index=pd.DatetimeIndex(dates), columns=featurenames)
     t1 = make_t1_from_horizon(Xdf.index, horizon)  # use YOUR old helper name in the file
     cv = PurgedKFold(nsplits=nsplits, t1=t1, pctembargo=pctembargo)
@@ -1597,6 +1702,11 @@ def build_features_and_target(
 
             hist = add_price_features(hist)
             hist = add_regime_features(hist)  # PHASE 2: Add regime detection
+            # Energy/oil sensitivity features (esp. for XOM/CVX)
+            try:
+                hist = add_energy_features(hist, ticker=ticker, period=per)
+            except Exception as e:
+                print(f"[build_features_and_target] Warning: energy feature calc failed: {e}")
             
             # Add enhanced features (volatility-adjusted, cross-sectional, lagged)
             if HAS_IMPROVEMENTS:
@@ -2346,6 +2456,55 @@ def predict_next_for_ticker(
         "elasticnet_selected_n": int(len(actual_feat_cols)) if USE_ELASTICNET_SELECT else None,
     }
 
+
+
+# -------------------- Long-horizon side-car (20–30d) --------------------
+
+
+def predict_long_horizon_for_ticker(
+    ticker: str,
+    period: str = "5y",
+    k: int = 200,
+):
+    """Return analog/regime 20–30d view without touching short-horizon model.
+
+    Returns a dict with probabilities/quantiles or an error payload. Gracefully
+    falls back across periods and returns None if module unavailable.
+    """
+    if not HAS_LONG_HORIZON:
+        return {"ticker": ticker, "error": "long_horizon module unavailable"}
+
+    fallback_periods = ["5y", "3y", "2y", "1y", "6mo", "3mo"]
+    periods_to_try = [period] + [p for p in fallback_periods if p != period]
+
+    last_error: Exception | None = None
+    for per in periods_to_try:
+        try:
+            hist = get_price_history(ticker, period=per, interval="1d")
+            if hist is None or hist.empty or len(hist) < 120:
+                raise ValueError(f"Insufficient history for {ticker} period={per}")
+
+            res = predict_long_horizon(hist)
+            if res is None:
+                raise ValueError("long_horizon returned None")
+
+            return {
+                "ticker": ticker,
+                "period": per,
+                "p_up_30d": res.p_up_30d,
+                "ret_p10_30d": res.ret_p10_30d,
+                "ret_p50_30d": res.ret_p50_30d,
+                "ret_p90_30d": res.ret_p90_30d,
+                "vol_expansion_prob": res.vol_expansion_prob,
+                "flags": res.flags,
+                "effective_sample_size": res.effective_sample_size,
+                "analog_count": res.analog_count,
+            }
+        except Exception as e:
+            last_error = e
+            continue
+
+    return {"ticker": ticker, "error": str(last_error) if last_error else "unknown"}
 
 
 def track_predictions(ticker, period="1y", model_type="rf", horizon=1):

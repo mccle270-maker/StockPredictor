@@ -12,8 +12,17 @@ from alpaca.trading.requests import (
     MarketOrderRequest,
     LimitOrderRequest,
     GetOptionContractsRequest,
-    OptionLegRequest,
 )
+# OptionLegRequest was introduced in later alpaca-py releases. Older pinned versions
+# (e.g., 0.32.0) don't expose it, which previously caused ImportError. We make the
+# import optional so the script can still run and will skip multi-leg option orders
+# if unavailable.
+try:
+    from alpaca.trading.requests import OptionLegRequest  # type: ignore
+    HAS_OPTION_LEG = True
+except ImportError:
+    OptionLegRequest = None  # type: ignore
+    HAS_OPTION_LEG = False
 from alpaca.trading.enums import OrderSide, TimeInForce, AssetStatus, OrderClass
 
 from alpaca.data.historical import OptionHistoricalDataClient
@@ -906,7 +915,11 @@ def main():
         min_confidence = confidence_thresholds.get(symbol, 0.001)  # Default 0.001
         
         if isinstance(spec, dict):
+            # Use confidence_score if available, otherwise use abs(pred_next_ret) as proxy
             confidence = abs(spec.get("confidence_score", 0.0))
+            if confidence == 0.0:
+                # Fallback: use predicted return magnitude as confidence proxy
+                confidence = abs(spec.get("pred_next_ret", 0.0))
             if confidence < min_confidence:
                 print(f"{symbol}: SKIPPED (confidence {confidence:.6f} < {min_confidence}) - Low confidence signal")
                 continue
@@ -1085,6 +1098,14 @@ def main():
                 spot = float(spot) if spot is not None else None
             except Exception:
                 spot = None
+
+            # Multi-leg option orders require OptionLegRequest (not available in older alpaca-py pins)
+            if strategy in {"BULL_CALL_SPREAD", "BEAR_PUT_SPREAD", "IRON_CONDOR"} and not HAS_OPTION_LEG:
+                print(
+                    f"{symbol}: Strategy {strategy} skipped because OptionLegRequest isn't available in this alpaca-py version. "
+                    "Upgrade alpaca-py to enable multi-leg option orders."
+                )
+                continue
 
             # --- single-leg ---
             if strategy in {"BUY_CALL", "BUY_PUT"}:

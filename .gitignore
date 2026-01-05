@@ -4,3 +4,6 @@ tf-env/
 __pycache__/
 *.pyc
 .env
+# Secrets
+.env
+.streamlit/secrets.toml

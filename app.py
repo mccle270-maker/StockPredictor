@@ -13,6 +13,14 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from risk_metrics import (
+    compute_drawdown,
+    rolling_sharpe,
+    rolling_vol,
+    rolling_var_es,
+    prepare_risk_timeseries,
+    summarize_risk,
+)
 
 try:
     from dotenv import load_dotenv
@@ -43,6 +51,7 @@ from scipy.stats import norm
 # ======= Core model entrypoints (DO NOT RENAME) =======
 from prediction_model import (
     predict_next_for_ticker,
+    predict_long_horizon_for_ticker,
     track_predictions,
     backtest_one_ticker,
     backtest_compare_one_ticker,
@@ -684,6 +693,15 @@ def _cached_predict_bundle(
 def _cached_track_predictions(ticker: str, period: str, model_type: str, horizon: int):
     return track_predictions(ticker, period=period, model_type=model_type, horizon=int(horizon))
 
+@st.cache_data(show_spinner=False, ttl=30 * 60)
+def _cached_long_horizon_prediction(ticker: str, period: str = "5y"):
+    """Fetch 30-day long-horizon analog/regime prediction."""
+    try:
+        result = predict_long_horizon_for_ticker(ticker, period=period, k=200)
+        return result
+    except Exception as e:
+        return {"ticker": ticker, "error": str(e)}
+
 @st.cache_data(ttl=30, show_spinner=False)
 def _cached_intraday_close(tk: str):
     df = get_history_intraday_cached(tk, period="1d", interval="1m")
@@ -789,13 +807,13 @@ def _signal_label(pred_ret: float | None, prob_up: float | None) -> str:
     pr = float(pred_ret or 0.0)
     pu = None if prob_up is None else float(prob_up)
     if pu is not None:
-        if pr > 0.015 and pu > 0.60:
+        if pr > 0.012 and pu > 0.58:
             return "STRONG BUY"
-        if pr > 0.005 and pu > 0.55:
+        if pr > 0.003 and pu > 0.52:
             return "BUY"
-        if pr < -0.015 and (1 - pu) > 0.60:
+        if pr < -0.012 and (1 - pu) > 0.58:
             return "STRONG SELL"
-        if pr < -0.005 and (1 - pu) > 0.55:
+        if pr < -0.003 and (1 - pu) > 0.52:
             return "SELL"
     if pr > 0.005:
         return "BUY"
@@ -850,7 +868,10 @@ def run_app():
         exclude_disagree = st.checkbox("Hide disagree", value=True)
 
     st.sidebar.subheader("Validation")
-    signal_threshold_pct = st.sidebar.slider("Signal threshold (%)", 0.0, 2.0, 0.5, 0.05) / 100.0
+    signal_threshold_pct = st.sidebar.slider(
+        "Signal threshold (%)", 0.0, 2.0, 0.25, 0.05,
+        help="Lower = more lenient confidence for trades"
+    ) / 100.0
 
     with st.sidebar.expander("Advanced", expanded=False):
         pricing_model_label = st.selectbox("Pricing engine", ["Black-Scholes", "Heston"], index=0)
@@ -860,6 +881,10 @@ def run_app():
         use_elasticnet_select = st.checkbox("Enable Elastic Net selection", value=False)
         en_l1_ratio = st.slider("l1_ratio", 0.0, 1.0, 0.5, 0.05)
         en_cv_folds = st.slider("CV folds", 3, 8, 5, 1)
+        en_min_features = st.slider(
+            "Min features kept", 6, 40, 12, 1,
+            help="Raise to keep more near-cutoff features"
+        )
 
         if use_elasticnet_select and ElasticNetCV is None:
             st.error("Elastic Net requires scikit-learn (ElasticNetCV not available).")
@@ -867,6 +892,7 @@ def run_app():
         os.environ["USE_ELASTICNET_SELECT"] = "1" if use_elasticnet_select else "0"
         os.environ["ELASTICNET_L1_RATIO"] = str(en_l1_ratio)
         os.environ["ELASTICNET_CV_FOLDS"] = str(en_cv_folds)
+        os.environ["ELASTICNET_MINFEATURES"] = str(en_min_features)
 
         run_gaf = st.checkbox("Run GAF-CNN (slow)", value=False)
         fetch_live_price = st.checkbox("Fetch intraday live price (slower)", value=False)
@@ -1344,7 +1370,49 @@ def run_app():
                     )
                     st.plotly_chart(fig, width="stretch")
 
+            with st.expander("� 30-Day Outlook (Long Horizon)", expanded=False):
+                lh_result = _cached_long_horizon_prediction(selected, period=st.session_state.get("period", "5y"))
+                
+                if "error" in lh_result:
+                    st.warning(f"Long-horizon unavailable: {lh_result.get('error', 'unknown')}")
+                else:
+                    lh1, lh2, lh3, lh4 = st.columns(4)
+                    lh1.metric(
+                        "📈 30d Up Prob",
+                        f"{float(lh_result.get('p_up_30d', 0.5)) * 100:.1f}%"
+                    )
+                    lh2.metric(
+                        "�📊 Return P50",
+                        _fmt_pct(lh_result.get("ret_p50_30d"), 2)
+                    )
+                    lh3.metric(
+                        "📉 Return P10",
+                        _fmt_pct(lh_result.get("ret_p10_30d"), 2)
+                    )
+                    lh4.metric(
+                        "📈 Return P90",
+                        _fmt_pct(lh_result.get("ret_p90_30d"), 2)
+                    )
+                    
+                    st.divider()
+                    
+                    vol_exp_prob = lh_result.get("vol_expansion_prob", 0.0)
+                    flags = lh_result.get("flags", {})
+                    ess = lh_result.get("effective_sample_size", 0)
+                    analog_count = lh_result.get("analog_count", 0)
+                    
+                    col_flags = st.columns(3)
+                    col_flags[0].metric("⚡ Vol Expansion Risk", f"{float(vol_exp_prob) * 100:.1f}%")
+                    col_flags[1].metric("📍 Sample Size", f"{int(ess)}")
+                    col_flags[2].metric("🔍 Analogs Used", f"{int(analog_count)}")
+                    
+                    if flags:
+                        risk_flags = [k.replace("_", " ").title() for k, v in flags.items() if v]
+                        if risk_flags:
+                            st.warning(f"⚠️ Flags: {', '.join(risk_flags)}")
+
             with st.expander("📊 Options & Risk", expanded=True):
+
                 strat, _bias = suggest_options_strategy(
                     pred_ret=float(row.get("pred_next_ret") or 0.0),
                     put_call_ratio=row.get("put_call_oi_ratio"),
@@ -1361,7 +1429,92 @@ def run_app():
                 st.divider()
                 st.info(f"**Strategy**: {strat}")
 
-            with st.expander("📰 Greeks + News (slow)", expanded=False):
+            with st.expander("� Risk dashboard", expanded=False):
+                hist_full = get_history_cached(selected, period=period, interval="1d")
+                if hist_full is None or hist_full.empty or "Close" not in hist_full.columns:
+                    st.info("No history available to compute risk metrics.")
+                else:
+                    returns = hist_full["Close"].pct_change().dropna()
+                    risk_summary = summarize_risk(returns)
+                    risk = prepare_risk_timeseries(returns)
+                    dd_df = risk["drawdown"]
+                    sharpe_60 = risk["sharpe_60"]
+                    sortino_60 = risk["sortino_60"]
+                    vol_20 = risk["vol_20"]
+                    var95 = risk["var95"]
+                    es95 = risk["es95"]
+
+                    # Quick badge + guidance
+                    badge_color = {"low": "#2ca02c", "medium": "#ff7f0e", "high": "#d62728"}.get(risk_summary.get("label"), "#6c757d")
+                    st.markdown(
+                        f"<div style='padding:8px;border-radius:6px;background:{badge_color}22;border:1px solid {badge_color};'>"
+                        f"<strong>Risk: {risk_summary.get('label','unknown').upper()}</strong> — {risk_summary.get('summary','')}<br>"
+                        f"<em>Next: {risk_summary.get('check','')}</em>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                    # Drawdown chart
+                    if not dd_df.empty:
+                        max_dd = dd_df["drawdown"].min()
+                        fig_dd = go.Figure()
+                        fig_dd.add_trace(go.Scatter(
+                            x=dd_df.index,
+                            y=dd_df["drawdown"],
+                            name="Drawdown",
+                            fill="tozeroy",
+                            mode="lines",
+                            line=dict(color="#d62728"),
+                        ))
+                        fig_dd.update_layout(
+                            height=320,
+                            title=f"{selected} drawdowns (min {max_dd:.1%})",
+                            yaxis_title="Drawdown",
+                            template="plotly_white",
+                        )
+                        st.plotly_chart(fig_dd, width="stretch")
+
+                    # Rolling Sharpe/vol
+                    if not sharpe_60.empty:
+                        fig_rs = go.Figure()
+                        fig_rs.add_trace(go.Scatter(x=sharpe_60.index, y=sharpe_60, name="Sharpe 60d", line=dict(color="#1f77b4")))
+                        fig_rs.add_trace(go.Scatter(x=sortino_60.index, y=sortino_60, name="Sortino 60d", line=dict(color="#2ca02c", dash="dash")))
+                        fig_rs.add_trace(go.Scatter(x=vol_20.index, y=vol_20, name="Ann vol 20d", line=dict(color="#9467bd"), yaxis="y2"))
+                        fig_rs.update_layout(
+                            height=360,
+                            title="Rolling Sharpe/Sortino + volatility",
+                            template="plotly_white",
+                            yaxis=dict(title="Sharpe / Sortino"),
+                            yaxis2=dict(title="Vol (ann)", overlaying="y", side="right", showgrid=False),
+                        )
+                        st.plotly_chart(fig_rs, width="stretch")
+
+                    # VaR / ES
+                    if not var95.empty:
+                        fig_var = go.Figure()
+                        fig_var.add_trace(go.Scatter(x=var95.index, y=var95, name="VaR 95%", line=dict(color="#ff7f0e")))
+                        fig_var.add_trace(go.Scatter(x=es95.index, y=es95, name="ES 95%", line=dict(color="#8c564b", dash="dot")))
+                        fig_var.update_layout(
+                            height=320,
+                            title="Rolling tail risk (VaR/ES 95%)",
+                            template="plotly_white",
+                            yaxis_title="Return",
+                        )
+                        st.plotly_chart(fig_var, width="stretch")
+
+                    # Return distribution
+                    if not returns.empty:
+                        fig_hist = go.Figure()
+                        fig_hist.add_trace(go.Histogram(x=returns.clip(-0.2, 0.2), nbinsx=60, marker_color="#1f77b4", name="Daily returns"))
+                        fig_hist.update_layout(
+                            height=320,
+                            title="Return distribution (clipped ±20%)",
+                            template="plotly_white",
+                            bargap=0.05,
+                        )
+                        st.plotly_chart(fig_hist, width="stretch")
+
+            with st.expander("�📰 Greeks + News (slow)", expanded=False):
                 loadslow = st.checkbox("Load Greeks + News data", value=False, key="dash_load_slow_expander")
                 if loadslow:
                     greeksinfo = None
