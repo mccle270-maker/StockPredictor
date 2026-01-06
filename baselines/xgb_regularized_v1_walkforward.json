@@ -1,0 +1,130 @@
+{
+  "model_version": "xgb_regularized_v1",
+  "model_type": "xgb",
+  "version": "v1",
+  "status": "stable",
+  "created_date": "2026-01-05",
+  "backtest_date": "2026-01-05 19:02:29",
+  "backtest_method": "walk_forward_backtest",
+  "backtest_config": {
+    "period": "5y",
+    "horizon": 5,
+    "train_years": 3,
+    "test_years": 1,
+    "threshold": 0.002
+  },
+  "model_params": {
+    "n_estimators": 300,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "min_child_weight": 100,
+    "reg_alpha": 1.0,
+    "reg_lambda": 10.0,
+    "colsample_bytree": 0.7,
+    "random_state": 42
+  },
+  "aggregate_metrics": {
+    "avg_sharpe": -0.283,
+    "avg_hitrate": 0.5028,
+    "avg_trades_per_fold": 38.1,
+    "num_tickers": 10
+  },
+  "trade_frequency_analysis": {
+    "description": "Model is active 60-95% of bars depending on ticker volatility",
+    "typical_active_pct": "75-85%",
+    "threshold_used": 0.002
+  },
+  "per_ticker_results": {
+    "AAPL": {
+      "avg_sharpe": 1.4862,
+      "avg_hitrate": 0.5595,
+      "avg_trades_per_fold": 49.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        1.4862
+      ]
+    },
+    "MSFT": {
+      "avg_sharpe": 1.3863,
+      "avg_hitrate": 0.5714,
+      "avg_trades_per_fold": 3.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        1.3863
+      ]
+    },
+    "NVDA": {
+      "avg_sharpe": -1.4802,
+      "avg_hitrate": 0.4841,
+      "avg_trades_per_fold": 17.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -1.4802
+      ]
+    },
+    "GOOGL": {
+      "avg_sharpe": -0.8194,
+      "avg_hitrate": 0.4762,
+      "avg_trades_per_fold": 27.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -0.8194
+      ]
+    },
+    "AMZN": {
+      "avg_sharpe": -1.2204,
+      "avg_hitrate": 0.4683,
+      "avg_trades_per_fold": 13.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -1.2204
+      ]
+    },
+    "META": {
+      "avg_sharpe": -0.5102,
+      "avg_hitrate": 0.4444,
+      "avg_trades_per_fold": 65.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -0.5102
+      ]
+    },
+    "SPY": {
+      "avg_sharpe": 2.043,
+      "avg_hitrate": 0.5873,
+      "avg_trades_per_fold": 69.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        2.043
+      ]
+    },
+    "QQQ": {
+      "avg_sharpe": -1.7507,
+      "avg_hitrate": 0.5079,
+      "avg_trades_per_fold": 86.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -1.7507
+      ]
+    },
+    "TSLA": {
+      "avg_sharpe": -0.0418,
+      "avg_hitrate": 0.4563,
+      "avg_trades_per_fold": 33.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -0.0418
+      ]
+    },
+    "AMD": {
+      "avg_sharpe": -1.9225,
+      "avg_hitrate": 0.4722,
+      "avg_trades_per_fold": 19.0,
+      "num_folds": 1,
+      "fold_sharpes": [
+        -1.9225
+      ]
+    }
+  }
+}

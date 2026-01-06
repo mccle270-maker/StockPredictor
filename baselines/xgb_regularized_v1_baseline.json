@@ -1,0 +1,93 @@
+{
+  "model_version": "xgb_regularized_v1",
+  "model_type": "xgb",
+  "version": "v1",
+  "status": "stable",
+  "created_date": "2026-01-05",
+  "backtest_date": "2026-01-05 18:57:32",
+  "backtest_config": {
+    "period": "5y",
+    "horizon": 5,
+    "test_years": 1,
+    "threshold": 0.002
+  },
+  "model_params": {
+    "n_estimators": 300,
+    "max_depth": 3,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "min_child_weight": 100,
+    "reg_alpha": 1.0,
+    "reg_lambda": 10.0,
+    "colsample_bytree": 0.7,
+    "random_state": 42
+  },
+  "aggregate_metrics": {
+    "avg_sharpe": -3.43,
+    "avg_return": -0.5859,
+    "avg_hitrate": 0.4144,
+    "num_tickers": 10
+  },
+  "per_ticker_results": {
+    "AAPL": {
+      "sharpe": -2.3328,
+      "total_return": -0.6403,
+      "hitrate": 0.4368,
+      "test_days": 174
+    },
+    "MSFT": {
+      "sharpe": -6.1563,
+      "total_return": -0.8495,
+      "hitrate": 0.3391,
+      "test_days": 174
+    },
+    "NVDA": {
+      "sharpe": 1.8635,
+      "total_return": 1.1806,
+      "hitrate": 0.5402,
+      "test_days": 174
+    },
+    "GOOGL": {
+      "sharpe": -4.1421,
+      "total_return": -0.8631,
+      "hitrate": 0.4023,
+      "test_days": 174
+    },
+    "AMZN": {
+      "sharpe": -4.8649,
+      "total_return": -0.8796,
+      "hitrate": 0.3851,
+      "test_days": 174
+    },
+    "META": {
+      "sharpe": -4.4895,
+      "total_return": -0.9013,
+      "hitrate": 0.3391,
+      "test_days": 174
+    },
+    "SPY": {
+      "sharpe": -3.1538,
+      "total_return": -0.4433,
+      "hitrate": 0.4828,
+      "test_days": 174
+    },
+    "QQQ": {
+      "sharpe": -4.8314,
+      "total_return": -0.6529,
+      "hitrate": 0.4483,
+      "test_days": 174
+    },
+    "TSLA": {
+      "sharpe": -1.4899,
+      "total_return": -0.8163,
+      "hitrate": 0.4253,
+      "test_days": 174
+    },
+    "AMD": {
+      "sharpe": -4.7027,
+      "total_return": -0.9935,
+      "hitrate": 0.3448,
+      "test_days": 174
+    }
+  }
+}

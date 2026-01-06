@@ -1,0 +1,18 @@
+{"ticker": "AAPL", "prediction": -0.0054787242172235585, "z_score": 0.0, "rolling_mean": -0.0054787242172235585, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T02:33:28.701607"}
+{"ticker": "NVDA", "prediction": 0.025482336705031538, "z_score": 0.0, "rolling_mean": 0.025482336705031538, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T02:33:28.704409"}
+{"ticker": "MSFT", "prediction": 0.0017618617482832715, "z_score": 0.0, "rolling_mean": 0.0017618617482832715, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T02:33:28.705583"}
+{"ticker": "AAPL", "pred": -0.0054787242172235585, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.025482336705031538, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.0017618617482832715, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.0054787242172235585, "z_score": 0.0, "rolling_mean": -0.0054787242172235585, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T02:38:13.029858"}
+{"ticker": "NVDA", "prediction": 0.025482336705031538, "z_score": 0.0, "rolling_mean": 0.025482336705031538, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T02:38:13.047138"}
+{"ticker": "MSFT", "prediction": 0.0017618617482832715, "z_score": 0.0, "rolling_mean": 0.0017618617482832715, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T02:38:13.048490"}
+{"ticker": "AAPL", "pred": -0.0054787242172235585, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.025482336705031538, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.0017618617482832715, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.005478734823733134, "z_score": 0.0, "rolling_mean": -0.005478734823733134, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T03:03:32.071326"}
+{"ticker": "NVDA", "prediction": 0.02548234597760924, "z_score": 0.0, "rolling_mean": 0.02548234597760924, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T03:03:32.072149"}
+{"ticker": "MSFT", "prediction": 0.0017618701233518552, "z_score": 0.0, "rolling_mean": 0.0017618701233518552, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T03:03:32.072301"}
+{"ticker": "AAPL", "pred": -0.005478734823733134, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.02548234597760924, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.0017618701233518552, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}

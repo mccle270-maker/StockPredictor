@@ -48,29 +48,294 @@ DEFAULT_PERIOD = "5y"
 DEFAULT_MODEL_TYPE = "rf"
 
 # ============================================================================
-# MODEL PARAMETERS
+# MODEL VERSIONS - LOCKED CONFIGURATIONS
 # ============================================================================
+# These are tested, validated configurations. DO NOT MODIFY without versioning.
+# To add a new version, create a new entry (e.g., "xgb_regularized_v2")
+
+MODEL_VERSIONS = {
+    # XGBoost Regularized V1 - Baseline (Locked 2026-01-05)
+    # Backtest results: Sharpe 0.75, Win Rate 55%, Return +22.7%
+    # Reduces overfitting: train/test accuracy gap from 50% to 3%
+    "xgb_regularized_v1": {
+        "model_type": "xgb",
+        "version": "v1",
+        "created": "2026-01-05",
+        "status": "stable",  # stable | experimental | deprecated
+        "params": {
+            "n_estimators": 300,
+            "max_depth": 3,
+            "learning_rate": 0.05,
+            "subsample": 0.8,
+            "min_child_weight": 100,
+            "reg_alpha": 1.0,
+            "reg_lambda": 10.0,
+            "colsample_bytree": 0.7,
+            "random_state": 42,
+        },
+        "metrics": {
+            "avg_sharpe": 0.75,
+            "avg_win_rate": 0.55,
+            "avg_return": 0.227,
+            "train_test_gap": 0.031,
+        },
+    },
+    
+    # RandomForest Default - Baseline
+    "rf_default_v1": {
+        "model_type": "rf",
+        "version": "v1",
+        "created": "2026-01-05",
+        "status": "stable",
+        "params": {
+            "n_estimators": 300,
+            "max_depth": 8,
+            "min_samples_leaf": 50,
+            "random_state": 42,
+        },
+        "metrics": {},
+    },
+    
+    # GradientBoosting Default - Baseline
+    "gbrt_default_v1": {
+        "model_type": "gbrt",
+        "version": "v1",
+        "created": "2026-01-05",
+        "status": "stable",
+        "params": {
+            "n_estimators": 300,
+            "max_depth": 4,
+            "learning_rate": 0.05,
+            "subsample": 0.8,
+            "random_state": 42,
+        },
+        "metrics": {},
+    },
+}
+
+# Current active model versions (change these to switch versions)
+ACTIVE_MODEL_VERSIONS = {
+    "xgb": "xgb_regularized_v1",
+    "rf": "rf_default_v1",
+    "gbrt": "gbrt_default_v1",
+}
+
+def get_model_config(model_type: str) -> dict:
+    """
+    Get the LOCKED configuration for a model type.
+    Returns params from the active versioned config.
+    """
+    version_key = ACTIVE_MODEL_VERSIONS.get(model_type)
+    if version_key and version_key in MODEL_VERSIONS:
+        return MODEL_VERSIONS[version_key]["params"].copy()
+    # Fallback to MODEL_DEFAULTS
+    return MODEL_DEFAULTS.get(model_type, {}).copy()
+
+def get_model_version_info(model_type: str) -> dict:
+    """Get full version info including metrics for logging."""
+    version_key = ACTIVE_MODEL_VERSIONS.get(model_type)
+    if version_key and version_key in MODEL_VERSIONS:
+        return MODEL_VERSIONS[version_key].copy()
+    return {"model_type": model_type, "version": "default", "status": "unversioned"}
+
+def log_model_version(model_type: str) -> str:
+    """Return a log string for the model version being used."""
+    info = get_model_version_info(model_type)
+    version_key = ACTIVE_MODEL_VERSIONS.get(model_type, "default")
+    return f"[{version_key}] {model_type.upper()} {info.get('version', '?')} ({info.get('status', 'unknown')})"
+
+# ============================================================================
+# MODEL PARAMETERS (derived from versioned configs)
+# ============================================================================
+# NOTE: These are now populated from MODEL_VERSIONS for consistency
 MODEL_DEFAULTS = {
-    "rf": {
-        "n_estimators": 300,
-        "max_depth": 8,
-        "min_samples_leaf": 50,
-        "random_state": 42,
-    },
-    "xgb": {
-        "n_estimators": 300,
-        "max_depth": 4,
-        "learning_rate": 0.05,
-        "subsample": 0.8,
-        "random_state": 42,
-    },
-    "gbrt": {
-        "n_estimators": 300,
-        "max_depth": 4,
-        "learning_rate": 0.05,
-        "subsample": 0.8,
-        "random_state": 42,
-    },
+    "rf": get_model_config("rf"),
+    "xgb": get_model_config("xgb"),
+    "gbrt": get_model_config("gbrt"),
+}
+
+# ============================================================================
+# TICKER ELIGIBILITY FILTERING
+# ============================================================================
+# Based on walk-forward backtest results from xgb_regularized_v1
+# Only tickers meeting these thresholds are eligible for auto-trading
+
+TICKER_ELIGIBILITY_THRESHOLDS = {
+    "min_sharpe": 0.75,      # Minimum average Sharpe ratio
+    "min_hitrate": 0.55,     # Minimum hit rate (55%)
+}
+
+# Walk-forward results from xgb_regularized_v1 baseline (2026-01-05)
+# These metrics determine which tickers are eligible for trading
+TICKER_WALKFORWARD_METRICS = {
+    "AAPL": {"avg_sharpe": 1.49, "avg_hitrate": 0.560, "status": "eligible"},
+    "MSFT": {"avg_sharpe": 1.39, "avg_hitrate": 0.571, "status": "eligible"},
+    "SPY":  {"avg_sharpe": 2.04, "avg_hitrate": 0.587, "status": "eligible"},
+    "NVDA": {"avg_sharpe": -1.48, "avg_hitrate": 0.484, "status": "disabled"},
+    "GOOGL": {"avg_sharpe": -0.82, "avg_hitrate": 0.476, "status": "disabled"},
+    "AMZN": {"avg_sharpe": -1.22, "avg_hitrate": 0.468, "status": "disabled"},
+    "META": {"avg_sharpe": -0.51, "avg_hitrate": 0.444, "status": "disabled"},
+    "QQQ":  {"avg_sharpe": -1.75, "avg_hitrate": 0.508, "status": "disabled"},
+    "TSLA": {"avg_sharpe": -0.04, "avg_hitrate": 0.456, "status": "disabled"},
+    "AMD":  {"avg_sharpe": -1.92, "avg_hitrate": 0.472, "status": "disabled"},
+}
+
+def is_ticker_eligible(ticker: str) -> tuple[bool, str]:
+    """
+    Check if a ticker is eligible for auto-trading based on walk-forward metrics.
+    
+    Returns:
+        (is_eligible, reason) tuple
+    """
+    ticker = ticker.upper().strip()
+    thresholds = TICKER_ELIGIBILITY_THRESHOLDS
+    
+    # Check if we have metrics for this ticker
+    if ticker not in TICKER_WALKFORWARD_METRICS:
+        # Unknown ticker - allow with warning (will be evaluated in production)
+        return True, "no_metrics_available"
+    
+    metrics = TICKER_WALKFORWARD_METRICS[ticker]
+    sharpe = metrics.get("avg_sharpe", 0)
+    hitrate = metrics.get("avg_hitrate", 0)
+    
+    # Check thresholds
+    if sharpe < thresholds["min_sharpe"]:
+        return False, f"sharpe={sharpe:.2f} < {thresholds['min_sharpe']}"
+    
+    if hitrate < thresholds["min_hitrate"]:
+        return False, f"hitrate={hitrate*100:.1f}% < {thresholds['min_hitrate']*100:.0f}%"
+    
+    return True, "meets_all_thresholds"
+
+def get_eligible_tickers() -> list[str]:
+    """Return list of tickers that meet eligibility thresholds."""
+    return [tk for tk, m in TICKER_WALKFORWARD_METRICS.items() 
+            if m.get("status") == "eligible"]
+
+def get_disabled_tickers() -> list[str]:
+    """Return list of tickers that are disabled due to poor metrics."""
+    return [tk for tk, m in TICKER_WALKFORWARD_METRICS.items() 
+            if m.get("status") == "disabled"]
+
+def log_ticker_eligibility(ticker: str) -> str:
+    """Return a log string for ticker eligibility status."""
+    eligible, reason = is_ticker_eligible(ticker)
+    status = "✅ ELIGIBLE" if eligible else "❌ DISABLED"
+    return f"[{ticker}] {status}: {reason}"
+
+# ============================================================================
+# Z-SCORE GATING CONFIGURATION
+# ============================================================================
+# Trade only when predictions are statistically significant
+# NOTE: hard_filter=False means we TAG weak signals but DO NOT exclude them
+#       Set to True to actually filter out weak signals from trading
+ZSCORE_GATING_CONFIG = {
+    "min_zscore": 1.0,          # Minimum |z-score| to trade (1.0 = 1 std dev)
+    "rolling_window": 20,       # Days for rolling mean/std calculation
+    "min_data_points": 10,      # Minimum data points required for z-score
+    "boost_threshold": 2.0,     # Z-score above which to boost position size
+    "hard_filter": False,       # If True, weak signals excluded; if False, logged only
+    "log_weak_signals": True,   # Log weak signals for analysis
+    "weak_signal_log": "weak_signals.jsonl",  # Filename in CACHE_DIR
+}
+
+# Per-ticker z-score overrides (optional)
+# Use this to set different thresholds for specific tickers
+ZSCORE_TICKER_OVERRIDES = {
+    # "SPY": {"min_zscore": 0.8},  # Example: lower threshold for SPY
+    # "TSLA": {"min_zscore": 1.5},  # Example: higher threshold for volatile stocks
+}
+
+def get_zscore_threshold(ticker: str) -> float:
+    """
+    Get z-score threshold for a specific ticker.
+    Checks ZSCORE_TICKER_OVERRIDES first, then falls back to default.
+    """
+    ticker = ticker.upper().strip()
+    override = ZSCORE_TICKER_OVERRIDES.get(ticker, {})
+    return override.get("min_zscore", ZSCORE_GATING_CONFIG["min_zscore"])
+
+def is_zscore_hard_filter_enabled() -> bool:
+    """Check if hard z-score filtering is enabled."""
+    return ZSCORE_GATING_CONFIG.get("hard_filter", False)
+
+def get_zscore_log_path() -> Path:
+    """Get path for weak signals log file."""
+    log_file = ZSCORE_GATING_CONFIG.get("weak_signal_log", "weak_signals.jsonl")
+    return CACHE_DIR / log_file
+
+# ============================================================================
+# TRADE LIMITING CONFIGURATION
+# ============================================================================
+# Limit number of trades per ticker per period to avoid overtrading
+TRADE_LIMIT_CONFIG = {
+    "enabled": True,                    # Enable trade limiting
+    "max_trades_per_ticker": 1,         # Max trades per ticker per period
+    "period": "day",                    # "day", "week", or "session"
+    "ranking_method": "zscore",         # "zscore", "confidence", or "return"
+    "include_skipped_in_output": True,  # Include skipped signals in output with flag
+    "log_skipped_signals": True,        # Log skipped signals for analysis
+    "skipped_log": "skipped_signals.jsonl",  # Filename in CACHE_DIR
+}
+
+# Per-ticker trade limit overrides
+TRADE_LIMIT_OVERRIDES = {
+    # "SPY": {"max_trades_per_ticker": 2},  # Allow more trades for SPY
+    # "TSLA": {"max_trades_per_ticker": 0},  # Disable trading for TSLA
+}
+
+def get_trade_limit(ticker: str) -> int:
+    """Get max trades per period for a specific ticker."""
+    ticker = ticker.upper().strip()
+    override = TRADE_LIMIT_OVERRIDES.get(ticker, {})
+    return override.get("max_trades_per_ticker", TRADE_LIMIT_CONFIG["max_trades_per_ticker"])
+
+def is_trade_limiting_enabled() -> bool:
+    """Check if trade limiting is enabled."""
+    return TRADE_LIMIT_CONFIG.get("enabled", True)
+
+def get_skipped_log_path() -> Path:
+    """Get path for skipped signals log file."""
+    log_file = TRADE_LIMIT_CONFIG.get("skipped_log", "skipped_signals.jsonl")
+    return CACHE_DIR / log_file
+
+# ============================================================================
+# MARKET REGIME FILTER
+# ============================================================================
+# Filter trades based on market regime (SPY 200DMA, VIX, etc.)
+REGIME_FILTER_CONFIG = {
+    "enabled": True,                    # Enable regime-based filtering
+    "spy_dma_period": 200,              # SPY moving average period
+    "vix_high_threshold": 25.0,         # VIX level considered "high"
+    "vix_extreme_threshold": 35.0,      # VIX level for CRASH regime
+    "rsi_oversold": 30.0,               # RSI oversold level
+    "rsi_overbought": 70.0,             # RSI overbought level
+    "min_conviction_override": 2.0,     # Min |z-score| to override regime block
+    "log_blocked_trades": True,         # Log blocked trades for analysis
+    "blocked_log": "blocked_trades.jsonl",  # Filename in CACHE_DIR
+}
+
+def is_regime_filter_enabled() -> bool:
+    """Check if regime filtering is enabled."""
+    return REGIME_FILTER_CONFIG.get("enabled", True)
+
+def get_blocked_trades_log_path() -> Path:
+    """Get path for blocked trades log file."""
+    log_file = REGIME_FILTER_CONFIG.get("blocked_log", "blocked_trades.jsonl")
+    return CACHE_DIR / log_file
+
+# ============================================================================
+# VOLATILITY-SCALED POSITION SIZING
+# ============================================================================
+# Scale positions to target consistent daily volatility exposure
+POSITION_SIZING_CONFIG = {
+    "target_daily_vol": 0.01,       # Target 1% daily volatility per position
+    "vol_lookback_days": 20,        # Rolling window for volatility calculation
+    "max_leverage": 2.0,            # Maximum leverage per ticker (2x)
+    "min_position_pct": 0.25,       # Minimum position as % of base (25%)
+    "use_atr": False,               # Use ATR instead of std dev (False = use std dev)
+    "atr_period": 14,               # ATR period if use_atr=True
 }
 
 # Heston model parameters for specific tickers

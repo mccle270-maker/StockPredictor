@@ -872,10 +872,29 @@ def main():
     positions = trade_client.get_all_positions()
     held = {p.symbol for p in positions}
 
+    # --- ENFORCE MAX OPEN POSITIONS ---
+    open_trades = trade_log.get_open_trades()
+    if len(open_trades) >= 10:
+        print(f"[RISK] Max open positions reached ({len(open_trades)}/10). No new trades will be placed.")
+        return
+
+    # --- ENFORCE MAX RISK PER TRADE (2% portfolio) ---
+    max_risk_pct = 0.02
+    portfolio_value = 0.0
+    try:
+        portfolio_value = float(getattr(account, "equity", 0) or getattr(account, "portfolio_value", 0) or 0)
+    except Exception:
+        pass
+    if portfolio_value <= 0:
+        try:
+            portfolio_value = float(getattr(account, "buying_power", 0) or getattr(account, "cash", 0) or 0)
+        except Exception:
+            portfolio_value = 0.0
+
     # Auto take-profit / stop-loss on existing positions before new entries
     try:
-        take_profit_pct = float(os.environ.get("TAKE_PROFIT_PCT", "0.05")) if os.environ.get("TAKE_PROFIT_PCT") else None
-        stop_loss_pct = float(os.environ.get("STOP_LOSS_PCT", None)) if os.environ.get("STOP_LOSS_PCT") else None
+        take_profit_pct = float(os.environ.get("TAKE_PROFIT_PCT", "0.05")) if os.environ.get("TAKE_PROFIT_PCT") else 0.05
+        stop_loss_pct = float(os.environ.get("STOP_LOSS_PCT", "0.03")) if os.environ.get("STOP_LOSS_PCT") else 0.03
         maybe_close_for_targets(trade_client, trade_log, positions, take_profit_pct, stop_loss_pct)
     except Exception as e:
         print(f"[auto-exit] skipped due to config/error: {e}")
@@ -898,6 +917,31 @@ def main():
 
     for symbol, spec in signals.items():
         symbol = str(symbol).upper()
+
+        # --- ENFORCE MAX OPEN POSITIONS (again, per symbol) ---
+        open_trades = trade_log.get_open_trades()
+        if len(open_trades) >= 10:
+            print(f"[RISK] Max open positions reached ({len(open_trades)}/10). Skipping {symbol}.")
+            continue
+
+        # --- ENFORCE MAX RISK PER TRADE (2% portfolio) ---
+        # Compute max dollar risk for this trade
+        max_trade_risk = portfolio_value * max_risk_pct if portfolio_value > 0 else 0
+        # For stocks, risk = qty * (entry_price * stop_loss_pct)
+        # For options, risk = premium paid * qty
+        # For now, only enforce for stocks
+        if isinstance(spec, dict) and spec.get("asset", "stock") == "stock":
+            last_price = fetch_last_close(symbol)
+            qty_default = shares_for(symbol)
+            stop_loss = stop_loss_pct if stop_loss_pct > 0 else 0.03
+            max_qty = int(max_trade_risk / (last_price * stop_loss)) if last_price > 0 and stop_loss > 0 else qty_default
+            if max_qty < 1:
+                print(f"[RISK] Max risk per trade too small for {symbol}. Skipping.")
+                continue
+            # Override qty in spec for this trade
+            spec["qty"] = min(qty_default, max_qty)
+
+        # ...existing code...
 
         # ===== NEW: CONFIDENCE FILTERING =====
         # Skip low-confidence predictions to improve accuracy
@@ -926,6 +970,65 @@ def main():
             if confidence > 0:
                 print(f"{symbol}: Confidence {confidence:.6f} ✓ (threshold {min_confidence})")
         # ========================================
+
+        # ===== Z-SCORE FILTERING (Soft) =====
+        # Signals include z-score tags - log weak signals but DON'T skip by default
+        # Set ZSCORE_HARD_FILTER=1 env to skip weak signals
+        if isinstance(spec, dict):
+            z_score = spec.get("z_score", 0.0)
+            z_passes = spec.get("z_score_passes", True)
+            z_strength = spec.get("z_score_strength", "unknown")
+            z_threshold = spec.get("z_score_threshold", 1.0)
+            
+            # Log z-score info
+            z_icon = "✅" if z_passes else "⚠️"
+            print(f"{symbol}: Z-Score {z_score:+.2f} ({z_strength}) {z_icon} (threshold {z_threshold})")
+            
+            # Hard filter if enabled via env var
+            if env_bool_local("ZSCORE_HARD_FILTER", False) and not z_passes:
+                print(f"{symbol}: SKIPPED (z-score {z_score:.2f} < {z_threshold}) - Weak signal")
+                continue
+            
+            # Log weak signals for analysis (even if not skipping)
+            if not z_passes:
+                print(f"   └─ WEAK SIGNAL: {symbol} z={z_score:.2f} pred={spec.get('pred_next_ret', 0)*100:.2f}%")
+        # ====================================
+
+        # ===== TRADE LIMIT FILTERING =====
+        # Signals include trade limit info - skip if not allowed
+        if isinstance(spec, dict):
+            trade_allowed = spec.get("trade_allowed", True)
+            trade_rank = spec.get("trade_rank", 0)
+            trade_rank_value = spec.get("trade_rank_value", 0.0)
+            trade_rank_method = spec.get("trade_rank_method", "zscore")
+            ticker_limit = spec.get("ticker_trade_limit", 1)
+            ticker_count = spec.get("ticker_trade_count", 0)
+            skip_reason = spec.get("skip_reason", "")
+            
+            # Log trade limit info
+            if trade_rank > 0:
+                print(f"{symbol}: Rank #{trade_rank} by {trade_rank_method} ({trade_rank_value:.4f}) | Limit: {ticker_limit}/period")
+            
+            # Skip if trade not allowed
+            if not trade_allowed:
+                print(f"{symbol}: SKIPPED (trade limit: {skip_reason}) - Rank #{trade_rank}")
+                continue
+        # =================================
+
+        # ===== REGIME FILTER CHECKING =====
+        # Signals include regime info - skip if blocked
+        if isinstance(spec, dict):
+            regime_blocked = spec.get("regime_blocked", False)
+            regime_block_reason = spec.get("regime_block_reason", "")
+            regime = spec.get("regime", "neutral")
+            regime_override = spec.get("regime_override", False)
+            
+            if regime_blocked and not regime_override:
+                print(f"{symbol}: BLOCKED by regime filter ({regime}) - {regime_block_reason}")
+                continue
+            elif regime_override:
+                print(f"{symbol}: Regime override - {spec.get('regime_note', 'high conviction')}")
+        # ==================================
 
         if not isinstance(spec, dict):
             action = str(spec).upper()
@@ -1045,6 +1148,14 @@ def main():
             except Exception:
                 signal_strength = None
             
+            # Build notes with z-score and rank info
+            z_score = spec.get("z_score", 0.0)
+            z_passes = spec.get("z_score_passes", True)
+            z_tag = "[STRONG]" if z_passes else "[WEAK]"
+            trade_rank = spec.get("trade_rank", 0)
+            rank_info = f" rank#{trade_rank}" if trade_rank > 0 else ""
+            notes = f"Signal from portfolio engine ({int(qty)} qty) z={z_score:+.2f} {z_tag}{rank_info}"
+            
             trade_log.add_trade(
                 trade_id=submitted.id,
                 symbol=symbol,
@@ -1054,7 +1165,7 @@ def main():
                 entry_price=last_price,
                 signal_strength=signal_strength,
                 underlying=symbol,
-                notes=f"Signal from portfolio engine ({int(qty)} qty)",
+                notes=notes,
             )
             print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {order_desc} -> {submitted.id}")
             continue

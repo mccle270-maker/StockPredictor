@@ -31,6 +31,39 @@ from .pricing import (
     OptionSpec,
     Greeks,
 )
+from .option_strategy import (
+    generate_option_strategy,
+    classify_delta_strike,
+    determine_strategy,
+    get_strategy_summary,
+)
+from .zscore_filter import (
+    ZScoreFilter,
+    ZScoreResult,
+    get_zscore_filter,
+    reset_zscore_filter,
+    compute_prediction_zscore,
+    evaluate_ticker_zscore,
+)
+from .trade_limiter import (
+    TradeLimiter,
+    SkippedSignal,
+    TradeCount,
+    get_trade_limiter,
+    reset_trade_limiter,
+    apply_trade_limits,
+    rank_signals_by_conviction,
+)
+from .regime_filter import (
+    RegimeFilter,
+    MarketRegime,
+    RegimeState,
+    BlockedTrade,
+    get_regime_filter,
+    reset_regime_filter,
+    apply_regime_filter,
+    get_current_regime,
+)
 
 __all__ = [
     # Features
@@ -60,4 +93,33 @@ __all__ = [
     "normalize_strategy",
     "OptionSpec",
     "Greeks",
+    # Option Strategy Generator
+    "generate_option_strategy",
+    "classify_delta_strike",
+    "determine_strategy",
+    "get_strategy_summary",
+    # Z-Score Filtering
+    "ZScoreFilter",
+    "ZScoreResult",
+    "get_zscore_filter",
+    "reset_zscore_filter",
+    "compute_prediction_zscore",
+    "evaluate_ticker_zscore",
+    # Trade Limiting
+    "TradeLimiter",
+    "SkippedSignal",
+    "TradeCount",
+    "get_trade_limiter",
+    "reset_trade_limiter",
+    "apply_trade_limits",
+    "rank_signals_by_conviction",
+    # Regime Filtering
+    "RegimeFilter",
+    "MarketRegime",
+    "RegimeState",
+    "BlockedTrade",
+    "get_regime_filter",
+    "reset_regime_filter",
+    "apply_regime_filter",
+    "get_current_regime",
 ]

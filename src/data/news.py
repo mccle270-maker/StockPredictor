@@ -5,7 +5,17 @@ import os
 import requests
 from typing import List, Dict, Optional
 
-from ..config import MARKETAUX_API_KEY, ALPHAVANTAGE_API_KEY
+
+def _get_api_key(name: str) -> str:
+    """Get API key dynamically (works with Streamlit secrets at runtime)."""
+    try:
+        import streamlit as st
+        key = st.secrets.get(name, "")
+        if key:
+            return key
+    except Exception:
+        pass
+    return os.environ.get(name, "")
 
 
 # ============================================================================
@@ -19,7 +29,8 @@ def get_news_marketaux(ticker: str, limit: int = 5) -> List[Dict]:
     Returns:
         List of {title, source, url, published_at, sentiment}
     """
-    if not MARKETAUX_API_KEY:
+    api_key = _get_api_key("MARKETAUX_API_KEY")
+    if not api_key:
         return []
     
     url = "https://api.marketaux.com/v1/news/all"
@@ -27,7 +38,7 @@ def get_news_marketaux(ticker: str, limit: int = 5) -> List[Dict]:
         "symbols": ticker,
         "language": "en",
         "filter_entities": "true",
-        "api_token": MARKETAUX_API_KEY,
+        "api_token": api_key,
         "limit": limit,
     }
     
@@ -72,14 +83,15 @@ def get_news_alphavantage(ticker: str, limit: int = 5) -> List[Dict]:
     Returns:
         List of {title, source, url, published_at, sentiment}
     """
-    if not ALPHAVANTAGE_API_KEY:
+    api_key = _get_api_key("ALPHAVANTAGE_API_KEY")
+    if not api_key:
         return []
     
     url = "https://www.alphavantage.co/query"
     params = {
         "function": "NEWS_SENTIMENT",
         "tickers": ticker,
-        "apikey": ALPHAVANTAGE_API_KEY,
+        "apikey": api_key,
         "limit": limit,
     }
     

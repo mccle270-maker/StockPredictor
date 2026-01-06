@@ -1,0 +1,2 @@
+{"ticker": "NVDA", "reason": "limit_exceeded_1_per_day", "rank": 1, "ranking_value": 3.1, "ranking_method": "zscore", "action": "BUY", "pred_next_ret": 0.03, "z_score": 3.1, "timestamp": "2026-01-06T01:56:20.522581"}
+{"ticker": "AAPL", "reason": "limit_exceeded_1_per_day", "rank": 2, "ranking_value": 2.5, "ranking_method": "zscore", "action": "BUY", "pred_next_ret": 0.02, "z_score": 2.5, "timestamp": "2026-01-06T01:56:20.522889"}

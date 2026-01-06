@@ -1,72 +1,37 @@
 {
-  "CVX": {
-    "asset": "stock",
-    "action": "BUY",
-    "qty": 2,
-    "pred_next_ret": 0.016491403803229332,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "XOM": {
+  "AAPL": {
     "asset": "stock",
     "action": "HOLD",
     "qty": 1,
-    "pred_next_ret": 0.004748976323753595,
+    "pred_next_ret": -0.005478734823733134,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
-    }
+    },
+    "z_score": 0.0,
+    "z_score_passes": false,
+    "z_score_threshold": 1.0,
+    "z_score_strength": "very_weak",
+    "z_score_history_len": 0,
+    "eligibility_status": "eligible",
+    "eligibility_reason": "meets_thresholds",
+    "trade_allowed": true,
+    "trade_rank": 1,
+    "trade_rank_value": 0.0,
+    "trade_rank_method": "zscore",
+    "ticker_trade_limit": 1,
+    "ticker_trade_count": 0,
+    "regime": "strong_bull",
+    "spy_vs_200dma_pct": 10.07073198154219,
+    "vix_level": 14.899999618530273,
+    "regime_longs_allowed": true,
+    "regime_shorts_allowed": false,
+    "regime_blocked": true,
+    "regime_block_reason": "STRONG_BULL regime - shorts blocked (need |z|\u22652.0)"
   },
-  "COP": {
-    "asset": "stock",
-    "action": "SHORT",
-    "qty": 2,
-    "pred_next_ret": -0.0153434406965971,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "OXY": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_min": 3,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 2,
-    "raw_strategy_text": "NEUTRAL: Sell Iron Condor (high IV, harvest premium)",
-    "pred_next_ret": -0.010936552658677101,
-    "last_close": 42.380001068115234,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "EOG": {
-    "asset": "stock",
-    "action": "SHORT",
-    "qty": 2,
-    "pred_next_ret": -0.017317896708846092,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "FANG": {
+  "NVDA": {
     "asset": "option",
     "strategy": "BULL_CALL_SPREAD",
     "dte_min": 3,
@@ -74,134 +39,65 @@
     "max_strike": 500.0,
     "max_premium": 500.0,
     "width_pct": 0.05,
-    "qty": 3,
+    "qty": 2,
     "raw_strategy_text": "BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.02704050950706005,
-    "last_close": 152.33999633789062,
+    "pred_next_ret": 0.02548234597760924,
+    "last_close": 188.1199951171875,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
-    }
+    },
+    "z_score": 0.0,
+    "z_score_passes": false,
+    "z_score_threshold": 1.0,
+    "z_score_strength": "very_weak",
+    "z_score_history_len": 0,
+    "eligibility_status": "ineligible",
+    "eligibility_reason": "sharpe=-1.48 < 0.75",
+    "trade_allowed": true,
+    "trade_rank": 2,
+    "trade_rank_value": 0.0,
+    "trade_rank_method": "zscore",
+    "ticker_trade_limit": 1,
+    "ticker_trade_count": 0,
+    "regime": "strong_bull",
+    "spy_vs_200dma_pct": 10.07073198154219,
+    "vix_level": 14.899999618530273,
+    "regime_longs_allowed": true,
+    "regime_shorts_allowed": false,
+    "regime_blocked": false
   },
-  "VLO": {
-    "asset": "option",
-    "strategy": "BEAR_PUT_SPREAD",
-    "dte_min": 3,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 3,
-    "raw_strategy_text": "BEARISH: Buy Puts or Bear Put Spread",
-    "pred_next_ret": -0.03251570463180542,
-    "last_close": 165.30999755859375,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "PSX": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_min": 3,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
+  "MSFT": {
+    "asset": "stock",
+    "action": "HOLD",
     "qty": 1,
-    "raw_strategy_text": "NEUTRAL: Sell Iron Condor (high IV, harvest premium)",
-    "pred_next_ret": -0.008150854147970676,
-    "last_close": 130.57000732421875,
+    "pred_next_ret": 0.0017618701233518552,
     "execution": {
       "delay_days": 1,
       "half_spread_bps": 2.0,
       "slippage_bps": 3.0,
       "fee_bps": 0.0
-    }
-  },
-  "MPC": {
-    "asset": "stock",
-    "action": "BUY",
-    "qty": 3,
-    "pred_next_ret": 0.02241368219256401,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "PBF": {
-    "asset": "option",
-    "strategy": "BULL_CALL_SPREAD",
-    "dte_min": 3,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 3,
-    "raw_strategy_text": "BULLISH: Buy Calls or Bull Call Spread",
-    "pred_next_ret": 0.02567289024591446,
-    "last_close": 28.530000686645508,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "BKR": {
-    "asset": "option",
-    "strategy": "BUY_PUT",
-    "dte_min": 3,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 3,
-    "raw_strategy_text": "BEARISH: Buy Puts (low protection)",
-    "pred_next_ret": -0.03385632112622261,
-    "last_close": 47.13999938964844,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "HAL": {
-    "asset": "option",
-    "strategy": "IRON_CONDOR",
-    "dte_min": 3,
-    "dte_max": 45,
-    "max_strike": 500.0,
-    "max_premium": 500.0,
-    "width_pct": 0.05,
-    "qty": 2,
-    "raw_strategy_text": "NEUTRAL: Sell Iron Condor (high IV, harvest premium)",
-    "pred_next_ret": -0.010556408204138279,
-    "last_close": 29.600000381469727,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
-  },
-  "SLB": {
-    "asset": "stock",
-    "action": "SHORT",
-    "qty": 2,
-    "pred_next_ret": -0.016246747225522995,
-    "execution": {
-      "delay_days": 1,
-      "half_spread_bps": 2.0,
-      "slippage_bps": 3.0,
-      "fee_bps": 0.0
-    }
+    },
+    "z_score": 0.0,
+    "z_score_passes": false,
+    "z_score_threshold": 1.0,
+    "z_score_strength": "very_weak",
+    "z_score_history_len": 0,
+    "eligibility_status": "eligible",
+    "eligibility_reason": "meets_thresholds",
+    "trade_allowed": true,
+    "trade_rank": 3,
+    "trade_rank_value": 0.0,
+    "trade_rank_method": "zscore",
+    "ticker_trade_limit": 1,
+    "ticker_trade_count": 0,
+    "regime": "strong_bull",
+    "spy_vs_200dma_pct": 10.07073198154219,
+    "vix_level": 14.899999618530273,
+    "regime_longs_allowed": true,
+    "regime_shorts_allowed": false,
+    "regime_blocked": false
   }
 }

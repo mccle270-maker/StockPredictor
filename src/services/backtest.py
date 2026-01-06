@@ -187,27 +187,31 @@ def backtest_one_ticker(
     
     Returns dict with metrics: sharpe, accuracy, num_trades, etc.
     """
+    # --- Config snapshot integration ---
+    from ..core.versioning import create_config_snapshot, save_config_snapshot
+    from ..core.config import get_model_version_info, FEATURE_COLUMNS
+    import os
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
         return {"error": "No data"}
-    
+
     df, feat_cols = _prepare_features(hist, ticker, period, horizon)
-    
+
     if len(df) < 100:
         return {"error": "Insufficient data"}
-    
+
     cutoff_date = df.index.max() - pd.Timedelta(days=252 * test_years)
     train_df = df.loc[df.index < cutoff_date].copy()
     test_df = df.loc[df.index >= cutoff_date].copy()
-    
+
     if len(train_df) < 50 or len(test_df) < 20:
         return {"error": "Insufficient train/test data"}
-    
+
     X_train = train_df[feat_cols].values
     y_train = train_df["ftarget_ret_horizon_ahead"].values
     X_test = test_df[feat_cols].values
     y_test = test_df["ftarget_ret_horizon_ahead"].values
-    
+
     # Feature selection (optional)
     if USE_ELASTICNET_SELECT:
         try:
@@ -224,24 +228,35 @@ def backtest_one_ticker(
             X_test = X_test[:, sel_mask]
         except Exception as e:
             print(f"[backtest_one_ticker] ElasticNet failed: {e}")
-    
+
     # Train and predict
     model = make_model(model_type=model_type, random_state=42)
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-    
+
     # Simulate trading
     positions = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
     pnl = positions * y_test
-    
+
     accuracy = float((np.sign(y_pred) == np.sign(y_test)).mean())
     sharpe = compute_sharpe(pnl)
-    
+
     # Convert to Series for drawdown
     pnl_series = pd.Series(pnl)
     dd_df = compute_drawdown(pnl_series)
     max_dd = float(dd_df["drawdown"].min()) if not dd_df.empty else 0.0
-    
+
+    # --- Create and save config snapshot ---
+    model_info = get_model_version_info(model_type)
+    feature_set = {"features": list(FEATURE_COLUMNS)}
+    snapshot = create_config_snapshot(
+        model_version=model_info.get("version", model_type),
+        feature_set=feature_set,
+    )
+    snap_path = save_config_snapshot(snapshot)
+    run_id = snapshot["run_id"]
+    print(f"[Config Snapshot] Saved: {os.path.relpath(snap_path)} (run_id={run_id})")
+
     return {
         "ticker": ticker,
         "model_type": model_type,
@@ -253,6 +268,8 @@ def backtest_one_ticker(
         "max_drawdown": max_dd,
         "num_trades": int(np.count_nonzero(np.diff(positions))),
         "total_return": float(pnl.sum()),
+        "run_id": run_id,
+        "config_snapshot": str(snap_path),
     }
 
 
@@ -273,44 +290,59 @@ def walk_forward_backtest(
     Returns list of fold metrics dicts with: train_start, train_end, test_start, test_end,
     sharpe, accuracy, num_trades, avg_daily_pnl.
     """
+    # --- Config snapshot integration ---
+    from ..core.versioning import create_config_snapshot, save_config_snapshot
+    from ..core.config import get_model_version_info, FEATURE_COLUMNS
+    import os
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
         return []
-    
+
     df, feat_cols = _prepare_features(hist, ticker, period, horizon)
-    
+
     if len(df) < 100:
         return []
-    
+
+    # Create config snapshot ONCE per run
+    model_info = get_model_version_info(model_type)
+    feature_set = {"features": list(FEATURE_COLUMNS)}
+    snapshot = create_config_snapshot(
+        model_version=model_info.get("version", model_type),
+        feature_set=feature_set,
+    )
+    snap_path = save_config_snapshot(snapshot)
+    run_id = snapshot["run_id"]
+    print(f"[Config Snapshot] Saved: {os.path.relpath(snap_path)} (run_id={run_id})")
+
     fold_metrics = []
-    
+
     train_days = int(252 * train_years)
     test_days = int(252 * test_years)
     if step_days is None:
         step_days = test_days
-    
+
     start = 0
     while True:
         train_start = start
         train_end = train_start + train_days
         test_start_idx = train_end
         test_end_idx = test_start_idx + test_days
-        
+
         if test_end_idx > len(df):
             break
-        
+
         train_df = df.iloc[train_start:train_end]
         test_df = df.iloc[test_start_idx:test_end_idx]
-        
+
         if len(train_df) < 50 or len(test_df) < 20:
             start += step_days
             continue
-        
+
         X_train = train_df[feat_cols].values
         y_train = train_df["ftarget_ret_horizon_ahead"].values
         X_test = test_df[feat_cols].values
         y_test = test_df["ftarget_ret_horizon_ahead"].values
-        
+
         # Feature selection (optional)
         current_feat_cols = list(feat_cols)
         if USE_ELASTICNET_SELECT:
@@ -329,15 +361,15 @@ def walk_forward_backtest(
                 current_feat_cols = sel_names
             except Exception as e:
                 print(f"[walk_forward_backtest] ElasticNet failed: {e}")
-        
+
         # Train
         model = make_model(model_type=model_type, random_state=42)
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-        
+
         # Simulate trading with costs
         positions = np.where(y_pred > threshold, 1, np.where(y_pred < -threshold, -1, 0))
-        
+
         pnl = []
         prev_pos = 0
         for pos, ret in zip(positions, y_test):
@@ -345,14 +377,14 @@ def walk_forward_backtest(
             pnl.append(pos * ret - cost_per_trade * trade)
             prev_pos = pos
         pnl = np.array(pnl)
-        
+
         accuracy = float((np.sign(y_pred) == np.sign(y_test)).mean())
         avg_daily = float(pnl.mean())
         std_daily = float(pnl.std(ddof=1)) if len(pnl) > 1 else 0.0
         sharpe = np.sqrt(252) * avg_daily / std_daily if std_daily > 0 else 0.0
-        
+
         num_trades = int(np.count_nonzero(np.diff(np.concatenate([[0], (positions != 0).astype(int)]))))
-        
+
         fold_metrics.append({
             "train_start": str(train_df.index[0].date()),
             "train_end": str(train_df.index[-1].date()),
@@ -364,8 +396,10 @@ def walk_forward_backtest(
             "avg_daily_pnl": avg_daily,
             "total_pnl": float(pnl.sum()),
             "num_features": len(current_feat_cols),
+            "run_id": run_id,
+            "config_snapshot": str(snap_path),
         })
-        
+
         start += step_days
-    
+
     return fold_metrics

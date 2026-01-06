@@ -200,6 +200,13 @@ try:
 except Exception:
     OLSSIG_ALPHA = 0.05
 
+# --- XGBoost Feature Selection Config ---
+USE_XGB_FEATURE_SELECTION = env_bool("USE_XGB_FEATURE_SELECTION", False)
+try:
+    XGB_TOP_FEATURES = int(os.environ.get("XGB_TOP_FEATURES", 30))
+except Exception:
+    XGB_TOP_FEATURES = 30
+
 try:
     OLSSIG_TOPK = int(os.environ.get("OLSSIG_TOPK", "50"))  # 0 => no cap
 except Exception:
@@ -1420,7 +1427,7 @@ def add_price_features(hist: pd.DataFrame) -> pd.DataFrame:
     return hist
 
 
-def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg", **kwargs):
+def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg", log_version: bool = True, **kwargs):
     """
     Create a model with hyperparameters.
     
@@ -1428,22 +1435,32 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         model_type: "rf", "xgb", "gbrt", "linreg"
         random_state: Random seed
         task: "reg" (regression) or "clf" (classification)
+        log_version: If True, log the model version being used
         **kwargs: Additional hyperparameters (max_depth, n_estimators, learning_rate, etc.)
     """
+    # Log model version if enabled
+    if log_version:
+        try:
+            from src.config import log_model_version, get_model_version_info
+            version_log = log_model_version(model_type)
+            print(f"🔧 Creating model: {version_log}")
+        except ImportError:
+            pass  # Graceful fallback if config not available
+    
     if task == "clf":
         if model_type == "xgb":
             params = {
                 'n_estimators': kwargs.get('n_estimators', 300),
                 'learning_rate': kwargs.get('learning_rate', 0.05),
-                'max_depth': kwargs.get('max_depth', 4),
+                'max_depth': kwargs.get('max_depth', 3),           # Reduced from 4 for regularization
                 'random_state': random_state,
                 'tree_method': "hist",
                 'verbosity': 0,
                 'subsample': kwargs.get('subsample', 0.8),
-                'colsample_bytree': 0.7,
-                'min_child_weight': 5,
-                'reg_lambda': kwargs.get('reg_lambda', 1.0),
-                'reg_alpha': kwargs.get('reg_alpha', 0.0),
+                'colsample_bytree': kwargs.get('colsample_bytree', 0.7),
+                'min_child_weight': kwargs.get('min_child_weight', 100),  # Increased for regularization
+                'reg_lambda': kwargs.get('reg_lambda', 10.0),      # L2 regularization
+                'reg_alpha': kwargs.get('reg_alpha', 1.0),         # L1 regularization
             }
             return XGBClassifier(**params)
         
@@ -1475,15 +1492,15 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         params = {
             'n_estimators': kwargs.get('n_estimators', 300),
             'learning_rate': kwargs.get('learning_rate', 0.05),
-            'max_depth': kwargs.get('max_depth', 4),
+            'max_depth': kwargs.get('max_depth', 3),           # Reduced from 4 to prevent overfitting
             'random_state': random_state,
             'tree_method': "hist",
             'verbosity': 0,
             'subsample': kwargs.get('subsample', 0.8),
-            'colsample_bytree': 0.7,
-            'min_child_weight': 5,
-            'reg_lambda': kwargs.get('reg_lambda', 1.0),
-            'reg_alpha': kwargs.get('reg_alpha', 0.0),
+            'colsample_bytree': kwargs.get('colsample_bytree', 0.7),
+            'min_child_weight': kwargs.get('min_child_weight', 100),  # Increased from 5 for stronger regularization
+            'reg_lambda': kwargs.get('reg_lambda', 10.0),      # Increased from 1.0 for L2 regularization
+            'reg_alpha': kwargs.get('reg_alpha', 1.0),         # Increased from 0.0 for L1 regularization
         }
         return XGBRegressor(**params)
 
@@ -2361,7 +2378,31 @@ def predict_next_for_ticker(
         except Exception as e:
             print(f"{ticker} ElasticNet selection failed; continuing without it. Error: {e}")
 
-    if auto_optimize:
+
+    # --- XGBoost Feature Importance Selection (optional) ---
+    if USE_XGB_FEATURE_SELECTION and model_type == "xgb":
+        train_end = int(n * 0.8)
+        Xtrain = X[:train_end]
+        ytrain = y[:train_end]
+        model_init = make_model(model_type=model_type, random_state=42, task="reg")
+        model_init.fit(Xtrain, ytrain)
+        if hasattr(model_init, "feature_importances_"):
+            importances = model_init.feature_importances_
+            # Get indices of top N features
+            topn = min(XGB_TOP_FEATURES, len(importances))
+            top_idx = np.argsort(importances)[::-1][:topn]
+            important_mask = np.zeros_like(importances, dtype=bool)
+            important_mask[top_idx] = True
+            important_features = [actual_feat_cols[i] for i in top_idx]
+            print(f"{ticker} XGB feature selection: top {topn} features: {important_features}")
+        else:
+            important_mask = np.ones(X.shape[1], dtype=bool)
+            important_features = actual_feat_cols
+        Xtrain_full = X[:train_end][:, important_mask]
+        ytrain_full = y[:train_end]
+        x_last_pruned = x_last[important_mask]
+        actual_feat_cols = important_features
+    elif auto_optimize:
         train_end = int(n * 0.8)
         Xtrain = X[:train_end]
         ytrain = y[:train_end]
@@ -3069,6 +3110,14 @@ def walk_forward_backtest(
     cost_per_trade=0.0005,
     step_days: int | None = None,
 ):
+    # Log model version at start of backtest
+    try:
+        from src.config import log_model_version
+        print(f"📈 Starting walk-forward backtest: {ticker}")
+        print(f"   Model: {log_model_version(model_type)}")
+    except ImportError:
+        print(f"📈 Starting walk-forward backtest: {ticker}, model={model_type}")
+    
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
         return []
@@ -3142,8 +3191,8 @@ def walk_forward_backtest(
         Xtest  = test_df[feat_cols].values
         ytest  = test_df[target_col].values
 
-        # ... your existing: fit model, predict, simulate trades, compute metrics ...
-        # fold_metrics.append({...})
+
+        # --- OLS significance selection ---
         if USE_OLSSIGSELECT:
             Xtrain, ols_names, ols_mask = selectfeaturesols_pvalues(
                 Xtrain, ytrain,
@@ -3155,6 +3204,7 @@ def walk_forward_backtest(
             Xtest = Xtest[:, ols_mask]
             featcols = ols_names
 
+        # --- ElasticNet selection ---
         if USE_ELASTICNET_SELECT:
             try:
                 Xtrain_sel, fold_feats, fold_mask = select_features_elasticnet_timeseries(
@@ -3172,6 +3222,25 @@ def walk_forward_backtest(
                 print(f"{ticker} WF fold ElasticNet selected {len(fold_feats)} features")
             except Exception as e:
                 print(f"{ticker} WF fold ElasticNet failed; skipping. Error: {e}")
+
+        # --- XGBoost feature importance selection (optional) ---
+        if USE_XGB_FEATURE_SELECTION and model_type == "xgb":
+            model_init = make_model(model_type=model_type, random_state=42)
+            model_init.fit(Xtrain, ytrain)
+            if hasattr(model_init, "feature_importances_"):
+                importances = model_init.feature_importances_
+                topn = min(XGB_TOP_FEATURES, len(importances))
+                top_idx = np.argsort(importances)[::-1][:topn]
+                important_mask = np.zeros_like(importances, dtype=bool)
+                important_mask[top_idx] = True
+                important_features = [featcols[i] for i in top_idx]
+                print(f"{ticker} WF fold XGB top {topn} features: {important_features}")
+            else:
+                important_mask = np.ones(Xtrain.shape[1], dtype=bool)
+                important_features = featcols
+            Xtrain = Xtrain[:, important_mask]
+            Xtest = Xtest[:, important_mask]
+            featcols = important_features
 
         model = make_model(model_type=model_type, random_state=42)
         model.fit(Xtrain, ytrain)

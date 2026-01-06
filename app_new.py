@@ -58,6 +58,7 @@ from src.core.metrics import (
     summarize_risk,
     prepare_risk_timeseries,
 )
+from src.core.option_strategy import generate_option_strategy, get_strategy_summary
 from src.ui.components import (
     ticker_input_widget,
     multi_ticker_input_widget,
@@ -70,6 +71,46 @@ from src.ui.components import (
     price_chart,
     signal_display,
 )
+
+# Optional: Database and Live Updates (graceful degradation if not available)
+try:
+    from src.data.database import (
+        save_prediction,
+        save_predictions_batch,
+        get_prediction_history,
+        save_backtest_result,
+        get_model_performance_history,
+        save_query,
+        get_recent_queries,
+        toggle_favorite_query,
+        delete_query,
+        get_accuracy_stats,
+        get_database_stats,
+        get_best_model_for_ticker,
+    )
+    HAS_DATABASE = True
+except ImportError:
+    HAS_DATABASE = False
+
+try:
+    from src.ui.live_updates import (
+        init_live_state,
+        is_market_hours,
+        get_live_price,
+        get_live_prices_batch,
+        render_live_status_badge,
+        render_live_controls,
+        should_refresh,
+        mark_refreshed,
+        get_time_until_next_refresh,
+        create_live_price_chart,
+        auto_refresh_check,
+        get_live_config,
+        set_live_config,
+    )
+    HAS_LIVE_UPDATES = True
+except ImportError:
+    HAS_LIVE_UPDATES = False
 
 # Paths
 TRADER_PATH = BASE_DIR / "auto_paper_trade.py"
@@ -124,18 +165,601 @@ def apply_costs_on_trades(
     costs = per_trade_cost * pos_change
     return base - costs
 
-@st.cache_data(ttl=300)
+def get_card_theme():
+    """Get theme colors for inline HTML cards."""
+    is_dark = st.session_state.get("theme", "dark") == "dark"
+    if is_dark:
+        return {
+            "bg": "#161b22",
+            "border": "#30363d",
+            "label": "#8b949e",
+            "text": "#f0f6fc",
+            "muted": "#6e7681",
+            "bar_bg": "#21262d",
+            "green": "#3fb950",
+            "red": "#f85149",
+            "yellow": "#d29922",
+            "blue": "#388bfd",
+            "purple": "#a371f7",
+        }
+    else:
+        return {
+            "bg": "#ffffff",
+            "border": "#d0d7de",
+            "label": "#57606a",
+            "text": "#1f2328",
+            "muted": "#6e7781",
+            "bar_bg": "#e5e7eb",
+            "green": "#1a7f37",
+            "red": "#cf222e",
+            "yellow": "#9a6700",
+            "blue": "#0969da",
+            "purple": "#8250df",
+        }
+
+# ============================================================================
+# INPUT VALIDATION & ERROR HANDLING
+# ============================================================================
+
+import re
+from functools import wraps
+from typing import List, Tuple, Optional, Any, Callable
+
+# Valid ticker pattern: 1-5 uppercase letters, optionally followed by . and 1-2 letters (e.g., BRK.B)
+TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(\.[A-Z]{1,2})?$')
+
+# Valid period values
+VALID_PERIODS = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "5y", "10y", "max"]
+
+# Valid model types
+VALID_MODELS = ["rf", "xgb", "gbrt", "linreg"]
+
+
+class ValidationError(Exception):
+    """Custom exception for input validation errors."""
+    pass
+
+
+class APIError(Exception):
+    """Custom exception for API/service errors."""
+    pass
+
+
+def validate_ticker(ticker: str) -> Tuple[bool, str]:
+    """
+    Validate a single stock ticker symbol.
+    
+    Args:
+        ticker: The ticker symbol to validate
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not ticker:
+        return False, "Ticker symbol cannot be empty"
+    
+    # Clean and uppercase
+    ticker_clean = ticker.strip().upper()
+    
+    if len(ticker_clean) == 0:
+        return False, "Ticker symbol cannot be empty or whitespace only"
+    
+    if len(ticker_clean) > 6:
+        return False, f"Ticker '{ticker_clean}' is too long (max 6 characters)"
+    
+    if not TICKER_PATTERN.match(ticker_clean):
+        return False, f"Invalid ticker format '{ticker_clean}'. Use 1-5 letters (e.g., AAPL, MSFT, BRK.B)"
+    
+    # Check for obviously invalid tickers
+    invalid_tickers = {"TEST", "FAKE", "NULL", "NONE", "NA", "N/A"}
+    if ticker_clean in invalid_tickers:
+        return False, f"'{ticker_clean}' is not a valid stock ticker"
+    
+    return True, ""
+
+
+def validate_tickers(tickers_input: str) -> Tuple[List[str], List[str]]:
+    """
+    Validate a comma-separated list of ticker symbols.
+    
+    Args:
+        tickers_input: Comma-separated string of tickers
+        
+    Returns:
+        Tuple of (valid_tickers, error_messages)
+    """
+    if not tickers_input or not tickers_input.strip():
+        return [], ["No tickers provided. Please enter at least one ticker symbol."]
+    
+    # Split by comma, semicolon, space, or newline
+    raw_tickers = re.split(r'[,;\s\n]+', tickers_input.strip())
+    raw_tickers = [t.strip().upper() for t in raw_tickers if t.strip()]
+    
+    if not raw_tickers:
+        return [], ["No valid tickers found in input."]
+    
+    valid_tickers = []
+    errors = []
+    seen = set()
+    
+    for ticker in raw_tickers:
+        # Skip duplicates
+        if ticker in seen:
+            continue
+        seen.add(ticker)
+        
+        is_valid, error = validate_ticker(ticker)
+        if is_valid:
+            valid_tickers.append(ticker)
+        else:
+            errors.append(error)
+    
+    # Limit number of tickers
+    MAX_TICKERS = 50
+    if len(valid_tickers) > MAX_TICKERS:
+        errors.append(f"Too many tickers ({len(valid_tickers)}). Maximum allowed is {MAX_TICKERS}.")
+        valid_tickers = valid_tickers[:MAX_TICKERS]
+    
+    return valid_tickers, errors
+
+
+def validate_period(period: str) -> Tuple[bool, str]:
+    """
+    Validate a time period string.
+    
+    Args:
+        period: Period string (e.g., "1y", "5y", "max")
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not period:
+        return False, "Period cannot be empty"
+    
+    period_clean = period.strip().lower()
+    
+    if period_clean not in VALID_PERIODS:
+        return False, f"Invalid period '{period}'. Valid options: {', '.join(VALID_PERIODS)}"
+    
+    return True, ""
+
+
+def validate_horizon(horizon: int) -> Tuple[bool, str]:
+    """
+    Validate prediction horizon (days).
+    
+    Args:
+        horizon: Number of days for prediction horizon
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not isinstance(horizon, int):
+        try:
+            horizon = int(horizon)
+        except (ValueError, TypeError):
+            return False, f"Horizon must be a number, got '{horizon}'"
+    
+    if horizon < 1:
+        return False, "Horizon must be at least 1 day"
+    
+    if horizon > 252:
+        return False, "Horizon cannot exceed 252 trading days (1 year)"
+    
+    return True, ""
+
+
+def validate_model_type(model_type: str) -> Tuple[bool, str]:
+    """
+    Validate model type selection.
+    
+    Args:
+        model_type: Model type string
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if not model_type:
+        return False, "Model type cannot be empty"
+    
+    model_clean = model_type.strip().lower()
+    
+    if model_clean not in VALID_MODELS:
+        return False, f"Invalid model type '{model_type}'. Valid options: {', '.join(VALID_MODELS)}"
+    
+    return True, ""
+
+
+def validate_numeric_range(value: float, min_val: float, max_val: float, name: str) -> Tuple[bool, str]:
+    """
+    Validate that a numeric value is within a specified range.
+    
+    Args:
+        value: The value to validate
+        min_val: Minimum allowed value
+        max_val: Maximum allowed value
+        name: Name of the parameter (for error messages)
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    try:
+        val = float(value)
+    except (ValueError, TypeError):
+        return False, f"{name} must be a number, got '{value}'"
+    
+    if val < min_val:
+        return False, f"{name} must be at least {min_val}, got {val}"
+    
+    if val > max_val:
+        return False, f"{name} must be at most {max_val}, got {val}"
+    
+    return True, ""
+
+
+def safe_api_call(func: Callable, *args, error_prefix: str = "Error", **kwargs) -> Tuple[Any, Optional[str]]:
+    """
+    Safely execute an API or service call with error handling.
+    
+    Args:
+        func: The function to call
+        *args: Positional arguments for the function
+        error_prefix: Prefix for error messages
+        **kwargs: Keyword arguments for the function
+        
+    Returns:
+        Tuple of (result, error_message) where error_message is None on success
+    """
+    try:
+        result = func(*args, **kwargs)
+        return result, None
+    except ConnectionError as e:
+        return None, f"{error_prefix}: Network connection failed. Please check your internet connection."
+    except TimeoutError as e:
+        return None, f"{error_prefix}: Request timed out. Please try again."
+    except ValueError as e:
+        return None, f"{error_prefix}: Invalid data received - {str(e)}"
+    except KeyError as e:
+        return None, f"{error_prefix}: Missing required data - {str(e)}"
+    except FileNotFoundError as e:
+        return None, f"{error_prefix}: Required file not found - {str(e)}"
+    except PermissionError as e:
+        return None, f"{error_prefix}: Permission denied - {str(e)}"
+    except Exception as e:
+        # Log the full error for debugging
+        error_type = type(e).__name__
+        error_msg = str(e)
+        # Truncate very long error messages
+        if len(error_msg) > 200:
+            error_msg = error_msg[:200] + "..."
+        return None, f"{error_prefix}: {error_type} - {error_msg}"
+
+
+def display_validation_errors(errors: List[str], container=None):
+    """
+    Display validation errors in a user-friendly format.
+    
+    Args:
+        errors: List of error messages
+        container: Optional streamlit container to display in
+    """
+    if not errors:
+        return
+    
+    target = container if container else st
+    
+    if len(errors) == 1:
+        target.error(f"⚠️ {errors[0]}")
+    else:
+        error_html = "<div style='color: #f85149;'><strong>⚠️ Please fix the following issues:</strong><ul>"
+        for err in errors[:5]:  # Limit to 5 errors
+            error_html += f"<li>{err}</li>"
+        if len(errors) > 5:
+            error_html += f"<li>...and {len(errors) - 5} more errors</li>"
+        error_html += "</ul></div>"
+        target.markdown(error_html, unsafe_allow_html=True)
+
+
+def display_api_error(error_msg: str, ticker: str = None, container=None):
+    """
+    Display an API error with helpful context.
+    
+    Args:
+        error_msg: The error message
+        ticker: Optional ticker that caused the error
+        container: Optional streamlit container to display in
+    """
+    target = container if container else st
+    
+    tc = get_card_theme()
+    ticker_info = f" for <strong>{ticker}</strong>" if ticker else ""
+    
+    target.markdown(f"""
+    <div style='
+        background: {tc["red"]}15;
+        border: 1px solid {tc["red"]};
+        border-radius: 6px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+    '>
+        <div style='color: {tc["red"]}; font-weight: 600; margin-bottom: 0.5rem;'>
+            ❌ Error{ticker_info}
+        </div>
+        <div style='color: {tc["text"]}; font-size: 0.9rem;'>
+            {error_msg}
+        </div>
+        <div style='color: {tc["muted"]}; font-size: 0.8rem; margin-top: 0.5rem;'>
+            💡 Try: Check ticker spelling, verify internet connection, or try a different time period.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def validate_prediction_inputs(tickers: List[str], period: str, horizon: int, model_type: str) -> Tuple[bool, List[str]]:
+    """
+    Validate all inputs for running predictions.
+    
+    Args:
+        tickers: List of ticker symbols
+        period: Time period string
+        horizon: Prediction horizon in days
+        model_type: Model type string
+        
+    Returns:
+        Tuple of (all_valid, list_of_errors)
+    """
+    errors = []
+    
+    # Validate tickers
+    if not tickers:
+        errors.append("No tickers provided. Please enter at least one ticker symbol.")
+    
+    # Validate period
+    is_valid, err = validate_period(period)
+    if not is_valid:
+        errors.append(err)
+    
+    # Validate horizon
+    is_valid, err = validate_horizon(horizon)
+    if not is_valid:
+        errors.append(err)
+    
+    # Validate model type
+    is_valid, err = validate_model_type(model_type)
+    if not is_valid:
+        errors.append(err)
+    
+    return len(errors) == 0, errors
+
+
+def validate_backtest_inputs(ticker: str, period: str, horizon: int, model_type: str) -> Tuple[bool, List[str]]:
+    """
+    Validate all inputs for running a backtest.
+    
+    Args:
+        ticker: Single ticker symbol
+        period: Time period string
+        horizon: Prediction horizon in days
+        model_type: Model type string
+        
+    Returns:
+        Tuple of (all_valid, list_of_errors)
+    """
+    errors = []
+    
+    # Validate ticker
+    is_valid, err = validate_ticker(ticker)
+    if not is_valid:
+        errors.append(err)
+    
+    # Validate period
+    is_valid, err = validate_period(period)
+    if not is_valid:
+        errors.append(err)
+    
+    # Validate horizon
+    is_valid, err = validate_horizon(horizon)
+    if not is_valid:
+        errors.append(err)
+    
+    # Validate model type
+    is_valid, err = validate_model_type(model_type)
+    if not is_valid:
+        errors.append(err)
+    
+    return len(errors) == 0, errors
+
+
+# =============================================================================
+# CACHING LAYER - Performance Optimization
+# =============================================================================
+# TTL Guidelines:
+#   - Intraday data: 30 seconds
+#   - Price history: 10 minutes (600s)
+#   - Predictions: 15 minutes (900s)
+#   - Backtests/Walk-forward: 30 minutes (1800s)
+#   - Options data: 5 minutes (300s)
+# =============================================================================
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_price_history(ticker: str, period: str):
+    """
+    Cached version of get_price_history.
+    TTL: 10 minutes - price data doesn't change frequently.
+    """
+    return get_price_history(ticker, period=period)
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def _cached_prediction(ticker: str, period: str, model_type: str, horizon: int, 
+                       run_gaf: bool = False, auto_optimize: bool = True,
+                       use_elasticnet: bool = False):
+    """
+    Cached version of predict_next_for_ticker.
+    TTL: 15 minutes - predictions are expensive and don't need constant refresh.
+    
+    Note: auto_optimize and use_elasticnet are included in cache key so different
+    settings produce different cached results.
+    """
+    import os
+    # Set environment variable for Elastic Net feature selection
+    if use_elasticnet:
+        os.environ["USE_ELASTICNET_SELECT"] = "1"
+    else:
+        os.environ.pop("USE_ELASTICNET_SELECT", None)
+    
+    return predict_next_for_ticker(
+        ticker=ticker,
+        period=period,
+        model_type=model_type,  # Use selected model type
+        horizon=horizon,
+        run_gaf=run_gaf,
+        auto_optimize=auto_optimize  # Pass auto_optimize to the function
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_option_chain(ticker: str):
+    """
+    Cached version of get_option_chain.
+    TTL: 5 minutes - options data is more volatile.
+    """
+    return get_option_chain(ticker)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_option_snapshot(ticker: str):
+    """
+    Cached version of get_option_snapshot_features.
+    TTL: 5 minutes - options snapshot data.
+    """
+    return get_option_snapshot_features(ticker)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _cached_atm_greeks(ticker: str):
+    """
+    Cached version of get_atm_greeks.
+    TTL: 5 minutes - ATM greeks calculation.
+    """
+    return get_atm_greeks(ticker)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def _cached_track_predictions(ticker, period, model_type, horizon):
-    """Cached version of track_predictions."""
+    """
+    Cached version of track_predictions.
+    TTL: 5 minutes - tracking data.
+    """
     return track_predictions(ticker, period=period, model_type=model_type, horizon=horizon)
 
-@st.cache_data(ttl=300)
+
+@st.cache_data(ttl=900, show_spinner=False)
 def _cached_long_horizon_prediction(ticker, period):
-    """Cached version of long horizon prediction."""
+    """
+    Cached version of long horizon prediction.
+    TTL: 15 minutes - same as regular predictions.
+    """
     return predict_long_horizon_for_ticker(ticker, period=period)
 
 
-def render_styled_table(df, table_id="styled-table", highlight_cols=None):
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_walk_forward_backtest(ticker: str, period: str, horizon: int, model_type: str, 
+                                   train_years: float, test_years: float, step_days: int = 21):
+    """
+    Cached version of walk_forward_backtest.
+    TTL: 30 minutes - backtests are very expensive and results don't change.
+    """
+    return walk_forward_backtest(
+        ticker=ticker,
+        period=period,
+        horizon=horizon,
+        model_type=model_type,
+        train_years=train_years,
+        test_years=test_years,
+        step_days=step_days
+    )
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _cached_backtest_one_ticker(ticker: str, period: str, model_type: str, horizon: int = 1):
+    """
+    Cached version of backtest_one_ticker.
+    TTL: 30 minutes - backtests are expensive.
+    """
+    from src.services.backtest import backtest_one_ticker
+    return backtest_one_ticker(ticker, period=period, model_type=model_type, horizon=horizon)
+
+
+def _cached_build_signals(pred_df_json: str, prediction_horizon: int, trade_mode: str, 
+                          prefer_spreads: bool, dte_min: int, dte_max: int,
+                          max_strike: float, max_premium: float, width_pct: float):
+    """
+    Build signals from prediction DataFrame.
+    Note: Not cached directly because pred_df changes frequently.
+    Instead, this provides a consistent interface for signal building.
+    """
+    pred_df = pd.read_json(pred_df_json)
+    # Create execution model with defaults
+    from dataclasses import dataclass
+    
+    @dataclass
+    class ExecutionModel:
+        delay: int = 1
+        spread: float = 0.0002
+        slippage: float = 0.0003
+        fees: float = 0.0
+    
+    exec_model = ExecutionModel()
+    
+    return build_signals_from_pred_df(
+        pred_df,
+        prediction_horizon=prediction_horizon,
+        trade_mode=trade_mode,
+        prefer_spreads=prefer_spreads,
+        dte_min=dte_min,
+        dte_max=dte_max,
+        max_strike=max_strike,
+        max_premium=max_premium,
+        width_pct=width_pct,
+        exec_model=exec_model,
+    )
+
+
+def clear_prediction_cache():
+    """Clear prediction-related caches for fresh data."""
+    _cached_prediction.clear()
+    _cached_long_horizon_prediction.clear()
+    _cached_track_predictions.clear()
+
+
+def clear_price_cache():
+    """Clear price history cache."""
+    _cached_price_history.clear()
+
+
+def clear_options_cache():
+    """Clear options-related caches."""
+    _cached_option_chain.clear()
+    _cached_option_snapshot.clear()
+    _cached_atm_greeks.clear()
+
+
+def clear_backtest_cache():
+    """Clear backtest caches."""
+    _cached_walk_forward_backtest.clear()
+    _cached_backtest_one_ticker.clear()
+
+
+def clear_all_caches():
+    """Clear all cached data for completely fresh state."""
+    clear_prediction_cache()
+    clear_price_cache()
+    clear_options_cache()
+    clear_backtest_cache()
+
+
+def render_styled_table(df, table_id="styled-table", highlight_cols=None, theme=None):
     """
     Render a DataFrame as a professionally styled HTML table.
     
@@ -144,12 +768,33 @@ def render_styled_table(df, table_id="styled-table", highlight_cols=None):
         table_id: Unique ID for the table (for CSS scoping)
         highlight_cols: Dict mapping column names to highlight rules
                        e.g., {"PRED %": {"positive": "> 0", "negative": "< 0"}}
+        theme: Theme dict (from get_theme_colors()) or None for auto-detect
     """
     if highlight_cols is None:
         highlight_cols = {}
     
+    # Get theme colors
+    if theme is None:
+        is_dark = st.session_state.get("theme", "dark") == "dark"
+        if is_dark:
+            t = {
+                "border": "#30363d", "header_bg": "#161b22", "accent": "#388bfd",
+                "text": "#f0f6fc", "row_even": "#0d1117", "row_odd": "#0f141a",
+                "hover": "#21262d", "row_border": "#21262d",
+                "green": "#3fb950", "red": "#f85149"
+            }
+        else:
+            t = {
+                "border": "#d0d7de", "header_bg": "#f6f8fa", "accent": "#0969da",
+                "text": "#1f2328", "row_even": "#ffffff", "row_odd": "#f9fafb",
+                "hover": "#e5e7eb", "row_border": "#d8dee4",
+                "green": "#1a7f37", "red": "#cf222e"
+            }
+    else:
+        t = theme
+    
     html = f"""
-    <div style="overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; margin: 1rem 0;">
+    <div style="overflow-x: auto; border: 1px solid {t['border']}; border-radius: 8px; margin: 1rem 0;">
     <table id="{table_id}" style="
         width: 100%;
         border-collapse: collapse;
@@ -157,13 +802,13 @@ def render_styled_table(df, table_id="styled-table", highlight_cols=None):
         font-size: 0.85rem;
     ">
         <thead>
-            <tr style="background: #161b22; border-bottom: 2px solid #388bfd;">
+            <tr style="background: {t['header_bg']}; border-bottom: 2px solid {t['accent']};">
     """
     
     # Headers
     for col in df.columns:
         html += f"""<th style="
-            color: #58a6ff;
+            color: {t['accent']};
             font-weight: 600;
             letter-spacing: 0.5px;
             padding: 12px 16px;
@@ -177,12 +822,12 @@ def render_styled_table(df, table_id="styled-table", highlight_cols=None):
     
     # Rows
     for idx, row in df.iterrows():
-        row_bg = "#0d1117" if idx % 2 == 0 else "#0f141a"
-        html += f'<tr style="background: {row_bg};" onmouseover="this.style.background=\'#21262d\'" onmouseout="this.style.background=\'{row_bg}\'">'
+        row_bg = t['row_even'] if idx % 2 == 0 else t['row_odd']
+        html += f'<tr style="background: {row_bg};" onmouseover="this.style.background=\'{t["hover"]}\'" onmouseout="this.style.background=\'{row_bg}\'">'
         
         for col in df.columns:
             val = row[col]
-            cell_style = "color: #f0f6fc; padding: 10px 16px; border-bottom: 1px solid #21262d; white-space: nowrap;"
+            cell_style = f"color: {t['text']}; padding: 10px 16px; border-bottom: 1px solid {t['row_border']}; white-space: nowrap;"
             
             # Apply highlighting rules
             if col in highlight_cols:
@@ -191,27 +836,27 @@ def render_styled_table(df, table_id="styled-table", highlight_cols=None):
                     num_val = float(val) if not pd.isna(val) else None
                     if num_val is not None:
                         if rules.get("type") == "ticker":
-                            cell_style += "color: #388bfd; font-weight: 700;"
+                            cell_style += f"color: {t['accent']}; font-weight: 700;"
                         elif rules.get("type") == "pct_direction":
                             if num_val > 0:
-                                cell_style += "color: #3fb950; font-weight: 600;"
+                                cell_style += f"color: {t['green']}; font-weight: 600;"
                             elif num_val < 0:
-                                cell_style += "color: #f85149; font-weight: 600;"
+                                cell_style += f"color: {t['red']}; font-weight: 600;"
                         elif rules.get("type") == "prob":
                             if num_val > 0.55:
-                                cell_style += "color: #3fb950; font-weight: 600;"
+                                cell_style += f"color: {t['green']}; font-weight: 600;"
                             elif num_val < 0.45:
-                                cell_style += "color: #f85149; font-weight: 600;"
+                                cell_style += f"color: {t['red']}; font-weight: 600;"
                         elif rules.get("type") == "sharpe":
                             if num_val > 0.5:
-                                cell_style += "color: #3fb950;"
+                                cell_style += f"color: {t['green']};"
                             elif num_val < 0:
-                                cell_style += "color: #f85149;"
+                                cell_style += f"color: {t['red']};"
                         elif rules.get("type") == "accuracy":
                             if num_val > 55:
-                                cell_style += "color: #3fb950; font-weight: 600;"
+                                cell_style += f"color: {t['green']}; font-weight: 600;"
                             elif num_val < 50:
-                                cell_style += "color: #f85149; font-weight: 600;"
+                                cell_style += f"color: {t['red']}; font-weight: 600;"
                 except:
                     pass
             
@@ -233,32 +878,38 @@ def render_styled_table(df, table_id="styled-table", highlight_cols=None):
 
 def show_loading_indicator(message="Loading..."):
     """Display a styled loading indicator."""
+    is_dark = st.session_state.get("theme", "dark") == "dark"
+    bg = "#161b22" if is_dark else "#f6f8fa"
+    border = "#30363d" if is_dark else "#d0d7de"
+    text = "#8b949e" if is_dark else "#57606a"
+    accent = "#388bfd" if is_dark else "#0969da"
+    
     return st.markdown(f"""
     <div style="
         display: flex;
         align-items: center;
         gap: 12px;
         padding: 1rem;
-        background: #161b22;
-        border: 1px solid #30363d;
+        background: {bg};
+        border: 1px solid {border};
         border-radius: 8px;
         margin: 1rem 0;
     ">
         <div style="
             width: 20px;
             height: 20px;
-            border: 2px solid #30363d;
-            border-top: 2px solid #388bfd;
+            border: 2px solid {border};
+            border-top: 2px solid {accent};
             border-radius: 50%;
             animation: spin 1s linear infinite;
         "></div>
-        <span style="color: #8b949e; font-size: 0.9rem;">{message}</span>
+        <span style="color: {text}; font-size: 0.9rem;">{message}</span>
     </div>
     <style>
-        @keyframes spin {{
-            0% {{ transform: rotate(0deg); }}
-            100% {{ transform: rotate(360deg); }}
-        }}
+        @keyframes spin {{{{
+            0% {{{{ transform: rotate(0deg); }}}}
+            100% {{{{ transform: rotate(360deg); }}}}
+        }}}}
     </style>
     """, unsafe_allow_html=True)
 
@@ -307,31 +958,89 @@ def _enrich_prediction_with_options(pred: dict, ticker: str) -> dict:
     
     return pred
 
+
+def _enrich_prediction_with_options_cached(pred: dict, ticker: str, pricing_model=None) -> dict:
+    """
+    Add options data to prediction result using cached option data.
+    This version uses the cached option snapshot to avoid redundant API calls.
+    
+    Args:
+        pred: Prediction dictionary to enrich
+        ticker: Stock ticker symbol
+        pricing_model: PricingModel.BLACK_SCHOLES or PricingModel.HESTON (default: BLACK_SCHOLES)
+    """
+    if pricing_model is None:
+        pricing_model = PricingModel.BLACK_SCHOLES
+    
+    try:
+        # Use cached option snapshot
+        opt = _cached_option_snapshot(ticker) or {}
+        if isinstance(opt, dict):
+            pred.update(opt)
+        
+        # IV minus realized
+        atm_iv = pred.get("atm_iv")
+        if atm_iv is not None and pred.get("vol_20d") is not None:
+            try:
+                pred["iv_minus_realized"] = float(atm_iv) - float(pred["vol_20d"])
+            except:
+                pred["iv_minus_realized"] = None
+        else:
+            pred["iv_minus_realized"] = None
+        
+        # Theo ATM call using selected pricing model
+        pred["theo_atm_call_price"] = None
+        pred["pricing_model_used"] = pricing_model.name if hasattr(pricing_model, 'name') else str(pricing_model)
+        last_close = pred.get("last_close")
+        opt_exp = pred.get("opt_exp")
+        if last_close is not None and atm_iv is not None and opt_exp:
+            try:
+                from src.core.pricing import price_option, OptionSpec
+                opt_exp_date = pd.to_datetime(opt_exp).date()
+                val_date = pd.Timestamp.today().date()
+                opt_spec = OptionSpec(
+                    spot=float(last_close),
+                    strike=float(last_close),
+                    maturity_date=opt_exp_date,
+                    valuation_date=val_date,
+                    rate=0.05,
+                    div_yield=0.0,
+                    vol=float(atm_iv),
+                    is_call=True,
+                )
+                theo_price = price_option(opt_spec, model=pricing_model)
+                pred["theo_atm_call_price"] = float(theo_price)
+            except Exception as price_err:
+                # If Heston fails, fallback to Black-Scholes
+                if pricing_model != PricingModel.BLACK_SCHOLES:
+                    try:
+                        theo_price = price_option(opt_spec, model=PricingModel.BLACK_SCHOLES)
+                        pred["theo_atm_call_price"] = float(theo_price)
+                        pred["pricing_model_used"] = "BLACK_SCHOLES (fallback)"
+                    except:
+                        pass
+    except Exception as e:
+        print(f"Options enrichment failed for {ticker}: {e}")
+    
+    return pred
+
 # ============================================================================
 # PAGE CONFIGURATION
 # ============================================================================
 st.set_page_config(
     page_title="QuantDesk | Stock Predictor",
-    page_icon="�",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ============================================================================
-# PROFESSIONAL DASHBOARD CSS - Bloomberg/Terminal Style
+# THEME-AWARE CSS GENERATOR
 # ============================================================================
-st.markdown("""
-<style>
-    /* ============================================================
-       QUANTDESK PROFESSIONAL TRADING DASHBOARD THEME
-       Bloomberg Terminal / Reuters Eikon Inspired
-       ============================================================ */
-    
-    /* === FONTS === */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-    
-    /* === ROOT VARIABLES === */
-    :root {
+def generate_theme_css(is_dark: bool = True) -> str:
+    """Generate CSS based on current theme."""
+    if is_dark:
+        theme_vars = """
         --bg-dark: #0a0e14;
         --bg-panel: #0d1117;
         --bg-card: #161b22;
@@ -354,92 +1063,143 @@ st.markdown("""
         --accent-purple: #a371f7;
         --accent-cyan: #39c5cf;
         
-        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
-        
         --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
         --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
         --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
         
+        --df-bg: #0d1117;
+        --df-header-bg: #161b22;
+        --df-row-alt: #0f141a;
+        """
+    else:
+        theme_vars = """
+        --bg-dark: #ffffff;
+        --bg-panel: #f6f8fa;
+        --bg-card: #ffffff;
+        --bg-elevated: #f3f4f6;
+        --bg-hover: #e5e7eb;
+        
+        --border-default: #d0d7de;
+        --border-muted: #d8dee4;
+        --border-accent: #0969da;
+        
+        --text-primary: #1f2328;
+        --text-secondary: #57606a;
+        --text-muted: #6e7781;
+        --text-link: #0969da;
+        
+        --accent-green: #1a7f37;
+        --accent-red: #cf222e;
+        --accent-blue: #0969da;
+        --accent-yellow: #9a6700;
+        --accent-purple: #8250df;
+        --accent-cyan: #0969da;
+        
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+        --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+        --shadow-lg: 0 8px 24px rgba(0,0,0,0.15);
+        
+        --df-bg: #ffffff;
+        --df-header-bg: #f6f8fa;
+        --df-row-alt: #f9fafb;
+        """
+    
+    return f"""
+<style>
+    /* ============================================================
+       QUANTDESK PROFESSIONAL TRADING DASHBOARD THEME
+       Dynamic Light/Dark Mode Support
+       ============================================================ */
+    
+    /* === FONTS === */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    /* === ROOT VARIABLES === */
+    :root {{
+        {theme_vars}
+        
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+        
         --radius-sm: 4px;
         --radius-md: 6px;
         --radius-lg: 8px;
-    }
+    }}
     
     /* === GLOBAL RESET === */
-    .stApp {
+    .stApp {{
         background: var(--bg-dark);
         font-family: var(--font-sans);
-    }
+    }}
     
     /* Hide Streamlit defaults */
-    #MainMenu, footer, header[data-testid="stHeader"] {
+    #MainMenu, footer, header[data-testid="stHeader"] {{
         visibility: hidden;
         height: 0;
-    }
-    .block-container {
+    }}
+    .block-container {{
         padding: 1rem 1.5rem 2rem 1.5rem;
         max-width: 100%;
-    }
+    }}
     
     /* === SIDEBAR === */
-    section[data-testid="stSidebar"] {
+    section[data-testid="stSidebar"] {{
         background: var(--bg-panel);
         border-right: 1px solid var(--border-default);
         width: 280px !important;
-    }
-    section[data-testid="stSidebar"] > div:first-child {
+    }}
+    section[data-testid="stSidebar"] > div:first-child {{
         padding: 0.75rem 1rem;
-    }
+    }}
     section[data-testid="stSidebar"] .stMarkdown p,
     section[data-testid="stSidebar"] label,
-    section[data-testid="stSidebar"] span {
+    section[data-testid="stSidebar"] span {{
         color: var(--text-primary) !important;
         font-size: 0.8rem;
-    }
+    }}
     section[data-testid="stSidebar"] input,
     section[data-testid="stSidebar"] .stSelectbox > div > div,
-    section[data-testid="stSidebar"] .stTextInput input {
+    section[data-testid="stSidebar"] .stTextInput input {{
         background: var(--bg-card) !important;
         border: 1px solid var(--border-default) !important;
         color: var(--text-primary) !important;
         font-family: var(--font-mono);
         font-size: 0.8rem;
         border-radius: var(--radius-sm);
-    }
+    }}
     section[data-testid="stSidebar"] .stSlider p,
-    section[data-testid="stSidebar"] .stSlider span {
+    section[data-testid="stSidebar"] .stSlider span {{
         color: var(--text-secondary) !important;
         font-size: 0.75rem;
-    }
-    section[data-testid="stSidebar"] .stCheckbox label {
+    }}
+    section[data-testid="stSidebar"] .stCheckbox label {{
         color: var(--text-secondary) !important;
-    }
-    section[data-testid="stSidebar"] .streamlit-expanderHeader {
+    }}
+    section[data-testid="stSidebar"] .streamlit-expanderHeader {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-radius: var(--radius-sm);
         color: var(--text-primary) !important;
         font-size: 0.75rem;
         font-weight: 500;
-    }
+    }}
     
     /* === TYPOGRAPHY === */
-    h1, h2, h3, h4, h5, h6, p, span, div, label, li {
+    h1, h2, h3, h4, h5, h6, p, span, div, label, li {{
         color: var(--text-primary) !important;
-    }
-    .stCaption, [data-testid="stCaptionContainer"] {
+    }}
+    .stCaption, [data-testid="stCaptionContainer"] {{
         color: var(--text-muted) !important;
         font-size: 0.7rem;
-    }
+    }}
     
     /* === TABS === */
-    .stTabs [data-baseweb="tab-list"] {
+    .stTabs [data-baseweb="tab-list"] {{
         background: transparent;
         border-bottom: 2px solid var(--border-muted);
         gap: 0;
-    }
-    .stTabs [data-baseweb="tab"] {
+    }}
+    .stTabs [data-baseweb="tab"] {{
         background: transparent;
         border: none;
         border-bottom: 2px solid transparent;
@@ -450,54 +1210,54 @@ st.markdown("""
         letter-spacing: 0.5px;
         padding: 0.75rem 1.5rem;
         margin-bottom: -2px;
-    }
-    .stTabs [data-baseweb="tab"]:hover {
+    }}
+    .stTabs [data-baseweb="tab"]:hover {{
         color: var(--text-primary);
-    }
-    .stTabs [aria-selected="true"] {
+    }}
+    .stTabs [aria-selected="true"] {{
         border-bottom-color: var(--accent-blue) !important;
         color: var(--text-primary) !important;
-    }
+    }}
     
     /* === METRIC CARDS === */
-    [data-testid="stMetric"] {
+    [data-testid="stMetric"] {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-radius: var(--radius-md);
         padding: 1rem 1.25rem;
         box-shadow: var(--shadow-sm);
-    }
-    [data-testid="stMetric"]:hover {
+    }}
+    [data-testid="stMetric"]:hover {{
         border-color: var(--border-default);
         box-shadow: var(--shadow-md);
-    }
-    [data-testid="stMetric"] label {
+    }}
+    [data-testid="stMetric"] label {{
         color: var(--text-muted) !important;
         font-size: 0.65rem !important;
         font-weight: 600;
         letter-spacing: 1px;
         text-transform: uppercase;
-    }
+    }}
     [data-testid="stMetric"] [data-testid="stMetricValue"],
-    [data-testid="stMetric"] [data-testid="stMetricValue"] div {
+    [data-testid="stMetric"] [data-testid="stMetricValue"] div {{
         color: var(--text-primary) !important;
         font-family: var(--font-mono);
         font-size: 1.5rem !important;
         font-weight: 600;
-    }
-    [data-testid="stMetricDelta"] {
+    }}
+    [data-testid="stMetricDelta"] {{
         font-family: var(--font-mono);
         font-size: 0.75rem;
-    }
-    [data-testid="stMetricDelta"][data-testid-direction="up"] {
+    }}
+    [data-testid="stMetricDelta"][data-testid-direction="up"] {{
         color: var(--accent-green) !important;
-    }
-    [data-testid="stMetricDelta"][data-testid-direction="down"] {
+    }}
+    [data-testid="stMetricDelta"][data-testid-direction="down"] {{
         color: var(--accent-red) !important;
-    }
+    }}
     
     /* === BUTTONS === */
-    .stButton > button {
+    .stButton > button {{
         background: var(--accent-blue);
         border: none;
         border-radius: var(--radius-sm);
@@ -509,339 +1269,260 @@ st.markdown("""
         padding: 0.6rem 1.25rem;
         text-transform: uppercase;
         transition: all 0.15s ease;
-    }
-    .stButton > button:hover {
+    }}
+    .stButton > button:hover {{
         background: #1f6feb;
         box-shadow: var(--shadow-md);
         transform: translateY(-1px);
-    }
-    .stButton > button:active {
+    }}
+    .stButton > button:active {{
         transform: translateY(0);
-    }
-    .stButton > button[kind="secondary"] {
+    }}
+    .stButton > button[kind="secondary"] {{
         background: transparent;
         border: 1px solid var(--border-default);
         color: var(--text-primary) !important;
-    }
-    .stButton > button[kind="secondary"]:hover {
+    }}
+    .stButton > button[kind="secondary"]:hover {{
         background: var(--bg-hover);
         border-color: var(--text-secondary);
-    }
+    }}
     
-    /* === DATAFRAMES/TABLES - COMPREHENSIVE DARK THEME === */
-    /* Main container */
+    /* === DATAFRAMES/TABLES - THEME AWARE === */
     .stDataFrame,
     [data-testid="stDataFrame"],
-    .stDataFrame > div {
-        border: 1px solid #30363d !important;
+    .stDataFrame > div {{
+        border: 1px solid var(--border-default) !important;
         border-radius: 8px !important;
         overflow: hidden !important;
-        background: #0d1117 !important;
-    }
+        background: var(--df-bg) !important;
+    }}
     
-    /* Resizable container */
-    .stDataFrame [data-testid="stDataFrameResizable"],
-    [data-testid="stDataFrameResizable"] {
-        background: #0d1117 !important;
-    }
-    
-    /* Glide Data Editor - the main table component */
+    [data-testid="stDataFrameResizable"],
     [data-testid="stDataFrameGlideDataEditor"],
     .dvn-scroller,
     .dvn-underlay,
     .dvn-scroll-inner,
     div[data-testid="glide-data-grid-canvas"],
     .gdg-style,
-    [class*="glideDataEditor"] {
-        background: #0d1117 !important;
-        background-color: #0d1117 !important;
-    }
+    [class*="glideDataEditor"] {{
+        background: var(--df-bg) !important;
+        background-color: var(--df-bg) !important;
+    }}
     
-    /* Canvas and cell backgrounds */
     canvas,
-    .dvn-scroller canvas {
-        background: #0d1117 !important;
-    }
+    .dvn-scroller canvas {{
+        background: var(--df-bg) !important;
+    }}
     
-    /* Header row styling */
     .dvn-header,
     [data-testid="stDataFrameGlideDataEditor"] .dvn-header,
     .gdg-header-row,
-    .dvn-scroller .dvn-header {
-        background: #161b22 !important;
-        background-color: #161b22 !important;
-    }
+    .dvn-scroller .dvn-header {{
+        background: var(--df-header-bg) !important;
+        background-color: var(--df-header-bg) !important;
+    }}
     
-    /* All text in dataframe must be light */
     .stDataFrame *,
     [data-testid="stDataFrame"] *,
     .dvn-scroller *,
     .gdg-cell *,
-    [data-testid="stDataFrameGlideDataEditor"] * {
-        color: #f0f6fc !important;
-    }
+    [data-testid="stDataFrameGlideDataEditor"] * {{
+        color: var(--text-primary) !important;
+    }}
     
-    /* Table wrapper and scrollbar area */
     .stDataFrame > div > div,
     .stDataFrame iframe,
-    [data-testid="stDataFrame"] > div {
-        background: #0d1117 !important;
-    }
+    [data-testid="stDataFrame"] > div {{
+        background: var(--df-bg) !important;
+    }}
     
-    /* Column resize handles */
-    .dvn-resize-handle {
-        background: #30363d !important;
-    }
+    .dvn-resize-handle {{
+        background: var(--border-default) !important;
+    }}
     
-    /* Row numbers column */
     .dvn-row-number,
-    .gdg-row-number {
-        background: #161b22 !important;
-        color: #8b949e !important;
-    }
+    .gdg-row-number {{
+        background: var(--df-header-bg) !important;
+        color: var(--text-muted) !important;
+    }}
     
-    /* Scrollbars */
     .stDataFrame ::-webkit-scrollbar,
-    [data-testid="stDataFrame"] ::-webkit-scrollbar {
-        background: #0d1117 !important;
+    [data-testid="stDataFrame"] ::-webkit-scrollbar {{
+        background: var(--df-bg) !important;
         width: 8px;
         height: 8px;
-    }
+    }}
     .stDataFrame ::-webkit-scrollbar-thumb,
-    [data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {
-        background: #30363d !important;
+    [data-testid="stDataFrame"] ::-webkit-scrollbar-thumb {{
+        background: var(--border-default) !important;
         border-radius: 4px;
-    }
+    }}
     .stDataFrame ::-webkit-scrollbar-track,
-    [data-testid="stDataFrame"] ::-webkit-scrollbar-track {
-        background: #0d1117 !important;
-    }
+    [data-testid="stDataFrame"] ::-webkit-scrollbar-track {{
+        background: var(--df-bg) !important;
+    }}
     
-    /* Selection highlight */
     .dvn-cell-selected,
-    .gdg-cell-selected {
-        background: #388bfd30 !important;
-    }
+    .gdg-cell-selected {{
+        background: rgba(56, 139, 253, 0.2) !important;
+    }}
     
-    /* Hover state */
     .dvn-cell:hover,
-    .gdg-cell:hover {
-        background: #21262d !important;
-    }
+    .gdg-cell:hover {{
+        background: var(--bg-hover) !important;
+    }}
     
-    /* Empty state / no data message */
-    .stDataFrame [data-testid="stDataFrameEmpty"] {
-        background: #0d1117 !important;
-        color: #8b949e !important;
-    }
+    /* === SELECTBOX DROPDOWN === */
+    [data-baseweb="select"] > div,
+    [data-baseweb="popover"] > div,
+    div[data-baseweb="popover"] {{
+        background: var(--bg-card) !important;
+    }}
+    [data-baseweb="menu"],
+    ul[role="listbox"],
+    div[role="listbox"] {{
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-default) !important;
+        border-radius: 6px !important;
+    }}
+    [data-baseweb="menu"] li,
+    ul[role="listbox"] li,
+    div[role="listbox"] > div,
+    [role="option"] {{
+        background: var(--bg-card) !important;
+        color: var(--text-primary) !important;
+        font-family: 'JetBrains Mono', monospace !important;
+    }}
+    [data-baseweb="menu"] li:hover,
+    ul[role="listbox"] li:hover,
+    [role="option"]:hover {{
+        background: var(--bg-hover) !important;
+        color: var(--text-primary) !important;
+    }}
+    [data-baseweb="menu"] li[aria-selected="true"],
+    [role="option"][aria-selected="true"] {{
+        background: var(--accent-blue) !important;
+        color: white !important;
+    }}
+    .stSelectbox [data-baseweb="select"] span,
+    .stSelectbox div[data-baseweb="select"] > div > div {{
+        color: var(--text-primary) !important;
+    }}
+    .stMultiSelect [data-baseweb="tag"] {{
+        background: var(--accent-blue) !important;
+        color: white !important;
+    }}
+    .stMultiSelect [data-baseweb="tag"] span {{
+        color: white !important;
+    }}
     
-    /* === AGGRESSIVE DATAFRAME OVERRIDES === */
-    /* Target the actual data grid inner elements */
-    [data-testid="stDataFrame"] > div:first-child,
-    [data-testid="stDataFrame"] > div > div,
-    .element-container:has([data-testid="stDataFrame"]) > div,
-    [data-testid="stDataFrameResizable"] > div,
-    [data-testid="stDataFrameResizable"] > div > div {
-        background-color: #0d1117 !important;
-    }
+    [data-baseweb="select"] {{
+        background: var(--bg-card) !important;
+    }}
+    [data-baseweb="select"] > div {{
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
+    }}
+    [data-baseweb="select"] [data-baseweb="input"] {{
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
+    }}
+    [data-baseweb="popover"] {{
+        background: var(--bg-card) !important;
+    }}
+    [data-baseweb="popover"] > div {{
+        background: var(--bg-card) !important;
+    }}
+    .stSelectbox div,
+    .stSelectbox [data-baseweb="select"] div,
+    .stSelectbox [class*="css"] {{
+        background-color: var(--bg-card) !important;
+    }}
+    [data-baseweb="base-input"],
+    [data-baseweb="base-input"] > div {{
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
+    }}
+    .stSelectbox [data-baseweb="select"]:focus-within,
+    .stSelectbox [data-baseweb="select"]:focus,
+    .stSelectbox [data-baseweb="select"]:active {{
+        background: var(--bg-card) !important;
+        background-color: var(--bg-card) !important;
+    }}
     
-    /* Force all iframes to have transparent/dark background */
-    iframe[title*="dataframe"],
-    iframe[title*="DataFrame"],
-    .stDataFrame iframe {
-        background: #0d1117 !important;
-        border: none !important;
-    }
+    /* === PROGRESS BAR === */
+    .stProgress > div > div {{
+        background: var(--bg-elevated);
+        border-radius: var(--radius-sm);
+    }}
+    .stProgress > div > div > div {{
+        background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+        border-radius: var(--radius-sm);
+    }}
     
-    /* Style override with higher specificity */
-    .stApp .stDataFrame,
-    .stApp [data-testid="stDataFrame"],
-    .main .stDataFrame,
-    section[data-testid="stMain"] .stDataFrame {
-        background: #0d1117 !important;
-    }
-    
-    /* Override any inline white backgrounds */
-    div[style*="background: white"],
-    div[style*="background-color: white"],
-    div[style*="background: rgb(255"],
-    div[style*="background-color: rgb(255"] {
-        background: #0d1117 !important;
-        background-color: #0d1117 !important;
-    }
+    /* === ALERTS === */
+    .stAlert {{
+        border-radius: var(--radius-md);
+        border-left-width: 4px;
+    }}
+    .stSuccess {{
+        background: rgba(63, 185, 80, 0.1);
+        border-left-color: var(--accent-green);
+    }}
+    .stWarning {{
+        background: rgba(210, 153, 34, 0.1);
+        border-left-color: var(--accent-yellow);
+    }}
+    .stError {{
+        background: rgba(248, 81, 73, 0.1);
+        border-left-color: var(--accent-red);
+    }}
+    .stInfo {{
+        background: rgba(56, 139, 253, 0.1);
+        border-left-color: var(--accent-blue);
+    }}
     
     /* === EXPANDERS === */
-    .streamlit-expanderHeader {
+    .streamlit-expanderHeader {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-radius: var(--radius-md);
         color: var(--text-primary) !important;
         font-size: 0.85rem;
         font-weight: 500;
-    }
-    .streamlit-expanderHeader:hover {
+    }}
+    .streamlit-expanderHeader:hover {{
         background: var(--bg-elevated);
         border-color: var(--border-default);
-    }
-    .streamlit-expanderContent {
+    }}
+    .streamlit-expanderContent {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-top: none;
         border-radius: 0 0 var(--radius-md) var(--radius-md);
-    }
+    }}
     
     /* === INPUTS === */
     .stTextInput > div > div > input,
     .stNumberInput > div > div > input,
     .stSelectbox > div > div,
-    .stMultiSelect > div {
+    .stMultiSelect > div {{
         background: var(--bg-card) !important;
         border: 1px solid var(--border-muted) !important;
         border-radius: var(--radius-sm);
         color: var(--text-primary) !important;
         font-family: var(--font-mono);
         font-size: 0.85rem;
-    }
+    }}
     .stTextInput > div > div > input:focus,
-    .stSelectbox > div > div:focus-within {
+    .stSelectbox > div > div:focus-within {{
         border-color: var(--accent-blue) !important;
         box-shadow: 0 0 0 2px rgba(56, 139, 253, 0.2);
-    }
-    
-    /* === SELECTBOX DROPDOWN MENU FIX === */
-    /* Main dropdown container */
-    [data-baseweb="select"] > div,
-    [data-baseweb="popover"] > div,
-    div[data-baseweb="popover"] {
-        background: #161b22 !important;
-    }
-    /* Dropdown menu list */
-    [data-baseweb="menu"],
-    ul[role="listbox"],
-    div[role="listbox"] {
-        background: #161b22 !important;
-        border: 1px solid #30363d !important;
-        border-radius: 6px !important;
-    }
-    /* Dropdown menu items */
-    [data-baseweb="menu"] li,
-    ul[role="listbox"] li,
-    div[role="listbox"] > div,
-    [role="option"] {
-        background: #161b22 !important;
-        color: #f0f6fc !important;
-        font-family: 'JetBrains Mono', monospace !important;
-    }
-    /* Dropdown menu item hover */
-    [data-baseweb="menu"] li:hover,
-    ul[role="listbox"] li:hover,
-    [role="option"]:hover {
-        background: #21262d !important;
-        color: #f0f6fc !important;
-    }
-    /* Selected item in dropdown */
-    [data-baseweb="menu"] li[aria-selected="true"],
-    [role="option"][aria-selected="true"] {
-        background: #388bfd !important;
-        color: white !important;
-    }
-    /* Selectbox value display */
-    .stSelectbox [data-baseweb="select"] span,
-    .stSelectbox div[data-baseweb="select"] > div > div {
-        color: #f0f6fc !important;
-    }
-    /* Multiselect tags */
-    .stMultiSelect [data-baseweb="tag"] {
-        background: #388bfd !important;
-        color: white !important;
-    }
-    .stMultiSelect [data-baseweb="tag"] span {
-        color: white !important;
-    }
-    
-    /* === DROPDOWN FIX - Prevent white background on click === */
-    /* Target the select control container */
-    [data-baseweb="select"] {
-        background: #161b22 !important;
-    }
-    [data-baseweb="select"] > div {
-        background: #161b22 !important;
-        background-color: #161b22 !important;
-    }
-    /* Target the input container when focused */
-    [data-baseweb="select"] [data-baseweb="input"] {
-        background: #161b22 !important;
-        background-color: #161b22 !important;
-    }
-    /* Target popover/dropdown container */
-    [data-baseweb="popover"] {
-        background: #161b22 !important;
-    }
-    [data-baseweb="popover"] > div {
-        background: #161b22 !important;
-    }
-    /* Override any white backgrounds in select */
-    .stSelectbox div,
-    .stSelectbox [data-baseweb="select"] div,
-    .stSelectbox [class*="css"] {
-        background-color: #161b22 !important;
-    }
-    /* Fix for the control wrapper */
-    [data-baseweb="base-input"],
-    [data-baseweb="base-input"] > div {
-        background: #161b22 !important;
-        background-color: #161b22 !important;
-    }
-    /* When selectbox is active/focused */
-    .stSelectbox [data-baseweb="select"]:focus-within,
-    .stSelectbox [data-baseweb="select"]:focus,
-    .stSelectbox [data-baseweb="select"]:active {
-        background: #161b22 !important;
-        background-color: #161b22 !important;
-    }
-    /* Override inline styles that might set white */
-    .stSelectbox [style*="background: rgb(255"],
-    .stSelectbox [style*="background-color: rgb(255"],
-    .stSelectbox [style*="background: white"],
-    .stSelectbox [style*="background-color: white"] {
-        background: #161b22 !important;
-        background-color: #161b22 !important;
-    }
-    
-    /* === PROGRESS BAR === */
-    .stProgress > div > div {
-        background: var(--bg-elevated);
-        border-radius: var(--radius-sm);
-    }
-    .stProgress > div > div > div {
-        background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
-        border-radius: var(--radius-sm);
-    }
-    
-    /* === ALERTS === */
-    .stAlert {
-        border-radius: var(--radius-md);
-        border-left-width: 4px;
-    }
-    .stSuccess {
-        background: rgba(63, 185, 80, 0.1);
-        border-left-color: var(--accent-green);
-    }
-    .stWarning {
-        background: rgba(210, 153, 34, 0.1);
-        border-left-color: var(--accent-yellow);
-    }
-    .stError {
-        background: rgba(248, 81, 73, 0.1);
-        border-left-color: var(--accent-red);
-    }
-    .stInfo {
-        background: rgba(56, 139, 253, 0.1);
-        border-left-color: var(--accent-blue);
-    }
+    }}
     
     /* === CUSTOM CLASSES === */
-    .section-title {
+    .section-title {{
         border-bottom: 2px solid var(--border-muted);
         color: var(--text-secondary) !important;
         font-size: 0.7rem;
@@ -850,60 +1531,60 @@ st.markdown("""
         margin: 1.5rem 0 1rem 0;
         padding-bottom: 0.5rem;
         text-transform: uppercase;
-    }
+    }}
     
-    .metric-card {
+    .metric-card {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-radius: var(--radius-md);
         padding: 1rem;
-    }
+    }}
     
-    .metric-label {
+    .metric-label {{
         color: var(--text-muted);
         font-size: 0.65rem;
         font-weight: 600;
         letter-spacing: 1px;
         text-transform: uppercase;
-    }
+    }}
     
-    .metric-value {
+    .metric-value {{
         color: var(--text-primary);
         font-family: var(--font-mono);
         font-size: 1.5rem;
         font-weight: 600;
         margin-top: 0.25rem;
-    }
+    }}
     
-    .metric-value.positive { color: var(--accent-green); }
-    .metric-value.negative { color: var(--accent-red); }
-    .metric-value.neutral { color: var(--text-secondary); }
+    .metric-value.positive {{ color: var(--accent-green); }}
+    .metric-value.negative {{ color: var(--accent-red); }}
+    .metric-value.neutral {{ color: var(--text-secondary); }}
     
-    .status-badge {
+    .status-badge {{
         border-radius: 12px;
         display: inline-block;
         font-family: var(--font-mono);
         font-size: 0.7rem;
         font-weight: 600;
         padding: 0.25rem 0.75rem;
-    }
-    .status-badge.bullish {
+    }}
+    .status-badge.bullish {{
         background: rgba(63, 185, 80, 0.15);
         border: 1px solid var(--accent-green);
         color: var(--accent-green);
-    }
-    .status-badge.bearish {
+    }}
+    .status-badge.bearish {{
         background: rgba(248, 81, 73, 0.15);
         border: 1px solid var(--accent-red);
         color: var(--accent-red);
-    }
-    .status-badge.neutral {
+    }}
+    .status-badge.neutral {{
         background: rgba(139, 148, 158, 0.15);
         border: 1px solid var(--text-secondary);
         color: var(--text-secondary);
-    }
+    }}
     
-    .ticker-symbol {
+    .ticker-symbol {{
         background: var(--accent-blue);
         border-radius: var(--radius-sm);
         color: white !important;
@@ -911,197 +1592,60 @@ st.markdown("""
         font-size: 0.85rem;
         font-weight: 600;
         padding: 0.3rem 0.6rem;
-    }
+    }}
     
-    .data-row {
+    .data-row {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-radius: var(--radius-md);
         margin: 0.5rem 0;
         padding: 0.75rem 1rem;
-    }
-    .data-row:hover {
+    }}
+    .data-row:hover {{
         border-color: var(--border-default);
-    }
+    }}
     
-    .chart-container {
+    .chart-container {{
         background: var(--bg-card);
         border: 1px solid var(--border-muted);
         border-radius: var(--radius-md);
         padding: 1rem;
-    }
+    }}
     
-    .empty-state {
+    .empty-state {{
         background: var(--bg-card);
         border: 2px dashed var(--border-muted);
         border-radius: var(--radius-lg);
         color: var(--text-muted) !important;
         padding: 3rem 2rem;
         text-align: center;
-    }
+    }}
     
-    .divider {
+    .divider {{
         border: none;
         border-top: 1px solid var(--border-muted);
         margin: 1.5rem 0;
-    }
+    }}
     
-    /* === PLOTLY CHART OVERRIDES === */
-    .js-plotly-plot .plotly .main-svg {
-        background: transparent !important;
-    }
-    .js-plotly-plot .plotly .bg {
-        fill: transparent !important;
-    }
-    
-    /* === LOADING INDICATORS === */
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    @keyframes shimmer {
-        0% { background-position: -200% 0; }
-        100% { background-position: 200% 0; }
-    }
-    
-    .loading-pulse {
-        animation: pulse 1.5s ease-in-out infinite;
-    }
-    
-    .loading-spinner {
-        animation: spin 1s linear infinite;
-        border: 3px solid var(--border-muted);
-        border-radius: 50%;
-        border-top-color: var(--accent-blue);
-        display: inline-block;
-        height: 24px;
-        width: 24px;
-    }
-    
-    .loading-skeleton {
-        animation: shimmer 1.5s ease-in-out infinite;
-        background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-elevated) 50%, var(--bg-card) 75%);
-        background-size: 200% 100%;
-        border-radius: var(--radius-sm);
-        height: 1rem;
-    }
-    
-    .loading-card {
-        animation: pulse 1.5s ease-in-out infinite;
-        background: var(--bg-card);
-        border: 1px solid var(--border-muted);
-        border-radius: var(--radius-md);
-        padding: 2rem;
-        text-align: center;
-    }
-    
-    /* Streamlit spinner override */
-    .stSpinner > div {
-        border-color: var(--accent-blue) !important;
-        border-top-color: transparent !important;
-    }
-    .stSpinner > div > div {
-        color: var(--text-secondary) !important;
-    }
-    
-    /* === SECTION SPACING === */
-    .block-container > div > div > div {
-        margin-bottom: 0.5rem;
-    }
-    
-    /* Add gap between metric columns */
-    [data-testid="column"] {
-        padding: 0 0.375rem !important;
-    }
-    [data-testid="column"]:first-child {
-        padding-left: 0 !important;
-    }
-    [data-testid="column"]:last-child {
-        padding-right: 0 !important;
-    }
-    
-    /* Section spacing */
-    .section-divider {
-        border: none;
-        border-top: 1px solid var(--border-muted);
-        margin: 2rem 0;
-        position: relative;
-    }
-    .section-divider::after {
-        background: var(--bg-dark);
-        color: var(--text-muted);
-        content: attr(data-label);
-        font-size: 0.65rem;
-        left: 50%;
-        letter-spacing: 1px;
-        padding: 0 1rem;
-        position: absolute;
-        text-transform: uppercase;
-        top: -0.5rem;
-        transform: translateX(-50%);
-    }
-    
-    /* Chart container spacing */
-    .chart-wrapper {
-        background: var(--bg-card);
-        border: 1px solid var(--border-muted);
-        border-radius: var(--radius-md);
-        margin: 0.75rem 0;
-        padding: 1rem;
-    }
-    
-    /* Table wrapper with header */
-    .table-wrapper {
-        background: var(--bg-card);
-        border: 1px solid var(--border-muted);
-        border-radius: var(--radius-md);
-        margin: 0.75rem 0;
-        overflow: hidden;
-    }
-    .table-header {
-        background: var(--bg-elevated);
-        border-bottom: 1px solid var(--border-muted);
-        color: var(--text-secondary);
-        font-size: 0.7rem;
-        font-weight: 600;
-        letter-spacing: 1px;
-        padding: 0.75rem 1rem;
-        text-transform: uppercase;
-    }
-    
-    /* Card grid spacing */
-    .card-grid {
-        display: grid;
-        gap: 1rem;
-        margin: 1rem 0;
-    }
-    
-    /* Horizontal rule styling */
-    hr {
-        border: none;
-        border-top: 1px solid var(--border-muted);
-        margin: 1.5rem 0;
-    }
-    
-    /* === RESPONSIVE ADJUSTMENTS === */
-    @media (max-width: 768px) {
-        .block-container {
-            padding: 0.75rem 1rem;
-        }
-        [data-testid="stMetric"] {
+    /* === RESPONSIVE TWEAKS === */
+    @media (max-width: 768px) {{
+        section[data-testid="stSidebar"] {{
+            width: 260px !important;
+        }}
+        [data-testid="stMetric"] {{
             padding: 0.75rem;
-        }
+        }}
         [data-testid="stMetric"] [data-testid="stMetricValue"],
-        [data-testid="stMetric"] [data-testid="stMetricValue"] div {
+        [data-testid="stMetric"] [data-testid="stMetricValue"] div {{
             font-size: 1.2rem !important;
-        }
-    }
+        }}
+    }}
 </style>
-""", unsafe_allow_html=True)
+"""
+
+# NOTE: The static CSS block that was here has been removed.
+# Theme CSS is now handled dynamically by generate_theme_css() called below.
+# This allows proper light/dark mode switching.
 
 # ============================================================================
 # SESSION STATE INITIALIZATION
@@ -1113,27 +1657,113 @@ st.session_state.setdefault("prediction_horizon", 5)
 st.session_state.setdefault("period", "5y")
 st.session_state.setdefault("auto_optimize", True)
 st.session_state.setdefault("last_signals", None)
+st.session_state.setdefault("theme", "dark")  # Theme toggle state
+
+# ============================================================================
+# THEME CONFIGURATION
+# ============================================================================
+def get_theme_colors():
+    """Get color palette based on current theme."""
+    is_dark = st.session_state.get("theme", "dark") == "dark"
+    
+    if is_dark:
+        return {
+            "bg_dark": "#0a0e14",
+            "bg_panel": "#0d1117",
+            "bg_card": "#161b22",
+            "bg_elevated": "#1c2128",
+            "bg_hover": "#21262d",
+            "border_default": "#30363d",
+            "border_muted": "#21262d",
+            "border_accent": "#388bfd",
+            "text_primary": "#f0f6fc",
+            "text_secondary": "#8b949e",
+            "text_muted": "#6e7681",
+            "text_link": "#58a6ff",
+            "accent_green": "#3fb950",
+            "accent_red": "#f85149",
+            "accent_blue": "#388bfd",
+            "accent_yellow": "#d29922",
+            "accent_purple": "#a371f7",
+            "accent_cyan": "#39c5cf",
+            "chart_bg": "rgba(0,0,0,0)",
+            "chart_grid": "rgba(48,54,61,0.5)",
+        }
+    else:
+        return {
+            "bg_dark": "#ffffff",
+            "bg_panel": "#f6f8fa",
+            "bg_card": "#ffffff",
+            "bg_elevated": "#f3f4f6",
+            "bg_hover": "#e5e7eb",
+            "border_default": "#d0d7de",
+            "border_muted": "#d8dee4",
+            "border_accent": "#0969da",
+            "text_primary": "#1f2328",
+            "text_secondary": "#57606a",
+            "text_muted": "#6e7781",
+            "text_link": "#0969da",
+            "accent_green": "#1a7f37",
+            "accent_red": "#cf222e",
+            "accent_blue": "#0969da",
+            "accent_yellow": "#9a6700",
+            "accent_purple": "#8250df",
+            "accent_cyan": "#0969da",
+            "chart_bg": "rgba(255,255,255,0)",
+            "chart_grid": "rgba(208,215,222,0.5)",
+        }
+
+def get_plotly_template():
+    """Get Plotly layout settings based on theme."""
+    colors = get_theme_colors()
+    return {
+        "plot_bgcolor": colors["chart_bg"],
+        "paper_bgcolor": colors["chart_bg"],
+        "font": {"color": colors["text_secondary"], "size": 10},
+        "xaxis": {"gridcolor": colors["chart_grid"], "zeroline": False},
+        "yaxis": {"gridcolor": colors["chart_grid"]},
+    }
+
+# Get current theme colors
+THEME = get_theme_colors()
+
+# Inject theme-aware CSS
+is_dark_mode = st.session_state.get("theme", "dark") == "dark"
+st.markdown(generate_theme_css(is_dark_mode), unsafe_allow_html=True)
 
 # ============================================================================
 # SIDEBAR - Professional Control Panel
 # ============================================================================
 
-# Brand header
-st.sidebar.markdown("""
-<div style='
-    background: linear-gradient(135deg, #388bfd 0%, #a371f7 100%);
-    border-radius: 6px;
-    margin: -0.5rem -0.5rem 1rem -0.5rem;
-    padding: 1rem;
-'>
-    <div style='font-size: 1.2rem; font-weight: 700; color: white; font-family: Inter, sans-serif; letter-spacing: -0.5px;'>
-        QuantDesk
+# Brand header with theme toggle
+theme_col1, theme_col2 = st.sidebar.columns([3, 1])
+with theme_col1:
+    st.markdown("""
+    <div style='
+        background: linear-gradient(135deg, #388bfd 0%, #a371f7 100%);
+        border-radius: 6px;
+        padding: 0.75rem 1rem;
+    '>
+        <div style='font-size: 1.1rem; font-weight: 700; color: white; font-family: Inter, sans-serif; letter-spacing: -0.5px;'>
+            QuantDesk
+        </div>
+        <div style='font-size: 0.6rem; color: rgba(255,255,255,0.8); margin-top: 0.15rem; letter-spacing: 1px; text-transform: uppercase;'>
+            ML Trading Signals
+        </div>
     </div>
-    <div style='font-size: 0.65rem; color: rgba(255,255,255,0.8); margin-top: 0.25rem; letter-spacing: 1px; text-transform: uppercase;'>
-        ML Trading Signals
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+with theme_col2:
+    # Theme toggle button
+    current_theme = st.session_state.get("theme", "dark")
+    theme_icon = "🌙" if current_theme == "dark" else "☀️"
+    theme_label = "Light" if current_theme == "dark" else "Dark"
+    
+    if st.button(theme_icon, key="theme_toggle", help=f"Switch to {theme_label} mode", use_container_width=True):
+        st.session_state["theme"] = "light" if current_theme == "dark" else "dark"
+        st.rerun()
+
+st.sidebar.markdown("<div style='height: 0.5rem'></div>", unsafe_allow_html=True)
 
 # === UNIVERSE SECTION ===
 st.sidebar.markdown('<p class="section-title">Universe</p>', unsafe_allow_html=True)
@@ -1143,7 +1773,16 @@ watchlist_text = st.sidebar.text_input(
     label_visibility="collapsed",
     placeholder="Enter tickers (comma-separated)..."
 )
-tickers = [t.strip().upper() for t in watchlist_text.split(",") if t.strip()]
+
+# Validate and parse tickers
+tickers, ticker_validation_errors = validate_tickers(watchlist_text)
+
+# Show validation feedback in sidebar
+if ticker_validation_errors and watchlist_text.strip():
+    # Only show first error to avoid cluttering sidebar
+    st.sidebar.caption(f"⚠️ {ticker_validation_errors[0]}")
+elif tickers:
+    st.sidebar.caption(f"✓ {len(tickers)} valid ticker(s)")
 
 # Quick presets
 preset_cols = st.sidebar.columns(3)
@@ -1160,7 +1799,7 @@ with preset_cols[2]:
 # Apply preset if clicked
 if "_preset_tickers" in st.session_state and st.session_state["_preset_tickers"]:
     watchlist_text = st.session_state["_preset_tickers"]
-    tickers = [t.strip().upper() for t in watchlist_text.split(",") if t.strip()]
+    tickers, _ = validate_tickers(watchlist_text)  # Presets are pre-validated, ignore errors
     st.session_state["_preset_tickers"] = None
 
 # === MODEL CONFIGURATION ===
@@ -1274,6 +1913,96 @@ with st.sidebar.expander("Options Trading", expanded=False):
     prefer_spreads = st.checkbox("Prefer spreads", value=bool(op.prefer_spreads))
     auto_run_trader = st.checkbox("Auto-execute trades", value=False)
 
+# === CACHE MANAGEMENT ===
+st.sidebar.markdown('<p class="section-title">Cache Management</p>', unsafe_allow_html=True)
+with st.sidebar.expander("🗑️ Clear Caches", expanded=False):
+    st.caption("Clear cached data for fresh results:")
+    cache_cols = st.columns(2)
+    with cache_cols[0]:
+        if st.button("Clear Predictions", use_container_width=True):
+            clear_prediction_cache()
+            st.success("✓ Predictions cleared")
+    with cache_cols[1]:
+        if st.button("Clear Prices", use_container_width=True):
+            clear_price_cache()
+            st.success("✓ Prices cleared")
+    cache_cols2 = st.columns(2)
+    with cache_cols2[0]:
+        if st.button("Clear Options", use_container_width=True):
+            clear_options_cache()
+            st.success("✓ Options cleared")
+    with cache_cols2[1]:
+        if st.button("Clear Backtests", use_container_width=True):
+            clear_backtest_cache()
+            st.success("✓ Backtests cleared")
+    if st.button("🔄 Clear All Caches", use_container_width=True, type="primary"):
+        clear_all_caches()
+        st.success("✓ All caches cleared!")
+
+# === OPTIONAL FEATURES ===
+if HAS_LIVE_UPDATES:
+    st.sidebar.markdown('<p class="section-title">Live Updates</p>', unsafe_allow_html=True)
+    init_live_state()
+    live_enabled = st.sidebar.toggle(
+        "🔴 Enable Live Mode",
+        value=st.session_state.get("live_enabled", False),
+        key="sidebar_live_toggle",
+        help="Auto-refresh prices and charts during market hours"
+    )
+    st.session_state["live_enabled"] = live_enabled
+    
+    if live_enabled:
+        interval = st.sidebar.selectbox(
+            "Refresh Interval",
+            options=[10, 30, 60, 120, 300],
+            index=1,
+            format_func=lambda x: f"{x}s" if x < 60 else f"{x//60}m",
+            key="sidebar_live_interval"
+        )
+        set_live_config(refresh_interval=interval)
+        
+        # Show market status
+        if is_market_hours():
+            st.sidebar.success("🟢 Market Open")
+        else:
+            st.sidebar.warning("🟠 After Hours")
+
+if HAS_DATABASE:
+    st.sidebar.markdown('<p class="section-title">History</p>', unsafe_allow_html=True)
+    with st.sidebar.expander("📚 Query History", expanded=False):
+        recent_queries = get_recent_queries(limit=5, query_type="prediction")
+        if recent_queries:
+            for q in recent_queries:
+                tickers_str = ", ".join(q["tickers"][:3])
+                if len(q["tickers"]) > 3:
+                    tickers_str += f" +{len(q['tickers'])-3}"
+                
+                label = q.get("label") or f"{tickers_str} • {q['model_type'].upper()}"
+                fav_icon = "⭐" if q.get("is_favorite") else "☆"
+                
+                col1, col2 = st.columns([4, 1])
+                with col1:
+                    if st.button(f"{fav_icon} {label}", key=f"query_{q['id']}", use_container_width=True):
+                        # Load query into current session
+                        st.session_state["_preset_tickers"] = ", ".join(q["tickers"])
+                        st.session_state["param_period"] = q["period"]
+                        st.session_state["param_model"] = q["model_type"]
+                        st.session_state["param_horizon"] = q["horizon"]
+                        st.rerun()
+                with col2:
+                    if st.button("⭐" if not q.get("is_favorite") else "★", key=f"fav_{q['id']}"):
+                        toggle_favorite_query(q["id"])
+                        st.rerun()
+        else:
+            st.caption("No recent queries")
+        
+        # Database stats
+        try:
+            stats = get_database_stats()
+            st.caption(f"📊 {stats.get('prediction_history_count', 0)} predictions stored")
+        except Exception:
+            pass
+
 # Sidebar footer
 st.sidebar.markdown("---")
 st.sidebar.caption(f"📊 {len(tickers)} ticker(s) • {period} • {horizon_label}")
@@ -1294,48 +2023,90 @@ with tab_dash:
     with header_cols[0]:
         run_btn = st.button("🚀 RUN PREDICTIONS", type="primary", key="run_predictions", use_container_width=True)
     with header_cols[1]:
+        tc = get_card_theme()
         st.markdown(f"""
         <div style='display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0;'>
             <span class='ticker-symbol'>{len(tickers)} TICKERS</span>
-            <span style='color: #8b949e; font-family: JetBrains Mono, monospace; font-size: 0.8rem;'>
+            <span style='color: {tc["label"]}; font-family: JetBrains Mono, monospace; font-size: 0.8rem;'>
                 {model_type.upper()} • {period} • {horizon_label} Horizon
             </span>
         </div>
         """, unsafe_allow_html=True)
     with header_cols[2]:
-        if st.session_state.get("pred_df") is not None:
+        # Show live status badge if available
+        if HAS_LIVE_UPDATES and st.session_state.get("live_enabled", False):
+            render_live_status_badge()
+        elif st.session_state.get("pred_df") is not None:
             st.markdown("<span class='status-badge bullish'>READY</span>", unsafe_allow_html=True)
     
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     
     # === RUN PREDICTIONS ===
     if run_btn:
-        if not tickers:
-            st.warning("Enter at least one ticker")
+        # Validate inputs before running
+        is_valid, validation_errors = validate_prediction_inputs(tickers, period, prediction_horizon, model_type)
+        
+        if not is_valid:
+            display_validation_errors(validation_errors)
+        elif not tickers:
+            st.warning("⚠️ Enter at least one ticker symbol in the sidebar")
         else:
             results = []
+            errors = []
             progress = st.progress(0)
             status = st.empty()
             
+            # Get current settings for toggles
+            current_auto_optimize = auto_optimize if 'auto_optimize' in dir() else True
+            current_use_elasticnet = use_elasticnet_select if 'use_elasticnet_select' in dir() else False
+            current_pricing_model = pricing_model if 'pricing_model' in dir() else PricingModel.BLACK_SCHOLES
+            
             for i, tk in enumerate(tickers):
                 status.text(f"Processing {tk} ({i+1}/{len(tickers)})...")
-                try:
-                    pred = predict_next_for_ticker(
-                        ticker=tk,
-                        period=period,
-                        model_type=model_type,
-                        horizon=prediction_horizon,
-                        run_gaf=run_gaf if 'run_gaf' in dir() else False,
+                
+                # Use cached prediction with safe API call wrapper
+                run_gaf_val = run_gaf if 'run_gaf' in dir() else False
+                pred, error = safe_api_call(
+                    _cached_prediction,
+                    ticker=tk,
+                    period=period,
+                    model_type=model_type,
+                    horizon=prediction_horizon,
+                    run_gaf=run_gaf_val,
+                    auto_optimize=current_auto_optimize,
+                    use_elasticnet=current_use_elasticnet,
+                    error_prefix=f"Prediction failed for {tk}"
+                )
+                
+                if error:
+                    errors.append((tk, error))
+                elif pred:
+                    # Enrich with options data using cached functions (with error handling)
+                    enriched_pred, enrich_error = safe_api_call(
+                        _enrich_prediction_with_options_cached, 
+                        pred, 
+                        tk,
+                        current_pricing_model,
+                        error_prefix=f"Options data failed for {tk}"
                     )
-                    # Enrich with options data
-                    pred = _enrich_prediction_with_options(pred, tk)
-                    results.append(pred)
-                except Exception as e:
-                    st.warning(f"{tk}: {e}")
+                    if enriched_pred:
+                        results.append(enriched_pred)
+                    else:
+                        # Use unenriched prediction if options fail
+                        results.append(pred)
+                        if enrich_error:
+                            errors.append((tk, f"Options data unavailable: {enrich_error}"))
+                
                 progress.progress((i + 1) / len(tickers))
             
             status.empty()
             progress.empty()
+            
+            # Display any errors that occurred
+            if errors:
+                with st.expander(f"⚠️ {len(errors)} ticker(s) had issues (click to expand)", expanded=False):
+                    for tk, err in errors:
+                        st.warning(f"**{tk}**: {err}")
             
             if results:
                 pred_df = pd.DataFrame(results)
@@ -1350,6 +2121,25 @@ with tab_dash:
                 st.session_state["model_type"] = model_type
                 st.session_state["period"] = period
                 st.session_state["prediction_horizon"] = prediction_horizon
+                
+                # === OPTIONAL: Save to database ===
+                if HAS_DATABASE:
+                    try:
+                        # Save predictions batch
+                        save_predictions_batch(results, period, model_type, prediction_horizon)
+                        
+                        # Save query for history
+                        save_query(
+                            query_type="prediction",
+                            tickers=tickers,
+                            period=period,
+                            model_type=model_type,
+                            horizon=prediction_horizon,
+                            extra_params={"trade_mode": trade_mode, "auto_optimize": auto_optimize}
+                        )
+                    except Exception as db_err:
+                        # Silently fail - database is optional
+                        pass
                 
                 # Build and save signals
                 signals = build_signals_from_pred_df(
@@ -1419,15 +2209,16 @@ with tab_dash:
         display_horizon_label = f"{display_horizon}D"
         
         # === HERO METRICS PANEL ===
-        st.markdown("""
+        tc = get_card_theme()
+        st.markdown(f"""
         <div style='
-            background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
-            border: 1px solid #30363d;
+            background: linear-gradient(135deg, {tc["bg"]} 0%, {"#0d1117" if st.session_state.get("theme", "dark") == "dark" else "#f3f4f6"} 100%);
+            border: 1px solid {tc["border"]};
             border-radius: 8px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
         '>
-            <p style='color: #8b949e; font-size: 0.7rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 1rem;'>
+            <p style='color: {tc["label"]}; font-size: 0.7rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 1rem;'>
                 📊 PORTFOLIO OVERVIEW
             </p>
         </div>
@@ -1547,23 +2338,26 @@ with tab_dash:
         bull_pct = (bullish_count / max(len(pred_df), 1)) * 100
         bear_pct = (bearish_count / max(len(pred_df), 1)) * 100
         
+        # Get theme colors for cards
+        tc = get_card_theme()
+        
         card_cols = st.columns(4)
         
         # Card 1: Bull/Bear Ratio
         with card_cols[0]:
             ratio_html = f"""
-            <div style='background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;text-align:center;'>
-                <div style='color:#8b949e;font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+            <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
                     BULL / BEAR RATIO
                 </div>
                 <div style='margin-top:0.5rem;'>
-                    <span style='color:#3fb950;font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;'>{bullish_count}</span>
-                    <span style='color:#6e7681;font-size:1rem;'> / </span>
-                    <span style='color:#f85149;font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;'>{bearish_count}</span>
+                    <span style='color:{tc["green"]};font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;'>{bullish_count}</span>
+                    <span style='color:{tc["muted"]};font-size:1rem;'> / </span>
+                    <span style='color:{tc["red"]};font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;'>{bearish_count}</span>
                 </div>
-                <div style='background:#21262d;border-radius:4px;height:6px;margin-top:0.75rem;overflow:hidden;display:flex;'>
-                    <div style='background:#3fb950;width:{bull_pct:.0f}%;height:100%;'></div>
-                    <div style='background:#f85149;width:{bear_pct:.0f}%;height:100%;'></div>
+                <div style='background:{tc["bar_bg"]};border-radius:4px;height:6px;margin-top:0.75rem;overflow:hidden;display:flex;'>
+                    <div style='background:{tc["green"]};width:{bull_pct:.0f}%;height:100%;'></div>
+                    <div style='background:{tc["red"]};width:{bear_pct:.0f}%;height:100%;'></div>
                 </div>
             </div>
             """
@@ -1572,24 +2366,24 @@ with tab_dash:
         # Card 2: Market Bias
         with card_cols[1]:
             if avg_pred > 0.5:
-                bias_color = "#3fb950"
+                bias_color = tc["green"]
                 bias_text = "▲ BULLISH"
             elif avg_pred < -0.5:
-                bias_color = "#f85149"
+                bias_color = tc["red"]
                 bias_text = "▼ BEARISH"
             else:
-                bias_color = "#d29922"
+                bias_color = tc["yellow"]
                 bias_text = "◆ NEUTRAL"
             
             bias_html = f"""
-            <div style='background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;text-align:center;'>
-                <div style='color:#8b949e;font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+            <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
                     MARKET BIAS
                 </div>
                 <div style='color:{bias_color};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
                     {bias_text}
                 </div>
-                <div style='color:#6e7681;font-size:0.75rem;margin-top:0.25rem;'>
+                <div style='color:{tc["muted"]};font-size:0.75rem;margin-top:0.25rem;'>
                     Avg: {avg_pred:+.2f}%
                 </div>
             </div>
@@ -1599,24 +2393,24 @@ with tab_dash:
         # Card 3: Risk Level
         with card_cols[2]:
             if avg_vol < 20:
-                risk_color = "#3fb950"
+                risk_color = tc["green"]
                 risk_text = "LOW"
             elif avg_vol > 40:
-                risk_color = "#f85149"
+                risk_color = tc["red"]
                 risk_text = "HIGH"
             else:
-                risk_color = "#d29922"
+                risk_color = tc["yellow"]
                 risk_text = "MODERATE"
             
             risk_html = f"""
-            <div style='background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;text-align:center;'>
-                <div style='color:#8b949e;font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+            <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
                     RISK LEVEL
                 </div>
                 <div style='color:{risk_color};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
                     {risk_text}
                 </div>
-                <div style='color:#6e7681;font-size:0.75rem;margin-top:0.25rem;'>
+                <div style='color:{tc["muted"]};font-size:0.75rem;margin-top:0.25rem;'>
                     Vol: {avg_vol:.1f}%
                 </div>
             </div>
@@ -1627,14 +2421,14 @@ with tab_dash:
         with card_cols[3]:
             period_val = st.session_state.get("period", period).upper()
             period_html = f"""
-            <div style='background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1rem;text-align:center;'>
-                <div style='color:#8b949e;font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+            <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
                     PERIOD
                 </div>
-                <div style='color:#388bfd;font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
+                <div style='color:{tc["blue"]};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
                     {period_val}
                 </div>
-                <div style='color:#6e7681;font-size:0.75rem;margin-top:0.25rem;'>
+                <div style='color:{tc["muted"]};font-size:0.75rem;margin-top:0.25rem;'>
                     {display_horizon_label} forecast
                 </div>
             </div>
@@ -1647,159 +2441,334 @@ with tab_dash:
         st.markdown('<p class="section-title">Trading Signals</p>', unsafe_allow_html=True)
         
         cand_df = pred_df.copy()
-        
+
+        # === Add new columns for z-score, volatility scaling, ensemble ===
+        # Z-score: rolling mean/std of pred_next_ret per ticker (window=60, min 20)
         if "pred_next_ret" in cand_df.columns:
+            window = 60
+            min_periods = 20
+            # If multi-ticker, group by ticker; else, just rolling
+            if "ticker" in cand_df.columns:
+                cand_df["prediction_zscore"] = cand_df.groupby("ticker")["pred_next_ret"].transform(
+                    lambda x: (x - x.rolling(window, min_periods=min_periods).mean()) / x.rolling(window, min_periods=min_periods).std()
+                )
+            else:
+                cand_df["prediction_zscore"] = (cand_df["pred_next_ret"] - cand_df["pred_next_ret"].rolling(window, min_periods=min_periods).mean()) / cand_df["pred_next_ret"].rolling(window, min_periods=min_periods).std()
             cand_df["pred_next_ret_pct"] = cand_df["pred_next_ret"] * 100
             cand_df["abs_pred_pct"] = cand_df["pred_next_ret_pct"].abs()
         else:
             cand_df["abs_pred_pct"] = np.nan
-        
+
+        # Volatility-scaled position sizing (if available)
+        if "vol_scaled_quantity" not in cand_df.columns:
+            # If not present, try to compute from pred_next_ret and vol_20d
+            if "pred_next_ret" in cand_df.columns and "vol_20d" in cand_df.columns:
+                base_qty = 100  # Example base quantity
+                cand_df["base_quantity"] = base_qty
+                # scale = edge/vol, capped at 3x
+                cand_df["vol_scale_factor"] = (cand_df["pred_next_ret"].abs() / cand_df["vol_20d"]).clip(upper=3.0)
+                cand_df["vol_scaled_quantity"] = (cand_df["base_quantity"] * cand_df["vol_scale_factor"]).round(0)
+            else:
+                cand_df["base_quantity"] = np.nan
+                cand_df["vol_scale_factor"] = np.nan
+                cand_df["vol_scaled_quantity"] = np.nan
+
+        # Ensemble output (if present)
+        if "ensemble_prediction" not in cand_df.columns:
+            cand_df["ensemble_prediction"] = cand_df.get("ensemble_prediction", np.nan)
+        if "ensemble_confidence" not in cand_df.columns and "ensemble_confidence" in pred_df.columns:
+            cand_df["ensemble_confidence"] = pred_df["ensemble_confidence"]
+
         # Apply filters
         mask = pd.Series(True, index=cand_df.index)
         if "atm_iv" in cand_df.columns:
             mask &= cand_df["atm_iv"].between(min_iv, max_iv)
         if "abs_pred_pct" in cand_df.columns:
             mask &= (cand_df["abs_pred_pct"] >= min_move)
-        
+
         cand_df = cand_df[mask].copy()
-        
+
         sort_col = "abs_pred_pct" if "abs_pred_pct" in cand_df.columns else "pred_next_ret"
         if sort_col in cand_df.columns:
             cand_df = cand_df.sort_values(sort_col, ascending=False)
-        
-        # Display candidates table
-        if cand_df.empty:
-            st.info("No candidates matched filters. Adjust filter settings in sidebar.")
-            detail_universe = pred_df["ticker"].tolist()
-        else:
-            cols = [c for c in [
-                "ticker", "pred_next_ret_pct", "prob_up", "vol_20d",
-                "atm_iv", "pred_next_price", "num_features", "prob_up_gaf",
-            ] if c in cand_df.columns]
-            
-            # Style the dataframe with better column names
-            styled_df = cand_df[cols].copy()
-            styled_df = styled_df.rename(columns={
+
+        # Always use ALL tickers for analysis, not just filtered ones
+        detail_universe = pred_df["ticker"].tolist()
+
+        # === Build columns for display (ensure Z-SCORE always present) ===
+        cols = [
+            "ticker", "pred_next_ret_pct", "prediction_zscore", "prob_up", "vol_20d",
+            "base_quantity", "vol_scale_factor", "vol_scaled_quantity",
+            "ensemble_prediction", "ensemble_confidence",
+            "atm_iv", "pred_next_price", "num_features", "prob_up_gaf",
+        ]
+        # Always include Z-SCORE if possible
+        if "prediction_zscore" not in cand_df.columns:
+            cand_df["prediction_zscore"] = np.nan
+        cols = [c for c in cols if c in cand_df.columns]
+
+        # Style the dataframe with better column names
+        styled_df = cand_df[cols].copy()
+        styled_df = styled_df.rename(columns={
+            "ticker": "SYMBOL",
+            "pred_next_ret_pct": "PRED %",
+            "prediction_zscore": "Z-SCORE",
+            "prob_up": "P(UP)",
+            "vol_20d": "VOL",
+            "base_quantity": "BASE QTY",
+            "vol_scale_factor": "VOL SCALE",
+            "vol_scaled_quantity": "VOL QTY",
+            "ensemble_prediction": "ENSEMBLE",
+            "ensemble_confidence": "ENS CONF",
+            "atm_iv": "IV",
+            "pred_next_price": "TARGET",
+            "num_features": "FEAT",
+            "prob_up_gaf": "GAF"
+        })
+
+        # Custom styled HTML table for signals (with Z-score and weak signal highlighting)
+        def render_signals_table(df):
+            is_dark = st.session_state.get("theme", "dark") == "dark"
+            if is_dark:
+                colors = {
+                    "header_bg": "#161b22", "header_border": "#388bfd", "header_text": "#58a6ff",
+                    "cell_bg": "#0d1117", "cell_bg_alt": "#0f141a", "cell_border": "#21262d",
+                    "cell_text": "#f0f6fc", "hover_bg": "#21262d", "border": "#30363d",
+                    "ticker": "#388bfd", "bullish": "#3fb950", "bearish": "#f85149", "weak": "#d29922"
+                }
+            else:
+                colors = {
+                    "header_bg": "#f6f8fa", "header_border": "#0969da", "header_text": "#0969da",
+                    "cell_bg": "#ffffff", "cell_bg_alt": "#f9fafb", "cell_border": "#d8dee4",
+                    "cell_text": "#1f2328", "hover_bg": "#e5e7eb", "border": "#d0d7de",
+                    "ticker": "#0969da", "bullish": "#1a7f37", "bearish": "#cf222e", "weak": "#9a6700"
+                }
+            html = f"""
+            <style>
+                .signals-table {{
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+                    font-size: 0.85rem;
+                    margin: 1rem 0;
+                }}
+                .signals-table th {{
+                    background: {colors['header_bg']};
+                    border-bottom: 2px solid {colors['header_border']};
+                    color: {colors['header_text']};
+                    font-weight: 600;
+                    letter-spacing: 0.5px;
+                    padding: 12px 16px;
+                    text-align: left;
+                    text-transform: uppercase;
+                    font-size: 0.7rem;
+                }}
+                .signals-table td {{
+                    background: {colors['cell_bg']};
+                    border-bottom: 1px solid {colors['cell_border']};
+                    color: {colors['cell_text']};
+                    padding: 10px 16px;
+                }}
+                .signals-table tr:nth-child(even) td {{
+                    background: {colors['cell_bg_alt']};
+                }}
+                .signals-table tr:hover td {{
+                    background: {colors['hover_bg']};
+                }}
+                .signals-table .ticker-cell {{
+                    font-weight: 700;
+                    color: {colors['ticker']};
+                }}
+                .signals-table .bullish {{
+                    color: {colors['bullish']};
+                    font-weight: 600;
+                }}
+                .signals-table .bearish {{
+                    color: {colors['bearish']};
+                    font-weight: 600;
+                }}
+                .signals-table .weak {{
+                    color: {colors['weak']};
+                    font-weight: 600;
+                }}
+            </style>
+            <div style="overflow-x: auto; border: 1px solid {colors['border']}; border-radius: 8px; max-height: 350px; overflow-y: auto;">
+            <table class="signals-table">
+                <thead><tr>
+            """
+            for col in df.columns:
+                html += f"<th>{col}</th>"
+            html += "</tr></thead><tbody>"
+            for _, row in df.iterrows():
+                html += "<tr>"
+                for col in df.columns:
+                    val = row[col]
+                    cell_class = ""
+                    if col == "SYMBOL":
+                        cell_class = "ticker-cell"
+                        html += f'<td class="{cell_class}">{val}</td>'
+                    elif col == "PRED %":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            cell_class = "bullish" if val > 0 else "bearish"
+                            html += f'<td class="{cell_class}">{val:+.2f}%</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "Z-SCORE":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            # Highlight weak signals (|z| < 0.5)
+                            if abs(val) < 0.5:
+                                cell_class = "weak"
+                            elif val > 1:
+                                cell_class = "bullish"
+                            elif val < -1:
+                                cell_class = "bearish"
+                            html += f'<td class="{cell_class}">{val:+.2f}</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "P(UP)":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            cell_class = "bullish" if val > 0.55 else "bearish" if val < 0.45 else ""
+                            html += f'<td class="{cell_class}">{val:.0%}</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "VOL":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            html += f'<td>{val*100:.1f}%</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "BASE QTY":
+                        html += f'<td>{int(val) if not pd.isna(val) else "—"}</td>'
+                    elif col == "VOL SCALE":
+                        html += f'<td>{val:.2f}' + ('' if pd.isna(val) else 'x') + '</td>' if not pd.isna(val) else '<td>—</td>'
+                    elif col == "VOL QTY":
+                        html += f'<td>{int(val) if not pd.isna(val) else "—"}</td>'
+                    elif col == "ENSEMBLE":
+                        html += f'<td>{val:+.2f}' + ('%' if not pd.isna(val) else '') + '</td>' if not pd.isna(val) else '<td>—</td>'
+                    elif col == "ENS CONF":
+                        html += f'<td>{val:.0%}</td>' if not pd.isna(val) else '<td>—</td>'
+                    elif col == "IV":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            html += f'<td>{val*100:.1f}%</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "TARGET":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            html += f'<td>${val:.2f}</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "FEAT":
+                        html += f'<td>{int(val) if not pd.isna(val) else "—"}</td>'
+                    elif col == "GAF":
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            cell_class = "bullish" if val > 0.55 else "bearish" if val < 0.45 else ""
+                            html += f'<td class="{cell_class}">{val:.0%}</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    else:
+                        html += f'<td>{val if not pd.isna(val) else "—"}</td>'
+                html += "</tr>"
+            html += "</tbody></table></div>"
+            return html
+
+        st.markdown(render_signals_table(styled_df), unsafe_allow_html=True)
+        # detail_universe already set above to include ALL tickers
+
+        # === P&L and Risk Summary Table (theme-aware, styled) ===
+        st.markdown('<p class="section-title">P&L and Risk Summary</p>', unsafe_allow_html=True)
+        pnl_cols = [
+            "ticker", "realized_pnl", "simulated_pnl", "max_drawdown", "sharpe_ratio", "win_rate", "position_size"
+        ]
+        pnl_cols = [c for c in pnl_cols if c in pred_df.columns]
+        if pnl_cols:
+            pnl_df = pred_df[pnl_cols].copy()
+            pnl_df = pnl_df.rename(columns={
                 "ticker": "SYMBOL",
-                "pred_next_ret_pct": "PRED %",
-                "prob_up": "P(UP)",
-                "vol_20d": "VOL",
-                "atm_iv": "IV",
-                "pred_next_price": "TARGET",
-                "num_features": "FEAT",
-                "prob_up_gaf": "GAF"
+                "realized_pnl": "REALIZED P&L",
+                "simulated_pnl": "SIM P&L",
+                "max_drawdown": "MAX DD",
+                "sharpe_ratio": "SHARPE",
+                "win_rate": "WIN %",
+                "position_size": "POS SIZE"
             })
-            
-            # Create custom styled HTML table for signals
-            def render_signals_table(df):
-                """Render signals dataframe as a dark-themed HTML table."""
-                html = """
+            def render_pnl_table(df):
+                tc = get_card_theme()
+                is_dark = st.session_state.get("theme", "dark") == "dark"
+                html = f"""
                 <style>
-                    .signals-table {
+                    .pnl-table {{
                         width: 100%;
                         border-collapse: collapse;
                         font-family: 'JetBrains Mono', 'SF Mono', monospace;
                         font-size: 0.85rem;
                         margin: 1rem 0;
-                    }
-                    .signals-table th {
-                        background: #161b22;
-                        border-bottom: 2px solid #388bfd;
-                        color: #58a6ff;
+                    }}
+                    .pnl-table th {{
+                        background: {tc['bg']};
+                        border-bottom: 2px solid {tc['blue']};
+                        color: {tc['blue']};
                         font-weight: 600;
                         letter-spacing: 0.5px;
                         padding: 12px 16px;
                         text-align: left;
                         text-transform: uppercase;
                         font-size: 0.7rem;
-                    }
-                    .signals-table td {
-                        background: #0d1117;
-                        border-bottom: 1px solid #21262d;
-                        color: #f0f6fc;
+                    }}
+                    .pnl-table td {{
+                        background: {tc['bg']};
+                        border-bottom: 1px solid {tc['border']};
+                        color: {tc['text']};
                         padding: 10px 16px;
-                    }
-                    .signals-table tr:nth-child(even) td {
-                        background: #0f141a;
-                    }
-                    .signals-table tr:hover td {
-                        background: #21262d;
-                    }
-                    .signals-table .ticker-cell {
-                        font-weight: 700;
-                        color: #388bfd;
-                    }
-                    .signals-table .bullish {
-                        color: #3fb950;
-                        font-weight: 600;
-                    }
-                    .signals-table .bearish {
-                        color: #f85149;
-                        font-weight: 600;
-                    }
+                    }}
+                    .pnl-table tr:nth-child(even) td {{
+                        background: {tc['bar_bg']};
+                    }}
+                    .pnl-table tr:hover td {{
+                        background: {tc['muted']}22;
+                    }}
+                    .pnl-table .positive {{ color: {tc['green']}; }}
+                    .pnl-table .negative {{ color: {tc['red']}; }}
                 </style>
-                <div style="overflow-x: auto; border: 1px solid #30363d; border-radius: 8px; max-height: 350px; overflow-y: auto;">
-                <table class="signals-table">
+                <div style="overflow-x: auto; border: 1px solid {tc['border']}; border-radius: 8px;">
+                <table class="pnl-table">
                     <thead><tr>
                 """
                 for col in df.columns:
                     html += f"<th>{col}</th>"
                 html += "</tr></thead><tbody>"
-                
                 for _, row in df.iterrows():
                     html += "<tr>"
                     for col in df.columns:
                         val = row[col]
                         cell_class = ""
-                        
-                        if col == "SYMBOL":
-                            cell_class = "ticker-cell"
-                            html += f'<td class="{cell_class}">{val}</td>'
-                        elif col == "PRED %":
-                            if isinstance(val, (int, float)) and not pd.isna(val):
-                                cell_class = "bullish" if val > 0 else "bearish"
-                                html += f'<td class="{cell_class}">{val:+.2f}%</td>'
-                            else:
-                                html += f'<td>—</td>'
-                        elif col == "P(UP)":
-                            if isinstance(val, (int, float)) and not pd.isna(val):
-                                cell_class = "bullish" if val > 0.55 else "bearish" if val < 0.45 else ""
-                                html += f'<td class="{cell_class}">{val:.0%}</td>'
-                            else:
-                                html += f'<td>—</td>'
-                        elif col == "TARGET":
-                            if isinstance(val, (int, float)) and not pd.isna(val):
-                                html += f'<td>${val:.2f}</td>'
-                            else:
-                                html += f'<td>—</td>'
-                        elif col in ["VOL", "IV"]:
-                            if isinstance(val, (int, float)) and not pd.isna(val):
-                                html += f'<td>{val*100:.1f}%</td>'
-                            else:
-                                html += f'<td>—</td>'
-                        elif col == "FEAT":
-                            if isinstance(val, (int, float)) and not pd.isna(val):
-                                html += f'<td>{int(val)}</td>'
-                            else:
-                                html += f'<td>—</td>'
-                        elif col == "GAF":
-                            if isinstance(val, (int, float)) and not pd.isna(val):
-                                cell_class = "bullish" if val > 0.55 else "bearish" if val < 0.45 else ""
-                                html += f'<td class="{cell_class}">{val:.0%}</td>'
-                            else:
-                                html += f'<td>—</td>'
-                        else:
-                            if pd.isna(val):
-                                html += f'<td>—</td>'
-                            else:
-                                html += f'<td>{val}</td>'
+                        if isinstance(val, (int, float)) and not pd.isna(val):
+                            if col in ["REALIZED P&L", "SIM P&L", "SHARPE"]:
+                                cell_class = "positive" if val > 0 else "negative" if val < 0 else ""
+                                val = f"{val:.2f}"
+                            elif col == "MAX DD":
+                                cell_class = "negative" if val < 0 else ""
+                                val = f"{val:.2f}"
+                            elif col == "WIN %":
+                                val = f"{val:.1f}%"
+                            elif col == "POS SIZE":
+                                val = f"{val:.0f}"
+                        elif pd.isna(val):
+                            val = "—"
+                        html += f'<td class="{cell_class}">{val}</td>'
                     html += "</tr>"
-                
                 html += "</tbody></table></div>"
                 return html
-            
-            st.markdown(render_signals_table(styled_df), unsafe_allow_html=True)
-            detail_universe = cand_df["ticker"].tolist()
+            st.markdown(render_pnl_table(pnl_df), unsafe_allow_html=True)
+        else:
+            st.info("No P&L or risk summary data available in current predictions.")
+
+        # === Ensemble as selectable model type ===
+        # Add 'Ensemble' to model_type selectbox if not present
+        if 'Ensemble' not in st.session_state.get('model_type_options', []):
+            # Patch model_type selectbox to include Ensemble
+            # (Assumes model_type selectbox is defined above as model_type = st.sidebar.selectbox(...))
+            model_type_options = ["rf", "gbrt", "xgb", "ensemble"]
+            st.session_state['model_type_options'] = model_type_options
+        # If user selects 'ensemble', core logic should already handle weighted/voting output
         
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         
@@ -1841,8 +2810,8 @@ with tab_dash:
                         hovertemplate="Return: %{x:.2f}%<br>Count: %{y}<extra>Bullish</extra>"
                     ))
                 
-                fig_hist.add_vline(x=0, line_dash="dash", line_color="#8b949e", line_width=1)
-                fig_hist.add_vline(x=pred_values.mean(), line_dash="dot", line_color="#388bfd", line_width=2,
+                fig_hist.add_vline(x=0, line_dash="dash", line_color=THEME["text_secondary"], line_width=1)
+                fig_hist.add_vline(x=pred_values.mean(), line_dash="dot", line_color=THEME["accent_blue"], line_width=2,
                                    annotation_text=f"Avg: {pred_values.mean():.2f}%", annotation_position="top")
                 
                 fig_hist.update_layout(
@@ -1850,15 +2819,15 @@ with tab_dash:
                     margin=dict(l=0, r=0, t=10, b=40),
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color='#8b949e', size=10),
+                    font=dict(color=THEME["text_secondary"], size=10),
                     xaxis=dict(
                         title="Predicted Return (%)",
-                        gridcolor='rgba(48,54,61,0.5)',
+                        gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                         zeroline=False,
                     ),
                     yaxis=dict(
                         title="Count",
-                        gridcolor='rgba(48,54,61,0.5)',
+                        gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                     ),
                     legend=dict(
                         orientation="h",
@@ -1866,7 +2835,7 @@ with tab_dash:
                         y=1.02,
                         xanchor="right",
                         x=1,
-                        font=dict(size=10, color="#f0f6fc")
+                        font=dict(size=10, color=THEME["text_primary"])
                     ),
                     barmode='overlay',
                     bargap=0.1,
@@ -1896,28 +2865,28 @@ with tab_dash:
                         ),
                         text=scatter_df["ticker"],
                         textposition="top center",
-                        textfont=dict(size=9, color="#f0f6fc"),
+                        textfont=dict(size=9, color=THEME["text_primary"]),
                         hovertemplate="<b>%{text}</b><br>P(Up): %{x:.0f}%<br>Pred: %{y:+.2f}%<extra></extra>"
                     ))
                     
                     # Add quadrant lines
-                    fig_scatter.add_hline(y=0, line_dash="dash", line_color="#6e7681", line_width=1)
-                    fig_scatter.add_vline(x=50, line_dash="dash", line_color="#6e7681", line_width=1)
+                    fig_scatter.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
+                    fig_scatter.add_vline(x=50, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
                     
                     fig_scatter.update_layout(
                         height=280,
                         margin=dict(l=0, r=0, t=10, b=40),
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(color='#8b949e', size=10),
+                        font=dict(color=THEME["text_secondary"], size=10),
                         xaxis=dict(
                             title="P(Up) %",
-                            gridcolor='rgba(48,54,61,0.5)',
+                            gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                             range=[0, 100],
                         ),
                         yaxis=dict(
                             title="Predicted Return (%)",
-                            gridcolor='rgba(48,54,61,0.5)',
+                            gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                         ),
                         showlegend=False,
                     )
@@ -1948,21 +2917,21 @@ with tab_dash:
                     hovertemplate="<b>%{y}</b><br>Prediction: %{x:+.2f}%<extra></extra>"
                 ))
                 
-                fig_bar.add_vline(x=0, line_color="#6e7681", line_width=1)
+                fig_bar.add_vline(x=0, line_color=THEME["text_muted"], line_width=1)
                 
                 fig_bar.update_layout(
                     height=max(200, len(ranked_df) * 28),
                     margin=dict(l=0, r=0, t=10, b=40),
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color='#8b949e', size=10),
+                    font=dict(color=THEME["text_secondary"], size=10),
                     xaxis=dict(
                         title="Predicted Return (%)",
-                        gridcolor='rgba(48,54,61,0.5)',
+                        gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                         zeroline=False,
                     ),
                     yaxis=dict(
-                        tickfont=dict(size=10, color="#f0f6fc"),
+                        tickfont=dict(size=10, color=THEME["text_primary"]),
                     ),
                     showlegend=False,
                 )
@@ -1994,7 +2963,7 @@ with tab_dash:
                             ),
                             text=vol_df["ticker"],
                             textposition="top center",
-                            textfont=dict(size=9, color="#f0f6fc"),
+                            textfont=dict(size=9, color=THEME["text_primary"]),
                             hovertemplate="<b>%{text}</b><br>RV: %{x:.1f}%<br>IV: %{y:.1f}%<br>Pred: " + 
                                           vol_df["pred_next_ret"].apply(lambda x: f"{x*100:+.2f}%").tolist()[0] + "<extra></extra>"
                         ))
@@ -2005,7 +2974,7 @@ with tab_dash:
                             x=[0, max_val],
                             y=[0, max_val],
                             mode="lines",
-                            line=dict(color="#6e7681", dash="dash", width=1),
+                            line=dict(color=THEME["text_muted"], dash="dash", width=1),
                             name="IV = RV",
                             hoverinfo="skip"
                         ))
@@ -2015,14 +2984,14 @@ with tab_dash:
                             margin=dict(l=0, r=0, t=10, b=40),
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#8b949e', size=10),
+                            font=dict(color=THEME["text_secondary"], size=10),
                             xaxis=dict(
                                 title="Realized Vol (20D) %",
-                                gridcolor='rgba(48,54,61,0.5)',
+                                gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                             ),
                             yaxis=dict(
                                 title="Implied Vol %",
-                                gridcolor='rgba(48,54,61,0.5)',
+                                gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                             ),
                             showlegend=False,
                         )
@@ -2064,8 +3033,8 @@ with tab_dash:
                             hovertemplate="P(Up): %{x:.0f}%<br>Count: %{y}<extra></extra>"
                         ))
                         
-                        fig_prob.add_vline(x=50, line_dash="dash", line_color="#6e7681", line_width=1)
-                        fig_prob.add_vline(x=prob_values.mean(), line_dash="dot", line_color="#3fb950", line_width=2,
+                        fig_prob.add_vline(x=50, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
+                        fig_prob.add_vline(x=prob_values.mean(), line_dash="dot", line_color=THEME["accent_green"], line_width=2,
                                            annotation_text=f"Avg: {prob_values.mean():.0f}%", annotation_position="top")
                         
                         fig_prob.update_layout(
@@ -2073,20 +3042,267 @@ with tab_dash:
                             margin=dict(l=0, r=0, t=10, b=40),
                             plot_bgcolor='rgba(0,0,0,0)',
                             paper_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#8b949e', size=10),
+                            font=dict(color=THEME["text_secondary"], size=10),
                             xaxis=dict(
                                 title="P(Up) %",
-                                gridcolor='rgba(48,54,61,0.5)',
+                                gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                                 range=[0, 100],
                             ),
                             yaxis=dict(
                                 title="Count",
-                                gridcolor='rgba(48,54,61,0.5)',
+                                gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)',
                             ),
                         )
                         st.plotly_chart(fig_prob, width="stretch")
                     else:
                         st.info("No probability data available")
+        
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        
+        # === OPTION STRATEGIES SECTION ===
+        st.markdown('<p class="section-title">Option Strategies</p>', unsafe_allow_html=True)
+        
+        # Generate option strategies from predictions
+        try:
+            strategy_df = generate_option_strategy(pred_df)
+            
+            if strategy_df is not None and not strategy_df.empty:
+                # Display strategy summary cards
+                summary = get_strategy_summary(strategy_df)
+                
+                strat_cols = st.columns(4)
+                # Get theme colors for option strategy cards
+                tc = get_card_theme()
+                
+                with strat_cols[0]:
+                    st.markdown(f"""
+                    <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                        <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                            TOTAL STRATEGIES
+                        </div>
+                        <div style='color:{tc["blue"]};font-family:JetBrains Mono,monospace;font-size:1.5rem;font-weight:700;margin-top:0.5rem;'>
+                            {summary['total_strategies']}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with strat_cols[1]:
+                    st.markdown(f"""
+                    <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                        <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                            BULLISH / BEARISH
+                        </div>
+                        <div style='margin-top:0.5rem;'>
+                            <span style='color:{tc["green"]};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;'>{summary['bullish_count']}</span>
+                            <span style='color:{tc["muted"]};font-size:0.85rem;'> / </span>
+                            <span style='color:{tc["red"]};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;'>{summary['bearish_count']}</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with strat_cols[2]:
+                    avg_conf = summary['avg_confidence'] * 100
+                    conf_color = tc["green"] if avg_conf >= 60 else tc["yellow"] if avg_conf >= 40 else tc["red"]
+                    st.markdown(f"""
+                    <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                        <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                            AVG CONFIDENCE
+                        </div>
+                        <div style='color:{conf_color};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
+                            {avg_conf:.0f}%
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with strat_cols[3]:
+                    total_cost = summary['total_estimated_cost']
+                    st.markdown(f"""
+                    <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                        <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                            EST. TOTAL COST
+                        </div>
+                        <div style='color:{tc["purple"]};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
+                            ${total_cost:,.0f}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+                
+                # Strategy breakdown by type
+                if summary['strategy_breakdown']:
+                    st.markdown("##### Strategy Breakdown")
+                    breakdown_cols = st.columns(len(summary['strategy_breakdown']))
+                    for i, (strat_name, count) in enumerate(summary['strategy_breakdown'].items()):
+                        with breakdown_cols[i]:
+                            # Color based on strategy type
+                            if "Call" in strat_name or "Bull" in strat_name:
+                                badge_color = tc["green"]
+                            elif "Put" in strat_name or "Bear" in strat_name:
+                                badge_color = tc["red"]
+                            else:
+                                badge_color = tc["yellow"]
+                            
+                            st.markdown(f"""
+                            <div style='background:{tc["bar_bg"]};border-radius:6px;padding:0.5rem;text-align:center;'>
+                                <span style='color:{badge_color};font-weight:600;font-size:0.8rem;'>{strat_name}</span>
+                                <span style='color:{tc["text"]};font-family:JetBrains Mono,monospace;font-size:1rem;margin-left:0.5rem;'>{count}</span>
+                            </div>
+                            """, unsafe_allow_html=True)
+                
+                st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+                
+                # Display strategies table
+                def render_strategy_table(df):
+                    """Render option strategy dataframe as a theme-aware HTML table."""
+                    # Get theme colors
+                    is_dark = st.session_state.get("theme", "dark") == "dark"
+                    if is_dark:
+                        colors = {
+                            "header_bg": "#161b22", "header_border": "#a371f7", "header_text": "#a371f7",
+                            "cell_bg": "#0d1117", "cell_bg_alt": "#0f141a", "cell_border": "#21262d",
+                            "cell_text": "#f0f6fc", "hover_bg": "#21262d", "border": "#30363d",
+                            "ticker": "#388bfd", "bullish": "#3fb950", "bearish": "#f85149",
+                            "neutral": "#d29922", "iv_rich": "#f85149", "iv_cheap": "#3fb950"
+                        }
+                    else:
+                        colors = {
+                            "header_bg": "#f6f8fa", "header_border": "#8250df", "header_text": "#8250df",
+                            "cell_bg": "#ffffff", "cell_bg_alt": "#f9fafb", "cell_border": "#d8dee4",
+                            "cell_text": "#1f2328", "hover_bg": "#e5e7eb", "border": "#d0d7de",
+                            "ticker": "#0969da", "bullish": "#1a7f37", "bearish": "#cf222e",
+                            "neutral": "#9a6700", "iv_rich": "#cf222e", "iv_cheap": "#1a7f37"
+                        }
+                    
+                    html = f"""
+                    <style>
+                        .strategy-table {{
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+                            font-size: 0.85rem;
+                            margin: 0.5rem 0;
+                        }}
+                        .strategy-table th {{
+                            background: {colors['header_bg']};
+                            border-bottom: 2px solid {colors['header_border']};
+                            color: {colors['header_text']};
+                            font-weight: 600;
+                            letter-spacing: 0.5px;
+                            padding: 12px 14px;
+                            text-align: left;
+                            text-transform: uppercase;
+                            font-size: 0.7rem;
+                        }}
+                        .strategy-table td {{
+                            background: {colors['cell_bg']};
+                            border-bottom: 1px solid {colors['cell_border']};
+                            color: {colors['cell_text']};
+                            padding: 10px 14px;
+                        }}
+                        .strategy-table tr:nth-child(even) td {{
+                            background: {colors['cell_bg_alt']};
+                        }}
+                        .strategy-table tr:hover td {{
+                            background: {colors['hover_bg']};
+                        }}
+                        .strategy-table .ticker-cell {{
+                            font-weight: 700;
+                            color: {colors['ticker']};
+                        }}
+                        .strategy-table .bullish {{
+                            color: {colors['bullish']};
+                            font-weight: 600;
+                        }}
+                        .strategy-table .bearish {{
+                            color: {colors['bearish']};
+                            font-weight: 600;
+                        }}
+                        .strategy-table .neutral {{
+                            color: {colors['neutral']};
+                            font-weight: 600;
+                        }}
+                        .strategy-table .iv-rich {{
+                            color: {colors['iv_rich']};
+                        }}
+                        .strategy-table .iv-cheap {{
+                            color: {colors['iv_cheap']};
+                        }}
+                    </style>
+                    <div style="overflow-x: auto; border: 1px solid {colors['border']}; border-radius: 8px; max-height: 350px; overflow-y: auto;">
+                    <table class="strategy-table">
+                        <thead><tr>
+                            <th>SYMBOL</th>
+                            <th>STRATEGY</th>
+                            <th>STRIKE</th>
+                            <th>BIAS</th>
+                            <th>EST. COST</th>
+                            <th>CONF</th>
+                            <th>IV RICH</th>
+                        </tr></thead>
+                        <tbody>
+                    """
+                    
+                    for _, row in df.iterrows():
+                        # Ticker
+                        html += f"<tr><td class='ticker-cell'>{row['symbol']}</td>"
+                        
+                        # Strategy - color based on type
+                        action = row.get('recommended_action', 'Hold')
+                        if 'Call' in action or 'Bull' in action:
+                            html += f"<td class='bullish'>{action}</td>"
+                        elif 'Put' in action or 'Bear' in action:
+                            html += f"<td class='bearish'>{action}</td>"
+                        else:
+                            html += f"<td class='neutral'>{action}</td>"
+                        
+                        # Strike
+                        strike = row.get('suggested_strike', 'ATM')
+                        html += f"<td>{strike}</td>"
+                        
+                        # Directional Bias
+                        bias = row.get('directional_bias', 'Neutral')
+                        if bias == 'Bullish':
+                            html += "<td class='bullish'>▲ BULL</td>"
+                        elif bias == 'Bearish':
+                            html += "<td class='bearish'>▼ BEAR</td>"
+                        else:
+                            html += "<td class='neutral'>◆ NEUT</td>"
+                        
+                        # Estimated Cost
+                        cost = row.get('estimated_cost', 0)
+                        html += f"<td>${cost:.2f}</td>"
+                        
+                        # Confidence
+                        conf = row.get('confidence', 0)
+                        conf_pct = conf * 100 if conf <= 1 else conf
+                        if conf_pct >= 60:
+                            html += f"<td class='bullish'>{conf_pct:.0f}%</td>"
+                        elif conf_pct >= 40:
+                            html += f"<td class='neutral'>{conf_pct:.0f}%</td>"
+                        else:
+                            html += f"<td class='bearish'>{conf_pct:.0f}%</td>"
+                        
+                        # IV Richness
+                        iv_rich = row.get('IV_richness', 0)
+                        iv_pct = iv_rich * 100 if abs(iv_rich) <= 1 else iv_rich
+                        if iv_pct > 10:
+                            html += f"<td class='iv-rich'>+{iv_pct:.0f}%</td>"
+                        elif iv_pct < -10:
+                            html += f"<td class='iv-cheap'>{iv_pct:.0f}%</td>"
+                        else:
+                            html += f"<td>{iv_pct:+.0f}%</td>"
+                        
+                        html += "</tr>"
+                    
+                    html += "</tbody></table></div>"
+                    return html
+                
+                st.markdown(render_strategy_table(strategy_df), unsafe_allow_html=True)
+            else:
+                st.info("No option strategies could be generated. Ensure predictions include required fields (pred_next_ret, atm_iv, vol_20d).")
+        except Exception as e:
+            st.warning(f"Could not generate option strategies: {e}")
         
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         
@@ -2169,47 +3385,49 @@ with tab_dash:
             
             # Create custom styled HTML table
             def render_dark_table(df):
-                """Render a dataframe as a dark-themed HTML table."""
-                html = """
+                """Render a dataframe as a theme-aware HTML table."""
+                tc = get_card_theme()
+                is_dark = st.session_state.get("theme", "dark") == "dark"
+                html = f"""
                 <style>
-                    .dark-table {
+                    .dark-table {{
                         width: 100%;
                         border-collapse: collapse;
                         font-family: 'JetBrains Mono', 'SF Mono', monospace;
                         font-size: 0.85rem;
                         margin: 1rem 0;
-                    }
-                    .dark-table th {
-                        background: #161b22;
-                        border-bottom: 2px solid #388bfd;
-                        color: #58a6ff;
+                    }}
+                    .dark-table th {{
+                        background: {tc["bg"]};
+                        border-bottom: 2px solid {tc["blue"]};
+                        color: {tc["blue"]};
                         font-weight: 600;
                         letter-spacing: 0.5px;
                         padding: 12px 16px;
                         text-align: left;
                         text-transform: uppercase;
                         font-size: 0.7rem;
-                    }
-                    .dark-table td {
-                        background: #0d1117;
-                        border-bottom: 1px solid #21262d;
-                        color: #f0f6fc;
+                    }}
+                    .dark-table td {{
+                        background: {"#0d1117" if is_dark else "#ffffff"};
+                        border-bottom: 1px solid {tc["border"]};
+                        color: {tc["text"]};
                         padding: 10px 16px;
-                    }
-                    .dark-table tr:nth-child(even) td {
-                        background: #0f141a;
-                    }
-                    .dark-table tr:hover td {
-                        background: #21262d;
-                    }
-                    .dark-table .positive {
-                        color: #3fb950;
-                    }
-                    .dark-table .negative {
-                        color: #f85149;
-                    }
+                    }}
+                    .dark-table tr:nth-child(even) td {{
+                        background: {"#0f141a" if is_dark else "#f9fafb"};
+                    }}
+                    .dark-table tr:hover td {{
+                        background: {"#21262d" if is_dark else "#e5e7eb"};
+                    }}
+                    .dark-table .positive {{
+                        color: {tc["green"]};
+                    }}
+                    .dark-table .negative {{
+                        color: {tc["red"]};
+                    }}
                 </style>
-                <div style="overflow-x: auto; border: 1px solid #30363d; border-radius: 8px;">
+                <div style="overflow-x: auto; border: 1px solid {tc["border"]}; border-radius: 8px;">
                 <table class="dark-table">
                     <thead><tr>
                 """
@@ -2283,10 +3501,12 @@ with tab_dash:
                 signal_text = "BULLISH" if pred_ret and pred_ret > 0 else "BEARISH" if pred_ret and pred_ret < 0 else "NEUTRAL"
                 signal_icon = "▲" if pred_ret and pred_ret > 0 else "▼" if pred_ret and pred_ret < 0 else "◆"
                 
+                tc = get_card_theme()
+                is_dark = st.session_state.get("theme", "dark") == "dark"
                 st.markdown(f"""
                 <div style='
-                    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
-                    border: 1px solid #30363d;
+                    background: linear-gradient(135deg, {tc["bg"]} 0%, {"#0d1117" if is_dark else "#f3f4f6"} 100%);
+                    border: 1px solid {tc["border"]};
                     border-left: 4px solid {signal_color};
                     border-radius: 8px;
                     padding: 1.25rem;
@@ -2297,7 +3517,7 @@ with tab_dash:
                 '>
                     <div style='display: flex; align-items: center; gap: 1rem;'>
                         <span style='
-                            background: #388bfd;
+                            background: {tc["blue"]};
                             border-radius: 6px;
                             color: white;
                             font-family: JetBrains Mono, monospace;
@@ -2306,10 +3526,10 @@ with tab_dash:
                             padding: 0.5rem 1rem;
                         '>{selected}</span>
                         <div>
-                            <div style='color: #f0f6fc; font-size: 1.1rem; font-weight: 600;'>
+                            <div style='color: {tc["text"]}; font-size: 1.1rem; font-weight: 600;'>
                                 ${_fmt_num(last_close, 2) if last_close else "—"}
                             </div>
-                            <div style='color: #8b949e; font-size: 0.75rem;'>Last Close</div>
+                            <div style='color: {tc["label"]}; font-size: 0.75rem;'>Last Close</div>
                         </div>
                     </div>
                     <div style='
@@ -2322,7 +3542,7 @@ with tab_dash:
                         <div style='color: {signal_color}; font-size: 1.25rem; font-weight: 700;'>
                             {signal_icon} {signal_text}
                         </div>
-                        <div style='color: #8b949e; font-size: 0.7rem;'>{display_horizon_label} Outlook</div>
+                        <div style='color: {tc["label"]}; font-size: 0.7rem;'>{display_horizon_label} Outlook</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -2435,7 +3655,7 @@ with tab_dash:
                 # === PRICE CHART ===
                 st.markdown('<p class="section-title" style="margin-top: 1.5rem;">Price Chart</p>', unsafe_allow_html=True)
                 
-                hist = get_price_history(selected, period="3mo")
+                hist = _cached_price_history(selected, period="3mo")
                 if hist is None or hist.empty or "Close" not in hist.columns:
                     st.info("No price data available")
                 else:
@@ -2475,18 +3695,18 @@ with tab_dash:
                         xaxis=dict(
                             showgrid=False, 
                             zeroline=False,
-                            color="#8b949e"
+                            color=THEME["text_secondary"]
                         ),
                         yaxis=dict(
                             showgrid=True, 
-                            gridcolor='rgba(48,54,61,0.5)', 
+                            gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', 
                             zeroline=False,
-                            color="#8b949e",
+                            color=THEME["text_secondary"],
                             tickprefix="$"
                         ),
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(family="Inter, sans-serif", color='#8b949e', size=11),
+                        font=dict(family="Inter, sans-serif", color=THEME["text_secondary"], size=11),
                         showlegend=True,
                         legend=dict(
                             orientation="h", 
@@ -2539,7 +3759,7 @@ with tab_dash:
                 
                 # === RISK DASHBOARD ===
                 with st.expander("📉 Risk Dashboard", expanded=False):
-                    hist_full = get_price_history(selected, period=period)
+                    hist_full = _cached_price_history(selected, period=period)
                     if hist_full is None or hist_full.empty or "Close" not in hist_full.columns:
                         st.info("No history available to compute risk metrics.")
                     else:
@@ -2555,12 +3775,13 @@ with tab_dash:
                         es95 = risk.get("es95", pd.Series())
                         
                         # Risk badge
+                        tc = get_card_theme()
                         risk_label = risk_summary.get("label", "unknown")
-                        badge_color = {"low": "#3fb950", "medium": "#d29922", "high": "#f85149"}.get(risk_label, "#8b949e")
+                        badge_color = {"low": tc["green"], "medium": tc["yellow"], "high": tc["red"]}.get(risk_label, tc["label"])
                         st.markdown(
                             f"<div style='padding:12px;border-radius:6px;background:{badge_color}15;border:1px solid {badge_color};margin-bottom:1rem;'>"
                             f"<strong style='color:{badge_color};'>Risk: {risk_label.upper()}</strong> — {risk_summary.get('summary','')}<br>"
-                            f"<span style='color:#8b949e;font-size:0.8rem;'>{risk_summary.get('check','')}</span>"
+                            f"<span style='color:{tc['label']};font-size:0.8rem;'>{risk_summary.get('check','')}</span>"
                             f"</div>",
                             unsafe_allow_html=True,
                         )
@@ -2578,12 +3799,12 @@ with tab_dash:
                             ))
                             fig_dd.update_layout(
                                 height=220,
-                                title=dict(text=f"Max Drawdown: {max_dd:.1%}", font=dict(size=11, color="#f0f6fc")),
+                                title=dict(text=f"Max Drawdown: {max_dd:.1%}", font=dict(size=11, color=THEME["text_primary"])),
                                 margin=dict(l=0, r=0, t=30, b=0),
                                 plot_bgcolor='rgba(0,0,0,0)',
                                 paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#8b949e', size=10),
-                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)', tickformat='.0%', title=""),
+                                font=dict(color=THEME["text_secondary"], size=10),
+                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.0%', title=""),
                                 xaxis=dict(showgrid=False),
                             )
                             st.plotly_chart(fig_dd, width="stretch")
@@ -2602,16 +3823,16 @@ with tab_dash:
                                     name="Sharpe 60D", mode="lines",
                                     line=dict(color="#388bfd", width=1.5)
                                 ))
-                                fig_sharpe.add_hline(y=0, line_dash="dash", line_color="#6e7681", line_width=1)
-                                fig_sharpe.add_hline(y=1, line_dash="dot", line_color="#3fb950", line_width=1)
-                                fig_sharpe.add_hline(y=-1, line_dash="dot", line_color="#f85149", line_width=1)
+                                fig_sharpe.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
+                                fig_sharpe.add_hline(y=1, line_dash="dot", line_color=THEME["accent_green"], line_width=1)
+                                fig_sharpe.add_hline(y=-1, line_dash="dot", line_color=THEME["accent_red"], line_width=1)
                                 fig_sharpe.update_layout(
                                     height=200,
                                     margin=dict(l=0, r=0, t=10, b=0),
                                     plot_bgcolor='rgba(0,0,0,0)',
                                     paper_bgcolor='rgba(0,0,0,0)',
-                                    font=dict(color='#8b949e', size=10),
-                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)', title=""),
+                                    font=dict(color=THEME["text_secondary"], size=10),
+                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', title=""),
                                     xaxis=dict(showgrid=False),
                                     showlegend=False,
                                 )
@@ -2628,15 +3849,15 @@ with tab_dash:
                                     name="Sortino 60D", mode="lines",
                                     line=dict(color="#a371f7", width=1.5)
                                 ))
-                                fig_sortino.add_hline(y=0, line_dash="dash", line_color="#6e7681", line_width=1)
-                                fig_sortino.add_hline(y=1, line_dash="dot", line_color="#3fb950", line_width=1)
+                                fig_sortino.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
+                                fig_sortino.add_hline(y=1, line_dash="dot", line_color=THEME["accent_green"], line_width=1)
                                 fig_sortino.update_layout(
                                     height=200,
                                     margin=dict(l=0, r=0, t=10, b=0),
                                     plot_bgcolor='rgba(0,0,0,0)',
                                     paper_bgcolor='rgba(0,0,0,0)',
-                                    font=dict(color='#8b949e', size=10),
-                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)', title=""),
+                                    font=dict(color=THEME["text_secondary"], size=10),
+                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', title=""),
                                     xaxis=dict(showgrid=False),
                                     showlegend=False,
                                 )
@@ -2656,15 +3877,15 @@ with tab_dash:
                             ))
                             # Add average line
                             avg_vol = vol_20.mean()
-                            fig_vol.add_hline(y=avg_vol, line_dash="dash", line_color="#f0f6fc", line_width=1,
+                            fig_vol.add_hline(y=avg_vol, line_dash="dash", line_color=THEME["text_primary"], line_width=1,
                                              annotation_text=f"Avg: {avg_vol:.1%}", annotation_position="right")
                             fig_vol.update_layout(
                                 height=200,
                                 margin=dict(l=0, r=0, t=10, b=0),
                                 plot_bgcolor='rgba(0,0,0,0)',
                                 paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#8b949e', size=10),
-                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)', tickformat='.0%', title=""),
+                                font=dict(color=THEME["text_secondary"], size=10),
+                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.0%', title=""),
                                 xaxis=dict(showgrid=False),
                                 showlegend=False,
                             )
@@ -2691,8 +3912,8 @@ with tab_dash:
                                 margin=dict(l=0, r=0, t=10, b=30),
                                 plot_bgcolor='rgba(0,0,0,0)',
                                 paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#8b949e', size=10),
-                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)', tickformat='.1%', title=""),
+                                font=dict(color=THEME["text_secondary"], size=10),
+                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.1%', title=""),
                                 xaxis=dict(showgrid=False),
                                 legend=dict(
                                     orientation="h",
@@ -2700,37 +3921,208 @@ with tab_dash:
                                     y=-0.15,
                                     xanchor="center",
                                     x=0.5,
-                                    font=dict(size=10, color="#f0f6fc")
+                                    font=dict(size=10, color=THEME["text_primary"])
                                 ),
                             )
                             st.plotly_chart(fig_var, width="stretch")
                         else:
                             st.info("VaR/ES data unavailable")
                 
+                # === NEWS & HEADLINES ===
+                with st.expander("📰 News & Headlines", expanded=False):
+                    try:
+                        news = get_news_for_ticker(selected, limit=5)
+                        if news:
+                            # Check for significant news
+                            if detect_big_news(news):
+                                st.warning("⚠️ **Recent significant news detected!** Consider increased volatility.")
+                            
+                            tc = get_card_theme()
+                            st.markdown(f'<p class="section-title">Recent Headlines</p>', unsafe_allow_html=True)
+                            
+                            for i, art in enumerate(news, 1):
+                                title = art.get("title", "No title")
+                                source = art.get("source", "")
+                                published = art.get("published_utc", art.get("published", ""))
+                                url = art.get("url", art.get("article_url", ""))
+                                sentiment = art.get("sentiment_score", art.get("sentiment", 0))
+                                
+                                # Format published date
+                                if published:
+                                    try:
+                                        pub_dt = pd.to_datetime(published)
+                                        pub_str = pub_dt.strftime("%b %d, %Y")
+                                    except:
+                                        pub_str = str(published)[:10]
+                                else:
+                                    pub_str = ""
+                                
+                                # Sentiment indicator
+                                if sentiment and isinstance(sentiment, (int, float)):
+                                    if sentiment > 0.3:
+                                        sent_icon = "🟢"
+                                        sent_label = "Positive"
+                                    elif sentiment < -0.3:
+                                        sent_icon = "🔴"
+                                        sent_label = "Negative"
+                                    else:
+                                        sent_icon = "⚪"
+                                        sent_label = "Neutral"
+                                else:
+                                    sent_icon = "⚪"
+                                    sent_label = ""
+                                
+                                # Display article
+                                st.markdown(f"""
+                                <div style='padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 6px; 
+                                            background: {tc["bg"]}; border: 1px solid {tc["border"]};'>
+                                    <div style='display: flex; justify-content: space-between; align-items: flex-start;'>
+                                        <div style='flex: 1;'>
+                                            <a href='{url}' target='_blank' style='color: {tc["accent"]}; text-decoration: none; font-weight: 500;'>
+                                                {title}
+                                            </a>
+                                            <div style='font-size: 0.75rem; color: {tc["label"]}; margin-top: 0.25rem;'>
+                                                {source} • {pub_str}
+                                            </div>
+                                        </div>
+                                        <div style='font-size: 0.8rem; margin-left: 0.5rem;' title='{sent_label}'>
+                                            {sent_icon}
+                                        </div>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                        else:
+                            st.info("📰 No recent news available for this ticker. News API may not be configured.")
+                    except Exception as e:
+                        st.info(f"📰 News unavailable: API not configured or rate limited.")
+                
                 # === SIGNALS OUTPUT ===
-                with st.expander("� Signals & Output", expanded=False):
+                with st.expander("📋 Signals & Output", expanded=False):
                     st.markdown(f"**Signals File:** `{SIGNALS_OUT_PATH}`")
                     
                     if st.session_state.get("last_signals"):
                         sig_rows = []
+                        strong_count = 0
+                        weak_count = 0
                         for tk, s in st.session_state.last_signals.items():
                             if isinstance(s, dict):
+                                z_score = float(s.get("z_score", 0.0))
+                                z_passes = s.get("z_score_passes", True)
+                                z_strength = s.get("z_score_strength", "unknown")
+                                
+                                if z_passes:
+                                    strong_count += 1
+                                    status = "✅ Strong"
+                                else:
+                                    weak_count += 1
+                                    status = "⚠️ Weak"
+                                
+                                # Check trade limit status
+                                trade_allowed = s.get("trade_allowed", True)
+                                trade_rank = s.get("trade_rank", 0)
+                                skip_reason = s.get("skip_reason", "")
+                                
+                                # Check regime blocked status
+                                regime_blocked = s.get("regime_blocked", False)
+                                regime_block_reason = s.get("regime_block_reason", "")
+                                
+                                if regime_blocked:
+                                    status = "🚫 Regime"
+                                elif not trade_allowed:
+                                    status = "⏭️ Limit"
+                                
                                 sig_rows.append({
                                     "Symbol": tk,
                                     "Type": s.get("asset", "stock").upper(),
                                     "Action": s.get("action", s.get("strategy", "—")),
                                     "Pred %": round(float(s.get("pred_next_ret", 0.0)) * 100, 2),
+                                    "Z-Score": round(z_score, 2),
+                                    "Rank": trade_rank if trade_rank > 0 else "—",
+                                    "Status": status,
                                 })
+                        
+                        # Count skipped signals
+                        skipped_count = sum(1 for r in sig_rows if r.get("Status") == "⏭️ Limit")
+                        regime_blocked_count = sum(1 for r in sig_rows if r.get("Status") == "🚫 Regime")
+                        allowed_count = len(sig_rows) - skipped_count - regime_blocked_count
+                        
+                        # Get regime status from first signal (same for all)
+                        regime_info = None
+                        for tk, s in st.session_state.last_signals.items():
+                            if isinstance(s, dict) and "regime" in s:
+                                regime_info = {
+                                    "regime": s.get("regime", "neutral"),
+                                    "spy_vs_200dma_pct": s.get("spy_vs_200dma_pct", 0.0),
+                                    "vix_level": s.get("vix_level", 20.0),
+                                    "longs_allowed": s.get("regime_longs_allowed", True),
+                                    "shorts_allowed": s.get("regime_shorts_allowed", True),
+                                }
+                                break
+                        
+                        # Show regime status banner if available
+                        if regime_info:
+                            regime_name = regime_info["regime"].upper().replace("_", " ")
+                            spy_pct = regime_info["spy_vs_200dma_pct"]
+                            vix = regime_info["vix_level"]
+                            longs_ok = "✅" if regime_info["longs_allowed"] else "❌"
+                            shorts_ok = "✅" if regime_info["shorts_allowed"] else "❌"
+                            
+                            # Color based on regime
+                            if "bull" in regime_info["regime"].lower():
+                                regime_color = "🟢"
+                            elif "bear" in regime_info["regime"].lower() or "crash" in regime_info["regime"].lower():
+                                regime_color = "🔴"
+                            else:
+                                regime_color = "🟡"
+                            
+                            st.markdown(f"""
+                            <div style="background: linear-gradient(90deg, rgba(100,100,100,0.1), transparent); 
+                                        padding: 10px 15px; border-radius: 8px; margin-bottom: 15px;">
+                                <strong>{regime_color} Market Regime: {regime_name}</strong> &nbsp;|&nbsp;
+                                SPY vs 200DMA: <strong>{spy_pct:+.1f}%</strong> &nbsp;|&nbsp;
+                                VIX: <strong>{vix:.1f}</strong> &nbsp;|&nbsp;
+                                Longs: {longs_ok} &nbsp; Shorts: {shorts_ok}
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Summary metrics
+                        col1, col2, col3, col4, col5 = st.columns(5)
+                        with col1:
+                            st.metric("Total Signals", len(sig_rows))
+                        with col2:
+                            st.metric("Allowed", allowed_count)
+                        with col3:
+                            st.metric("Strong (|z|≥1)", strong_count)
+                        with col4:
+                            if skipped_count > 0:
+                                st.metric("Skipped (Limit)", skipped_count, delta=f"-{skipped_count}")
+                            else:
+                                st.metric("Skipped (Limit)", 0)
+                        with col5:
+                            if regime_blocked_count > 0:
+                                st.metric("Blocked (Regime)", regime_blocked_count, delta=f"-{regime_blocked_count}")
+                            else:
+                                st.metric("Blocked (Regime)", 0)
+                        
                         if sig_rows:
                             sig_df = pd.DataFrame(sig_rows)
                             sig_table = render_styled_table(
                                 sig_df,
                                 highlight_cols={
                                     "Symbol": {"type": "ticker"},
-                                    "Pred %": {"type": "pct_direction"}
+                                    "Pred %": {"type": "pct_direction"},
+                                    "Z-Score": {"type": "pct_direction"},
                                 }
                             )
                             st.markdown(sig_table, unsafe_allow_html=True)
+                            
+                            # Show warnings
+                            if weak_count > 0:
+                                st.warning(f"⚠️ {weak_count} weak signal(s) included. These have |z-score| < 1.0 and may be less reliable.")
+                            if skipped_count > 0:
+                                st.info(f"⏭️ {skipped_count} signal(s) skipped due to trade limits. Only top-ranked signals per ticker are allowed.")
+                            if regime_blocked_count > 0:
+                                st.error(f"🚫 {regime_blocked_count} signal(s) blocked by market regime filter. Trade direction not allowed in current regime.")
                     else:
                         st.info("No signals generated yet. Run predictions first.")
                     
@@ -2751,12 +4143,134 @@ with tab_dash:
     
     else:
         # Empty state - no predictions yet
-        st.markdown("""
+        tc = get_card_theme()
+        st.markdown(f"""
         <div class='empty-state'>
-            <p style='font-size: 1.2rem; margin-bottom: 0.5rem; color: #f0f6fc;'>No Predictions Yet</p>
-            <p style='font-size: 0.85rem; color: #8b949e;'>Enter tickers in the sidebar and click <strong>RUN PREDICTIONS</strong> to get started</p>
+            <p style='font-size: 1.2rem; margin-bottom: 0.5rem; color: {tc["text"]};'>No Predictions Yet</p>
+            <p style='font-size: 0.85rem; color: {tc["label"]};'>Enter tickers in the sidebar and click <strong>RUN PREDICTIONS</strong> to get started</p>
         </div>
         """, unsafe_allow_html=True)
+    
+    # === Z-SCORE WEAK SIGNALS LOG ===
+    st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+    with st.expander("📉 Z-Score Weak Signals Log", expanded=False):
+        st.markdown("""
+        **What is this?**  
+        Signals with |z-score| < threshold are considered "weak" - the prediction is not statistically 
+        unusual relative to recent history. These signals are logged here for analysis.
+        """)
+        
+        try:
+            from src.config import get_zscore_log_path, ZSCORE_GATING_CONFIG
+            log_path = get_zscore_log_path()
+            
+            threshold = ZSCORE_GATING_CONFIG.get("min_zscore", 1.0)
+            st.info(f"Current threshold: |z-score| ≥ {threshold}")
+            
+            if log_path.exists():
+                import json
+                weak_logs = []
+                with open(log_path, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                weak_logs.append(json.loads(line))
+                            except Exception:
+                                pass
+                
+                if weak_logs:
+                    # Take last 100
+                    recent = weak_logs[-100:]
+                    weak_df = pd.DataFrame(recent)
+                    
+                    # Format for display
+                    if "timestamp" in weak_df.columns:
+                        weak_df["timestamp"] = pd.to_datetime(weak_df["timestamp"]).dt.strftime("%Y-%m-%d %H:%M")
+                    
+                    display_cols = [c for c in ["timestamp", "ticker", "pred", "z_score", "threshold", "strength"] if c in weak_df.columns]
+                    
+                    st.dataframe(weak_df[display_cols].tail(50), use_container_width=True)
+                    st.caption(f"Showing last 50 of {len(weak_logs)} weak signals logged")
+                    
+                    # Clear log button
+                    if st.button("🗑️ Clear Weak Signals Log", key="clear_weak_log"):
+                        log_path.unlink()
+                        st.success("Log cleared!")
+                        st.rerun()
+                else:
+                    st.success("✅ No weak signals logged yet!")
+            else:
+                st.info("No weak signals log file found. Signals will be logged as predictions are made.")
+        except Exception as e:
+            st.warning(f"Could not load weak signals log: {e}")
+    
+    # === OPTIONAL: Prediction History Explorer ===
+    if HAS_DATABASE:
+        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+        with st.expander("📚 Prediction History Explorer", expanded=False):
+            hist_cols = st.columns([2, 2, 2, 2])
+            with hist_cols[0]:
+                hist_ticker = st.text_input("Filter by Ticker", value="", placeholder="e.g., AAPL", key="hist_ticker")
+            with hist_cols[1]:
+                hist_model = st.selectbox("Filter by Model", ["All", "rf", "xgb", "gbrt"], index=0, key="hist_model")
+            with hist_cols[2]:
+                hist_days = st.selectbox("Time Range", [7, 14, 30, 90], index=2, format_func=lambda x: f"Last {x} days", key="hist_days")
+            with hist_cols[3]:
+                hist_limit = st.selectbox("Max Results", [25, 50, 100, 250], index=1, key="hist_limit")
+            
+            try:
+                history_df = get_prediction_history(
+                    ticker=hist_ticker if hist_ticker else None,
+                    model_type=hist_model if hist_model != "All" else None,
+                    days_back=hist_days,
+                    limit=hist_limit
+                )
+                
+                if not history_df.empty:
+                    # Format for display
+                    display_cols = ["timestamp", "ticker", "model_type", "horizon", "pred_next_ret", "prob_up", "confidence_score", "was_correct"]
+                    display_df = history_df[[c for c in display_cols if c in history_df.columns]].copy()
+                    
+                    if "pred_next_ret" in display_df.columns:
+                        display_df["pred_next_ret"] = display_df["pred_next_ret"].apply(lambda x: f"{x*100:.2f}%" if x else "—")
+                    if "prob_up" in display_df.columns:
+                        display_df["prob_up"] = display_df["prob_up"].apply(lambda x: f"{x*100:.0f}%" if x else "—")
+                    if "confidence_score" in display_df.columns:
+                        display_df["confidence_score"] = display_df["confidence_score"].apply(lambda x: f"{x*100:.0f}%" if x else "—")
+                    if "was_correct" in display_df.columns:
+                        display_df["was_correct"] = display_df["was_correct"].apply(lambda x: "✅" if x == 1 else "❌" if x == 0 else "⏳")
+                    
+                    display_df.columns = ["Time", "Ticker", "Model", "Horizon", "Pred %", "P(Up)", "Conf", "Correct"]
+                    
+                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+                    
+                    # Accuracy summary
+                    accuracy_stats = get_accuracy_stats(
+                        ticker=hist_ticker if hist_ticker else None,
+                        model_type=hist_model if hist_model != "All" else None,
+                        days_back=hist_days
+                    )
+                    
+                    if accuracy_stats.get("total", 0) > 0:
+                        acc_cols = st.columns(3)
+                        with acc_cols[0]:
+                            st.metric("Total Predictions", accuracy_stats["total"])
+                        with acc_cols[1]:
+                            acc = accuracy_stats.get("accuracy")
+                            st.metric("Accuracy", f"{acc*100:.1f}%" if acc else "—")
+                        with acc_cols[2]:
+                            st.metric("Data Points", len(history_df))
+                else:
+                    st.info("No prediction history found for the selected filters.")
+                    
+            except Exception as e:
+                st.warning(f"Could not load history: {e}")
+    
+    # === OPTIONAL: Live Updates Auto-Refresh ===
+    if HAS_LIVE_UPDATES and st.session_state.get("live_enabled", False):
+        # Check if we should auto-refresh
+        auto_refresh_check()
 
 # ============================================================================
 # TAB: Backtest - Single Stock Historical Performance
@@ -2782,114 +4296,161 @@ with tab_backtests:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     
     if run_backtest_btn:
-        try:
-            with st.spinner("Running backtest..."):
-                results_test, accuracy = _cached_track_predictions(
-                    bt_ticker, period=bt_period, model_type=bt_model, horizon=bt_horizon
-                )
+        # Validate backtest inputs
+        is_valid, validation_errors = validate_backtest_inputs(bt_ticker, bt_period, bt_horizon, bt_model)
+        
+        if not is_valid:
+            display_validation_errors(validation_errors)
+        else:
+            # Clean the ticker
+            bt_ticker_clean = bt_ticker.strip().upper()
             
-            if results_test is None or results_test.empty:
-                st.warning("Insufficient data for backtest")
+            # Use safe API call wrapper
+            result_data, api_error = safe_api_call(
+                _cached_track_predictions,
+                bt_ticker_clean, 
+                period=bt_period, 
+                model_type=bt_model, 
+                horizon=bt_horizon,
+                error_prefix=f"Backtest failed for {bt_ticker_clean}"
+            )
+            
+            if api_error:
+                display_api_error(api_error, bt_ticker_clean)
+            elif result_data is None:
+                st.warning(f"⚠️ No data returned for {bt_ticker_clean}. The ticker may be invalid or have insufficient history.")
             else:
-                baseline_returns = results_test["actual_return"].dropna()
+                results_test, accuracy = result_data
                 
-                # Apply strategy
-                strat = results_test.copy()
-                strat["position"] = np.where(strat["predicted_return"] > signal_threshold_pct, 1.0, 0.0)
-                strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
+                if results_test is None or results_test.empty:
+                    st.warning(f"⚠️ Insufficient historical data for backtest on {bt_ticker_clean}. Try a shorter time period or different ticker.")
+                else:
+                    try:
+                        baseline_returns = results_test["actual_return"].dropna()
+                        
+                        if len(baseline_returns) < 20:
+                            st.warning(f"⚠️ Only {len(baseline_returns)} data points available. Results may not be statistically significant.")
+                        
+                        # Apply strategy
+                        strat = results_test.copy()
+                        strat["position"] = np.where(strat["predicted_return"] > signal_threshold_pct, 1.0, 0.0)
+                        strat["strategy_ret_no_cost"] = strat["actual_return"] * strat["position"]
+                        
+                        sharpe_baseline = compute_sharpe(baseline_returns)
+                        sharpe_strategy = compute_sharpe(strat["strategy_ret_no_cost"])
+                        
+                        total_return_baseline = (1 + baseline_returns).prod() - 1
+                        total_return_strategy = (1 + strat["strategy_ret_no_cost"].dropna()).prod() - 1
+                        num_trades = strat["position"].diff().abs().sum() / 2
+                        
+                        # Results header
+                        tc = get_card_theme()
+                        st.markdown(f"""
+                        <div style='display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;'>
+                            <span class='ticker-symbol'>{bt_ticker_clean}</span>
+                            <span style='color: {tc["label"]}; font-family: JetBrains Mono; font-size: 0.85rem;'>
+                                {bt_period} • {bt_horizon}D Horizon • {bt_model.upper()}
+                            </span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Metrics row
+                        metric_cols = st.columns(5)
+                        with metric_cols[0]:
+                            delta = sharpe_strategy - sharpe_baseline if sharpe_strategy and sharpe_baseline else None
+                            st.metric("Strategy Sharpe", f"{sharpe_strategy:.2f}" if sharpe_strategy else "—",
+                                      delta=f"{delta:+.2f} vs B&H" if delta else None)
+                        with metric_cols[1]:
+                            st.metric("Hit Rate", f"{accuracy * 100:.0f}%" if accuracy else "—")
+                        with metric_cols[2]:
+                            st.metric("Total Return", f"{total_return_strategy * 100:+.1f}%")
+                        with metric_cols[3]:
+                            st.metric("B&H Return", f"{total_return_baseline * 100:+.1f}%")
+                        with metric_cols[4]:
+                            st.metric("Trades", int(num_trades))
+                        
+                        # === OPTIONAL: Save backtest results to database ===
+                        if HAS_DATABASE:
+                            try:
+                                save_backtest_result(
+                                    ticker=bt_ticker_clean,
+                                    model_type=bt_model,
+                                    horizon=bt_horizon,
+                                    period=bt_period,
+                                    metrics={
+                                        "accuracy": accuracy,
+                                        "sharpe_ratio": sharpe_strategy,
+                                        "total_return": total_return_strategy,
+                                        "max_drawdown": compute_drawdown(strat["strategy_ret_no_cost"]).get("max_dd") if len(strat["strategy_ret_no_cost"]) > 0 else None,
+                                        "win_rate": accuracy,
+                                        "n_trades": int(num_trades)
+                                    }
+                                )
+                            except Exception:
+                                pass  # Database is optional
+                        
+                        st.markdown("<hr class='divider'>", unsafe_allow_html=True)
+                        
+                        # Cumulative returns chart
+                        st.markdown('<p class="section-title">Cumulative Performance</p>', unsafe_allow_html=True)
+                        
+                        cum_baseline = (1 + baseline_returns).cumprod()
+                        cum_strategy = (1 + strat["strategy_ret_no_cost"].fillna(0)).cumprod()
+                        
+                        fig_cum = go.Figure()
+                        fig_cum.add_trace(go.Scatter(
+                            x=cum_baseline.index, y=cum_baseline.values,
+                            name="Buy & Hold", mode="lines", 
+                            line=dict(color=THEME["text_secondary"], width=2),
+                            hovertemplate="%{y:.2f}x<extra>Buy & Hold</extra>"
+                        ))
+                        fig_cum.add_trace(go.Scatter(
+                            x=cum_strategy.index, y=cum_strategy.values,
+                            name="ML Strategy", mode="lines", 
+                            line=dict(color=THEME["accent_green"], width=2),
+                            hovertemplate="%{y:.2f}x<extra>ML Strategy</extra>"
+                        ))
+                        fig_cum.update_layout(
+                            height=350,
+                            margin=dict(l=0, r=0, t=10, b=0),
+                            xaxis=dict(showgrid=False, color=THEME["text_secondary"]),
+                            yaxis=dict(
+                                showgrid=True, 
+                                gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', 
+                                color=THEME["text_secondary"],
+                                title="Growth of $1"
+                            ),
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(family="Inter, sans-serif", color=THEME["text_secondary"], size=11),
+                            legend=dict(
+                                orientation="h", 
+                                yanchor="bottom", 
+                                y=1.02, 
+                                xanchor="left", 
+                                x=0,
+                                font=dict(size=11)
+                            ),
+                            hovermode="x unified",
+                        )
+                        st.plotly_chart(fig_cum, width="stretch")
+                        
+                        # Store results for download
+                        st.session_state["backtest_results"] = results_test
+                        
+                        with st.expander("📋 Detailed Results", expanded=False):
+                            backtest_table = render_styled_table(results_test.tail(50).reset_index())
+                            st.markdown(backtest_table, unsafe_allow_html=True)
                 
-                sharpe_baseline = compute_sharpe(baseline_returns)
-                sharpe_strategy = compute_sharpe(strat["strategy_ret_no_cost"])
-                
-                total_return_baseline = (1 + baseline_returns).prod() - 1
-                total_return_strategy = (1 + strat["strategy_ret_no_cost"].dropna()).prod() - 1
-                num_trades = strat["position"].diff().abs().sum() / 2
-                
-                # Results header
-                st.markdown(f"""
-                <div style='display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;'>
-                    <span class='ticker-symbol'>{bt_ticker.upper()}</span>
-                    <span style='color: #8b949e; font-family: JetBrains Mono; font-size: 0.85rem;'>
-                        {bt_period} • {bt_horizon}D Horizon • {bt_model.upper()}
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Metrics row
-                metric_cols = st.columns(5)
-                with metric_cols[0]:
-                    delta = sharpe_strategy - sharpe_baseline if sharpe_strategy and sharpe_baseline else None
-                    st.metric("Strategy Sharpe", f"{sharpe_strategy:.2f}" if sharpe_strategy else "—",
-                              delta=f"{delta:+.2f} vs B&H" if delta else None)
-                with metric_cols[1]:
-                    st.metric("Hit Rate", f"{accuracy * 100:.0f}%" if accuracy else "—")
-                with metric_cols[2]:
-                    st.metric("Total Return", f"{total_return_strategy * 100:+.1f}%")
-                with metric_cols[3]:
-                    st.metric("B&H Return", f"{total_return_baseline * 100:+.1f}%")
-                with metric_cols[4]:
-                    st.metric("Trades", int(num_trades))
-                
-                st.markdown("<hr class='divider'>", unsafe_allow_html=True)
-                
-                # Cumulative returns chart
-                st.markdown('<p class="section-title">Cumulative Performance</p>', unsafe_allow_html=True)
-                
-                cum_baseline = (1 + baseline_returns).cumprod()
-                cum_strategy = (1 + strat["strategy_ret_no_cost"].fillna(0)).cumprod()
-                
-                fig_cum = go.Figure()
-                fig_cum.add_trace(go.Scatter(
-                    x=cum_baseline.index, y=cum_baseline.values,
-                    name="Buy & Hold", mode="lines", 
-                    line=dict(color="#8b949e", width=2),
-                    hovertemplate="%{y:.2f}x<extra>Buy & Hold</extra>"
-                ))
-                fig_cum.add_trace(go.Scatter(
-                    x=cum_strategy.index, y=cum_strategy.values,
-                    name="ML Strategy", mode="lines", 
-                    line=dict(color="#3fb950", width=2),
-                    hovertemplate="%{y:.2f}x<extra>ML Strategy</extra>"
-                ))
-                fig_cum.update_layout(
-                    height=350,
-                    margin=dict(l=0, r=0, t=10, b=0),
-                    xaxis=dict(showgrid=False, color="#8b949e"),
-                    yaxis=dict(
-                        showgrid=True, 
-                        gridcolor='rgba(48,54,61,0.5)', 
-                        color="#8b949e",
-                        title="Growth of $1"
-                    ),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    font=dict(family="Inter, sans-serif", color='#8b949e', size=11),
-                    legend=dict(
-                        orientation="h", 
-                        yanchor="bottom", 
-                        y=1.02, 
-                        xanchor="left", 
-                        x=0,
-                        font=dict(size=11)
-                    ),
-                    hovermode="x unified",
-                )
-                st.plotly_chart(fig_cum, width="stretch")
-                
-                # Store results for download
-                st.session_state["backtest_results"] = results_test
-                
-                with st.expander("📋 Detailed Results", expanded=False):
-                    backtest_table = render_styled_table(results_test.tail(50).reset_index())
-                    st.markdown(backtest_table, unsafe_allow_html=True)
-                
-        except Exception as e:
-            st.error(f"Backtest error: {e}")
+                    except Exception as e:
+                        # Catch any calculation errors within the backtest results processing
+                        display_api_error(f"Error processing backtest results: {str(e)}", bt_ticker_clean)
     else:
-        st.markdown("""
+        tc = get_card_theme()
+        st.markdown(f"""
         <div class='empty-state'>
-            <p style='font-size: 1rem; color: #f0f6fc;'>Configure Backtest</p>
-            <p style='font-size: 0.85rem; color: #8b949e;'>Select a ticker, model, and time period, then click RUN BACKTEST</p>
+            <p style='font-size: 1rem; color: {tc["text"]};'>Configure Backtest</p>
+            <p style='font-size: 0.85rem; color: {tc["label"]};'>Select a ticker, model, and time period, then click RUN BACKTEST</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -2971,51 +4532,85 @@ with tab_port:
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     
     if run_wf:
-        port_tickers = [t.strip().upper() for t in universe_text.split(",") if t.strip()]
+        # Validate and parse tickers
+        valid_tickers, ticker_errors = validate_tickers(universe_text)
         
-        if not port_tickers:
-            st.error("No tickers provided")
+        if ticker_errors and not valid_tickers:
+            display_validation_errors(ticker_errors)
+        elif not valid_tickers:
+            st.error("⚠️ No valid tickers provided. Please enter ticker symbols separated by commas.")
         else:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
+            # Show warnings for invalid tickers but continue with valid ones
+            if ticker_errors:
+                with st.expander(f"⚠️ {len(ticker_errors)} ticker(s) skipped (click to see details)", expanded=False):
+                    for err in ticker_errors:
+                        st.warning(err)
             
-            try:
-                status_text.text(f"Processing {len(port_tickers)} assets...")
+            port_tickers = valid_tickers
+            
+            # Validate other inputs
+            is_valid, err = validate_model_type(port_model)
+            if not is_valid:
+                st.error(err)
+            else:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                errors_occurred = []
                 
-                # Run walk-forward for each ticker
-                all_folds = []
-                for i, tk in enumerate(port_tickers):
-                    status_text.text(f"Processing {tk} ({i+1}/{len(port_tickers)})...")
-                    try:
-                        folds = walk_forward_backtest(
+                try:
+                    status_text.text(f"Processing {len(port_tickers)} assets...")
+                    
+                    # Run walk-forward for each ticker using cached version
+                    all_folds = []
+                    for i, tk in enumerate(port_tickers):
+                        status_text.text(f"Processing {tk} ({i+1}/{len(port_tickers)})...")
+                        
+                        # Use cached walk-forward backtest with safe API call
+                        train_yrs = train_years if 'train_years' in dir() else default_train
+                        test_yrs = test_years if 'test_years' in dir() else default_test
+                        
+                        folds, wf_error = safe_api_call(
+                            _cached_walk_forward_backtest,
                             ticker=tk,
                             period="5y",
                             horizon=port_horizon,
                             model_type=port_model,
-                            train_years=train_years if 'train_years' in dir() else default_train,
-                            test_years=test_years if 'test_years' in dir() else default_test,
+                            train_years=train_yrs,
+                            test_years=test_yrs,
                             step_days=21,
+                            error_prefix=f"Walk-forward failed for {tk}"
                         )
-                        for f in folds:
-                            f["ticker"] = tk
-                        all_folds.extend(folds)
-                    except Exception:
-                        pass  # Skip failures silently
-                    progress_bar.progress((i + 1) / len(port_tickers))
-                
-                status_text.empty()
-                progress_bar.empty()
-                
-                if all_folds:
-                    results_df = pd.DataFrame(all_folds)
-                    st.session_state["port_results"] = results_df
-                    st.success(f"✅ Completed: {len(results_df)} folds across {len(port_tickers)} assets")
-                else:
-                    st.error("No results generated")
+                        
+                        if wf_error:
+                            errors_occurred.append((tk, wf_error))
+                        elif folds:
+                            for f in folds:
+                                f["ticker"] = tk
+                            all_folds.extend(folds)
+                        
+                        progress_bar.progress((i + 1) / len(port_tickers))
                     
-            except Exception as e:
-                progress_bar.empty()
-                st.error(f"Analysis failed: {str(e)[:100]}")
+                    status_text.empty()
+                    progress_bar.empty()
+                    
+                    # Show any errors that occurred
+                    if errors_occurred:
+                        with st.expander(f"⚠️ {len(errors_occurred)} ticker(s) had issues", expanded=False):
+                            for tk, err in errors_occurred:
+                                st.warning(f"**{tk}**: {err}")
+                    
+                    if all_folds:
+                        results_df = pd.DataFrame(all_folds)
+                        st.session_state["port_results"] = results_df
+                        success_count = len(port_tickers) - len(errors_occurred)
+                        st.success(f"✅ Completed: {len(results_df)} folds across {success_count} assets")
+                    else:
+                        st.error("❌ No results generated. All tickers failed or had insufficient data.")
+                        
+                except Exception as e:
+                    progress_bar.empty()
+                    status_text.empty()
+                    display_api_error(f"Analysis failed: {str(e)}", container=st)
     
     # Display results
     if "port_results" in st.session_state and st.session_state.port_results is not None:
@@ -3077,11 +4672,11 @@ with tab_port:
                     fig.update_layout(
                         height=350,
                         margin=dict(l=0, r=0, t=10, b=0),
-                        xaxis=dict(title="Sharpe Ratio", color="#8b949e"),
-                        yaxis=dict(title="Frequency", color="#8b949e", gridcolor='rgba(48,54,61,0.5)'),
+                        xaxis=dict(title="Sharpe Ratio", color=THEME["text_secondary"]),
+                        yaxis=dict(title="Frequency", color=THEME["text_secondary"], gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)'),
                         plot_bgcolor='rgba(0,0,0,0)',
                         paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(family="Inter, sans-serif", color='#8b949e', size=11),
+                        font=dict(family="Inter, sans-serif", color=THEME["text_secondary"], size=11),
                     )
                     st.plotly_chart(fig, width="stretch")
             
@@ -3097,10 +4692,11 @@ with tab_port:
                     use_container_width=True
                 )
     else:
-        st.markdown("""
+        tc = get_card_theme()
+        st.markdown(f"""
         <div class='empty-state'>
-            <p style='font-size: 1rem; color: #f0f6fc;'>Walk-Forward Analysis</p>
-            <p style='font-size: 0.85rem; color: #8b949e;'>Configure your portfolio universe and click RUN ANALYSIS to evaluate model robustness</p>
+            <p style='font-size: 1rem; color: {tc["text"]};'>Walk-Forward Analysis</p>
+            <p style='font-size: 0.85rem; color: {tc["label"]};'>Configure your portfolio universe and click RUN ANALYSIS to evaluate model robustness</p>
         </div>
         """, unsafe_allow_html=True)
 
