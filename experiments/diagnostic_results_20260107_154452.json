@@ -1,0 +1,1449 @@
+{
+  "timestamp": "2026-01-07T15:42:59.775567",
+  "version": "1.0",
+  "tickers_analyzed": [
+    "SPY",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "JPM",
+    "XOM",
+    "JNJ"
+  ],
+  "models_tested": [
+    "rf",
+    "xgb",
+    "gbrt"
+  ],
+  "data_quality": {
+    "per_ticker": {
+      "SPY": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "AAPL": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "MSFT": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "NVDA": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "GOOGL": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "AMZN": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "META": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "JPM": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "XOM": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "JNJ": {
+        "status": "WARN",
+        "issues": [
+          "13 gaps > 3 days found",
+          "11 features missing"
+        ],
+        "total_rows": 502,
+        "date_range": {
+          "start": "2024-01-08",
+          "end": "2026-01-07"
+        },
+        "gaps": [
+          {
+            "date": "2024-01-16",
+            "days": 4
+          },
+          {
+            "date": "2024-02-20",
+            "days": 4
+          },
+          {
+            "date": "2024-04-01",
+            "days": 4
+          },
+          {
+            "date": "2024-05-28",
+            "days": 4
+          },
+          {
+            "date": "2024-09-03",
+            "days": 4
+          }
+        ],
+        "missing_features": [
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      }
+    },
+    "feature_health": {
+      "total_features": 46,
+      "problem_features": [
+        "vol_60d",
+        "vol_ratio_10_60",
+        "gbm_mu_60d",
+        "gbm_sig_60d",
+        "gbm_prob_up_1d",
+        "gbm_exp_ret_1d",
+        "gbm_p05_ret_1d",
+        "gbm_p95_ret_1d",
+        "gbm_prob_up_5d",
+        "gbm_exp_ret_5d",
+        "gbm_p05_ret_5d",
+        "gbm_p95_ret_5d"
+      ],
+      "problem_count": 12,
+      "per_feature": {
+        "ret_1d": {
+          "avg_nan_rate": 0.004,
+          "max_nan_rate": 0.004,
+          "status": "OK"
+        },
+        "ret_3d": {
+          "avg_nan_rate": 0.008,
+          "max_nan_rate": 0.008,
+          "status": "OK"
+        },
+        "ret_5d": {
+          "avg_nan_rate": 0.012,
+          "max_nan_rate": 0.012,
+          "status": "OK"
+        },
+        "ret_10d": {
+          "avg_nan_rate": 0.0219,
+          "max_nan_rate": 0.0219,
+          "status": "OK"
+        },
+        "ret_20d": {
+          "avg_nan_rate": 0.0418,
+          "max_nan_rate": 0.0418,
+          "status": "OK"
+        },
+        "cumret_3d": {
+          "avg_nan_rate": 0.008,
+          "max_nan_rate": 0.008,
+          "status": "OK"
+        },
+        "cumret_5d": {
+          "avg_nan_rate": 0.012,
+          "max_nan_rate": 0.012,
+          "status": "OK"
+        },
+        "cumret_10d": {
+          "avg_nan_rate": 0.0219,
+          "max_nan_rate": 0.0219,
+          "status": "OK"
+        },
+        "vol_10d": {
+          "avg_nan_rate": 0.0239,
+          "max_nan_rate": 0.0239,
+          "status": "OK"
+        },
+        "vol_20d": {
+          "avg_nan_rate": 0.0438,
+          "max_nan_rate": 0.0438,
+          "status": "OK"
+        },
+        "vol_60d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "vol_ratio_10_60": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "atr_14": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "atr_pct_14": {
+          "avg_nan_rate": 0.004,
+          "max_nan_rate": 0.004,
+          "status": "OK"
+        },
+        "rsi14": {
+          "avg_nan_rate": 0.0279,
+          "max_nan_rate": 0.0279,
+          "status": "OK"
+        },
+        "macd": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "macdsignal": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "macdhist": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "bb_pctb": {
+          "avg_nan_rate": 0.0398,
+          "max_nan_rate": 0.0398,
+          "status": "OK"
+        },
+        "bb_width": {
+          "avg_nan_rate": 0.0398,
+          "max_nan_rate": 0.0398,
+          "status": "OK"
+        },
+        "mfi14": {
+          "avg_nan_rate": 0.0283,
+          "max_nan_rate": 0.0319,
+          "status": "OK"
+        },
+        "adx_14": {
+          "avg_nan_rate": 0.0044,
+          "max_nan_rate": 0.006,
+          "status": "OK"
+        },
+        "close_position": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "daily_range": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "high_low_ratio": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "gbm_mu_60d": {
+          "avg_nan_rate": 0.1215,
+          "max_nan_rate": 0.1215,
+          "status": "HIGH_NAN"
+        },
+        "gbm_sig_60d": {
+          "avg_nan_rate": 0.1215,
+          "max_nan_rate": 0.1215,
+          "status": "HIGH_NAN"
+        },
+        "gbm_prob_up_1d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_exp_ret_1d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_p05_ret_1d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_p95_ret_1d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_prob_up_5d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_exp_ret_5d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_p05_ret_5d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "gbm_p95_ret_5d": {
+          "avg_nan_rate": 0.1235,
+          "max_nan_rate": 0.1235,
+          "status": "HIGH_NAN"
+        },
+        "regime_bull": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "regime_bear": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "regime_vix_low": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        },
+        "regime_vix_medium": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        },
+        "regime_vix_high": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        },
+        "bull_streak": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "bear_streak": {
+          "avg_nan_rate": 0.002,
+          "max_nan_rate": 0.002,
+          "status": "OK"
+        },
+        "rel_strength_1d": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        },
+        "rel_momentum_5d": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        },
+        "beta_60_spx": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        },
+        "corr_20_spx": {
+          "avg_nan_rate": 0.0,
+          "max_nan_rate": 0.0,
+          "status": "OK"
+        }
+      }
+    },
+    "summary": {
+      "total_tickers": 10,
+      "passed": 0,
+      "failed": 10,
+      "issues": [
+        "12 features with >5% NaN rate"
+      ]
+    }
+  },
+  "model_performance": {
+    "per_ticker": {
+      "SPY": {
+        "models": {
+          "rf": {
+            "sharpe": 2.418,
+            "accuracy": 0.54,
+            "max_drawdown": 0.0,
+            "num_trades": 4,
+            "total_return": 0.0135
+          },
+          "xgb": {
+            "sharpe": 1.973,
+            "accuracy": 0.598,
+            "max_drawdown": -0.0507,
+            "num_trades": 0,
+            "total_return": 0.0767
+          },
+          "gbrt": {
+            "sharpe": -0.679,
+            "accuracy": 0.483,
+            "max_drawdown": -0.057,
+            "num_trades": 27,
+            "total_return": -0.0225
+          }
+        },
+        "best_model": "rf",
+        "worst_model": "gbrt"
+      },
+      "AAPL": {
+        "models": {
+          "rf": {
+            "sharpe": 0.061,
+            "accuracy": 0.529,
+            "max_drawdown": -0.0622,
+            "num_trades": 10,
+            "total_return": 0.0022
+          },
+          "xgb": {
+            "sharpe": 1.395,
+            "accuracy": 0.529,
+            "max_drawdown": -0.0904,
+            "num_trades": 0,
+            "total_return": 0.0955
+          },
+          "gbrt": {
+            "sharpe": -1.451,
+            "accuracy": 0.448,
+            "max_drawdown": -0.0996,
+            "num_trades": 48,
+            "total_return": -0.0765
+          }
+        },
+        "best_model": "xgb",
+        "worst_model": "gbrt"
+      },
+      "MSFT": {
+        "models": {
+          "rf": {
+            "sharpe": -2.262,
+            "accuracy": 0.46,
+            "max_drawdown": -0.038,
+            "num_trades": 8,
+            "total_return": -0.036
+          },
+          "xgb": {
+            "sharpe": -0.576,
+            "accuracy": 0.552,
+            "max_drawdown": -0.1274,
+            "num_trades": 0,
+            "total_return": -0.0365
+          },
+          "gbrt": {
+            "sharpe": -0.094,
+            "accuracy": 0.46,
+            "max_drawdown": -0.1101,
+            "num_trades": 41,
+            "total_return": -0.0051
+          }
+        },
+        "best_model": "gbrt",
+        "worst_model": "rf"
+      },
+      "NVDA": {
+        "models": {
+          "rf": {
+            "sharpe": -0.023,
+            "accuracy": 0.529,
+            "max_drawdown": -0.1561,
+            "num_trades": 42,
+            "total_return": -0.0018
+          },
+          "xgb": {
+            "sharpe": 0.448,
+            "accuracy": 0.506,
+            "max_drawdown": -0.1546,
+            "num_trades": 13,
+            "total_return": 0.0424
+          },
+          "gbrt": {
+            "sharpe": -2.455,
+            "accuracy": 0.471,
+            "max_drawdown": -0.3555,
+            "num_trades": 28,
+            "total_return": -0.2404
+          }
+        },
+        "best_model": "xgb",
+        "worst_model": "gbrt"
+      },
+      "GOOGL": {
+        "models": {
+          "rf": {
+            "sharpe": 2.758,
+            "accuracy": 0.586,
+            "max_drawdown": -0.0734,
+            "num_trades": 14,
+            "total_return": 0.1536
+          },
+          "xgb": {
+            "sharpe": 3.668,
+            "accuracy": 0.563,
+            "max_drawdown": -0.082,
+            "num_trades": 0,
+            "total_return": 0.3487
+          },
+          "gbrt": {
+            "sharpe": -0.12,
+            "accuracy": 0.471,
+            "max_drawdown": -0.0942,
+            "num_trades": 16,
+            "total_return": -0.0115
+          }
+        },
+        "best_model": "xgb",
+        "worst_model": "gbrt"
+      },
+      "AMZN": {
+        "models": {
+          "rf": {
+            "sharpe": -0.33,
+            "accuracy": 0.483,
+            "max_drawdown": -0.1331,
+            "num_trades": 37,
+            "total_return": -0.0254
+          },
+          "xgb": {
+            "sharpe": 0.766,
+            "accuracy": 0.563,
+            "max_drawdown": -0.1451,
+            "num_trades": 0,
+            "total_return": 0.0838
+          },
+          "gbrt": {
+            "sharpe": 0.993,
+            "accuracy": 0.483,
+            "max_drawdown": -0.1074,
+            "num_trades": 45,
+            "total_return": 0.102
+          }
+        },
+        "best_model": "gbrt",
+        "worst_model": "rf"
+      },
+      "META": {
+        "models": {
+          "rf": {
+            "sharpe": -1.461,
+            "accuracy": 0.506,
+            "max_drawdown": -0.2544,
+            "num_trades": 11,
+            "total_return": -0.1458
+          },
+          "xgb": {
+            "sharpe": -1.064,
+            "accuracy": 0.506,
+            "max_drawdown": -0.2444,
+            "num_trades": 0,
+            "total_return": -0.1101
+          },
+          "gbrt": {
+            "sharpe": -1.997,
+            "accuracy": 0.483,
+            "max_drawdown": -0.2706,
+            "num_trades": 26,
+            "total_return": -0.1934
+          }
+        },
+        "best_model": "xgb",
+        "worst_model": "gbrt"
+      },
+      "JPM": {
+        "models": {
+          "rf": {
+            "sharpe": -0.645,
+            "accuracy": 0.529,
+            "max_drawdown": -0.0524,
+            "num_trades": 18,
+            "total_return": -0.0248
+          },
+          "xgb": {
+            "sharpe": 1.414,
+            "accuracy": 0.575,
+            "max_drawdown": -0.0699,
+            "num_trades": 0,
+            "total_return": 0.1053
+          },
+          "gbrt": {
+            "sharpe": -1.074,
+            "accuracy": 0.54,
+            "max_drawdown": -0.1651,
+            "num_trades": 42,
+            "total_return": -0.0698
+          }
+        },
+        "best_model": "xgb",
+        "worst_model": "gbrt"
+      },
+      "XOM": {
+        "models": {
+          "rf": {
+            "sharpe": -0.922,
+            "accuracy": 0.471,
+            "max_drawdown": -0.046,
+            "num_trades": 30,
+            "total_return": -0.0297
+          },
+          "xgb": {
+            "sharpe": 1.066,
+            "accuracy": 0.54,
+            "max_drawdown": -0.0561,
+            "num_trades": 0,
+            "total_return": 0.0726
+          },
+          "gbrt": {
+            "sharpe": 2.579,
+            "accuracy": 0.575,
+            "max_drawdown": -0.0508,
+            "num_trades": 43,
+            "total_return": 0.154
+          }
+        },
+        "best_model": "gbrt",
+        "worst_model": "rf"
+      },
+      "JNJ": {
+        "models": {
+          "rf": {
+            "sharpe": 1.712,
+            "accuracy": 0.471,
+            "max_drawdown": 0.0,
+            "num_trades": 2,
+            "total_return": 0.0042
+          },
+          "xgb": {
+            "sharpe": 3.144,
+            "accuracy": 0.563,
+            "max_drawdown": -0.046,
+            "num_trades": 0,
+            "total_return": 0.1637
+          },
+          "gbrt": {
+            "sharpe": -1.096,
+            "accuracy": 0.402,
+            "max_drawdown": -0.0936,
+            "num_trades": 41,
+            "total_return": -0.0469
+          }
+        },
+        "best_model": "xgb",
+        "worst_model": "gbrt"
+      }
+    },
+    "per_model": {
+      "rf": {
+        "sharpes": [
+          2.4176296901309757,
+          0.061287342457651495,
+          -2.2620063932189876,
+          -0.02260510209605135,
+          2.7581290744903515,
+          -0.3296493220927559,
+          -1.4610046691283927,
+          -0.644631346621937,
+          -0.922375267384823,
+          1.7117922064723676
+        ],
+        "accuracies": [
+          0.5402298850574713,
+          0.5287356321839081,
+          0.45977011494252873,
+          0.5287356321839081,
+          0.5862068965517241,
+          0.4827586206896552,
+          0.5057471264367817,
+          0.5287356321839081,
+          0.47126436781609193,
+          0.47126436781609193
+        ],
+        "avg_sharpe": 0.131,
+        "avg_accuracy": 0.51
+      },
+      "xgb": {
+        "sharpes": [
+          1.9726625166337632,
+          1.395388607099093,
+          -0.5764262803843802,
+          0.4477280228502492,
+          3.6684315799997065,
+          0.7659007929179605,
+          -1.063792655391793,
+          1.4135943710759262,
+          1.0660588614076418,
+          3.1441761420991132
+        ],
+        "accuracies": [
+          0.5977011494252874,
+          0.5287356321839081,
+          0.5517241379310345,
+          0.5057471264367817,
+          0.5632183908045977,
+          0.5632183908045977,
+          0.5057471264367817,
+          0.5747126436781609,
+          0.5402298850574713,
+          0.5632183908045977
+        ],
+        "avg_sharpe": 1.223,
+        "avg_accuracy": 0.549
+      },
+      "gbrt": {
+        "sharpes": [
+          -0.6789378943224951,
+          -1.4510953337839934,
+          -0.09392950292140223,
+          -2.454718848478374,
+          -0.12033822974692214,
+          0.9926815245891016,
+          -1.9974595432866762,
+          -1.0740108093639662,
+          2.5786597824512847,
+          -1.09630897264862
+        ],
+        "accuracies": [
+          0.4827586206896552,
+          0.4482758620689655,
+          0.45977011494252873,
+          0.47126436781609193,
+          0.47126436781609193,
+          0.4827586206896552,
+          0.4827586206896552,
+          0.5402298850574713,
+          0.5747126436781609,
+          0.40229885057471265
+        ],
+        "avg_sharpe": -0.54,
+        "avg_accuracy": 0.482
+      }
+    },
+    "model_agreement": {
+      "overall_agreement_rate": 0.452,
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "agreement_rate": 0.5666666666666667,
+          "sample_size": 60
+        },
+        {
+          "ticker": "AAPL",
+          "agreement_rate": 0.4666666666666667,
+          "sample_size": 60
+        },
+        {
+          "ticker": "MSFT",
+          "agreement_rate": 0.23333333333333334,
+          "sample_size": 60
+        },
+        {
+          "ticker": "NVDA",
+          "agreement_rate": 0.38333333333333336,
+          "sample_size": 60
+        },
+        {
+          "ticker": "GOOGL",
+          "agreement_rate": 0.35,
+          "sample_size": 60
+        },
+        {
+          "ticker": "AMZN",
+          "agreement_rate": 0.31666666666666665,
+          "sample_size": 60
+        },
+        {
+          "ticker": "META",
+          "agreement_rate": 0.31666666666666665,
+          "sample_size": 60
+        },
+        {
+          "ticker": "JPM",
+          "agreement_rate": 0.7833333333333333,
+          "sample_size": 60
+        },
+        {
+          "ticker": "XOM",
+          "agreement_rate": 0.1,
+          "sample_size": 60
+        },
+        {
+          "ticker": "JNJ",
+          "agreement_rate": 1.0,
+          "sample_size": 60
+        }
+      ]
+    },
+    "summary": {
+      "best_model_overall": "xgb",
+      "best_avg_sharpe": 1.223,
+      "tickers_tested": 10
+    }
+  },
+  "regime_analysis": {
+    "current_regime": {
+      "regime": "bull",
+      "spy_price": 689.58,
+      "spy_200dma": 626.11,
+      "above_200dma": true,
+      "vix": 15.38,
+      "rsi": 61.01,
+      "date": "2026-01-07"
+    },
+    "regime_accuracy": {
+      "bull": {
+        "days": 261,
+        "pct_up": 0.575,
+        "expected_direction": "up",
+        "accuracy": 0.575
+      },
+      "bear": {
+        "days": 220,
+        "pct_up": 0.6,
+        "expected_direction": "down",
+        "accuracy": 0.4
+      },
+      "strong_bear": {
+        "days": 21,
+        "pct_up": 0.476,
+        "expected_direction": "down",
+        "accuracy": 0.524
+      }
+    },
+    "regime_conditional_performance": {
+      "bull": {
+        "sharpe": 1.701,
+        "avg_return": 0.00084,
+        "volatility": 0.0079,
+        "days": 261
+      },
+      "bear": {
+        "sharpe": 2.774,
+        "avg_return": 0.00136,
+        "volatility": 0.0078,
+        "days": 220
+      }
+    },
+    "worst_regime": "bull",
+    "best_regime": "bear"
+  },
+  "worst_periods": {
+    "worst_1month_periods": [
+      {
+        "end_date": "2024-12-24",
+        "start_date": "2024-12-03",
+        "sharpe": -11.661,
+        "window_days": 21,
+        "ticker": "XOM"
+      },
+      {
+        "end_date": "2024-03-08",
+        "start_date": "2024-02-16",
+        "sharpe": -9.012,
+        "window_days": 21,
+        "ticker": "AAPL"
+      },
+      {
+        "end_date": "2024-04-12",
+        "start_date": "2024-03-22",
+        "sharpe": -8.755,
+        "window_days": 21,
+        "ticker": "JNJ"
+      },
+      {
+        "end_date": "2024-08-06",
+        "start_date": "2024-07-16",
+        "sharpe": -8.647,
+        "window_days": 21,
+        "ticker": "MSFT"
+      },
+      {
+        "end_date": "2025-03-14",
+        "start_date": "2025-02-20",
+        "sharpe": -8.642,
+        "window_days": 21,
+        "ticker": "JPM"
+      }
+    ],
+    "worst_3month_periods": [
+      {
+        "end_date": "2024-12-17",
+        "start_date": "2024-10-15",
+        "sharpe": -4.442,
+        "window_days": 63,
+        "ticker": "JNJ"
+      },
+      {
+        "end_date": "2025-04-09",
+        "start_date": "2025-02-04",
+        "sharpe": -3.53,
+        "window_days": 63,
+        "ticker": "GOOGL"
+      },
+      {
+        "end_date": "2025-04-09",
+        "start_date": "2025-02-04",
+        "sharpe": -3.511,
+        "window_days": 63,
+        "ticker": "AAPL"
+      },
+      {
+        "end_date": "2025-01-07",
+        "start_date": "2024-11-05",
+        "sharpe": -3.208,
+        "window_days": 63,
+        "ticker": "XOM"
+      },
+      {
+        "end_date": "2025-04-09",
+        "start_date": "2025-02-04",
+        "sharpe": -3.159,
+        "window_days": 63,
+        "ticker": "AMZN"
+      }
+    ],
+    "ticker_rankings": {
+      "by_6m_sharpe": [
+        {
+          "rank": 1,
+          "ticker": "GOOGL",
+          "sharpe": 4.375
+        },
+        {
+          "rank": 2,
+          "ticker": "JNJ",
+          "sharpe": 3.491
+        },
+        {
+          "rank": 3,
+          "ticker": "AAPL",
+          "sharpe": 2.203
+        },
+        {
+          "rank": 4,
+          "ticker": "SPY",
+          "sharpe": 2.174
+        },
+        {
+          "rank": 5,
+          "ticker": "JPM",
+          "sharpe": 1.917
+        },
+        {
+          "rank": 6,
+          "ticker": "NVDA",
+          "sharpe": 1.134
+        },
+        {
+          "rank": 7,
+          "ticker": "XOM",
+          "sharpe": 0.9
+        },
+        {
+          "rank": 8,
+          "ticker": "AMZN",
+          "sharpe": 0.756
+        },
+        {
+          "rank": 9,
+          "ticker": "MSFT",
+          "sharpe": -0.287
+        },
+        {
+          "rank": 10,
+          "ticker": "META",
+          "sharpe": -0.37
+        }
+      ],
+      "by_worst_1m_sharpe": [
+        {
+          "rank": 1,
+          "ticker": "NVDA",
+          "worst_sharpe": -4.348
+        },
+        {
+          "rank": 2,
+          "ticker": "SPY",
+          "worst_sharpe": -6.228
+        },
+        {
+          "rank": 3,
+          "ticker": "GOOGL",
+          "worst_sharpe": -6.911
+        },
+        {
+          "rank": 4,
+          "ticker": "META",
+          "worst_sharpe": -7.076
+        },
+        {
+          "rank": 5,
+          "ticker": "AMZN",
+          "worst_sharpe": -8.383
+        },
+        {
+          "rank": 6,
+          "ticker": "JPM",
+          "worst_sharpe": -8.642
+        },
+        {
+          "rank": 7,
+          "ticker": "MSFT",
+          "worst_sharpe": -8.647
+        },
+        {
+          "rank": 8,
+          "ticker": "JNJ",
+          "worst_sharpe": -8.755
+        },
+        {
+          "rank": 9,
+          "ticker": "AAPL",
+          "worst_sharpe": -9.012
+        },
+        {
+          "rank": 10,
+          "ticker": "XOM",
+          "worst_sharpe": -11.661
+        }
+      ],
+      "stable_tickers": [],
+      "unstable_tickers": [
+        "SPY",
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "GOOGL",
+        "AMZN",
+        "META",
+        "JPM",
+        "XOM",
+        "JNJ"
+      ]
+    }
+  },
+  "config_audit": {
+    "current_config": {
+      "z_score_threshold": 1.0,
+      "regime_filter_enabled": true,
+      "regime_spy_dma": 200,
+      "regime_vix_high": 25.0,
+      "position_sizing_target_vol": 0.01,
+      "elasticnet_enabled": false,
+      "min_sharpe_eligible": 0.75,
+      "min_hitrate_eligible": 0.55,
+      "model_xgb_version": "xgb_regularized_v1",
+      "model_xgb_status": "stable",
+      "model_rf_version": "rf_default_v1",
+      "model_rf_status": "stable",
+      "model_gbrt_version": "gbrt_default_v1",
+      "model_gbrt_status": "stable"
+    },
+    "baseline_005_config": {
+      "z_score_threshold": 1.0,
+      "regime_filter_enabled": true,
+      "regime_spy_dma": 200,
+      "regime_vix_high": 25.0,
+      "position_sizing_target_vol": 0.01,
+      "elasticnet_enabled": false,
+      "model_type": "xgb",
+      "min_sharpe_eligible": 0.75,
+      "min_hitrate_eligible": 0.55
+    },
+    "differences": [],
+    "recommendations": [
+      "Configuration matches BASELINE_005 - no changes needed"
+    ]
+  },
+  "runtime_seconds": 112.9
+}

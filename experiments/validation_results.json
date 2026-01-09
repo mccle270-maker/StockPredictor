@@ -1,0 +1,1922 @@
+{
+  "rf": {
+    "model_type": "rf",
+    "holdout_test": {
+      "status": "WARNING",
+      "status_display": "\u26a0\ufe0f WARNING",
+      "model_type": "rf",
+      "avg_holdout_sharpe": 0.6032932893742934,
+      "avg_holdout_accuracy": 0.5204819277108433,
+      "avg_train_sharpe": 16.27777062255322,
+      "avg_degradation": 15.674477333178924,
+      "avg_max_drawdown": -0.2882546848330849,
+      "optimization_benchmark": 2.77,
+      "degradation_vs_optimization": 2.1667067106257067,
+      "per_ticker_results": [
+        {
+          "ticker": "AAPL",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 16.014517749271526,
+          "holdout_sharpe": 1.007617399794149,
+          "sharpe_degradation": 15.006900349477377,
+          "train_accuracy": 0.913563829787234,
+          "holdout_accuracy": 0.5542168674698795,
+          "max_drawdown": -0.32057944524406773,
+          "total_return": 0.31114925369920976
+        },
+        {
+          "ticker": "MSFT",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 16.835634245593035,
+          "holdout_sharpe": 0.563341167769415,
+          "sharpe_degradation": 16.27229307782362,
+          "train_accuracy": 0.9321808510638298,
+          "holdout_accuracy": 0.4738955823293173,
+          "max_drawdown": -0.18966394606781875,
+          "total_return": 0.11199730979809952
+        },
+        {
+          "ticker": "GOOGL",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 15.879414139359259,
+          "holdout_sharpe": 0.2077472312662379,
+          "sharpe_degradation": 15.671666908093021,
+          "train_accuracy": 0.9095744680851063,
+          "holdout_accuracy": 0.5220883534136547,
+          "max_drawdown": -0.3139390264539279,
+          "total_return": 0.01463088284360814
+        },
+        {
+          "ticker": "AMZN",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 15.833953468696542,
+          "holdout_sharpe": 0.24834051809102067,
+          "sharpe_degradation": 15.58561295060552,
+          "train_accuracy": 0.9242021276595744,
+          "holdout_accuracy": 0.5180722891566265,
+          "max_drawdown": -0.26386059194680084,
+          "total_return": 0.02661175366876911
+        },
+        {
+          "ticker": "NVDA",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 16.825333509845734,
+          "holdout_sharpe": 0.989420129950644,
+          "sharpe_degradation": 15.83591337989509,
+          "train_accuracy": 0.9295212765957447,
+          "holdout_accuracy": 0.5341365461847389,
+          "max_drawdown": -0.3532304144528093,
+          "total_return": 0.4403333343440541
+        }
+      ]
+    },
+    "walk_forward": {
+      "model_type": "rf",
+      "total_folds": 45,
+      "mean_sharpe": 0.08160911354835565,
+      "std_sharpe": 2.4221879244464524,
+      "min_sharpe": -5.401778029849676,
+      "max_sharpe": 6.512741319145459,
+      "pct_positive_sharpe": 0.4888888888888889,
+      "mean_accuracy": 0.5020250344114892,
+      "per_ticker_results": [
+        {
+          "ticker": "AAPL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -2.0766402063795484,
+              "accuracy": 0.4626865671641791
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -1.4995622142819665,
+              "accuracy": 0.4603174603174603
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.8157088299195099,
+              "accuracy": 0.5223880597014925
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -5.401778029849676,
+              "accuracy": 0.328125
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -1.17878794258906,
+              "accuracy": 0.47761194029850745
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": -2.7203349628747975,
+              "accuracy": 0.3709677419354839
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 1.6055889941862018,
+              "accuracy": 0.5074626865671642
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": -2.8427057331120817,
+              "accuracy": 0.46875
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -2.384317177015,
+              "accuracy": 0.417910447761194
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": -1.6314253824440463,
+          "std_sharpe": 2.1138908423800893,
+          "min_sharpe": -5.401778029849676,
+          "max_sharpe": 1.8157088299195099,
+          "pct_positive_sharpe": 0.2222222222222222,
+          "mean_accuracy": 0.4462466559717202
+        },
+        {
+          "ticker": "MSFT",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 3.4438714049445096,
+              "accuracy": 0.582089552238806
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -2.996148273847037,
+              "accuracy": 0.4126984126984127
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 0.4328665142319986,
+              "accuracy": 0.5074626865671642
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": 1.0648981064191354,
+              "accuracy": 0.546875
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -2.3576636948502556,
+              "accuracy": 0.44776119402985076
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 1.8295175080535608,
+              "accuracy": 0.5806451612903226
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 0.13518846785846636,
+              "accuracy": 0.47761194029850745
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": -2.5837459615053775,
+              "accuracy": 0.4375
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.5277238450208388,
+              "accuracy": 0.4626865671641791
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": 0.05516754625842663,
+          "std_sharpe": 2.1098924848279164,
+          "min_sharpe": -2.996148273847037,
+          "max_sharpe": 3.4438714049445096,
+          "pct_positive_sharpe": 0.6666666666666666,
+          "mean_accuracy": 0.49503672380969366
+        },
+        {
+          "ticker": "GOOGL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.2830309470137355,
+              "accuracy": 0.4626865671641791
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -0.959491803497718,
+              "accuracy": 0.4603174603174603
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.0552742170807765,
+              "accuracy": 0.5970149253731343
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -0.7983346465033627,
+              "accuracy": 0.578125
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -0.15999548951305861,
+              "accuracy": 0.5223880597014925
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 5.085251284188788,
+              "accuracy": 0.6290322580645161
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": -0.44751661304252377,
+              "accuracy": 0.4925373134328358
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 0.31908898518231854,
+              "accuracy": 0.546875
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -3.611232814702495,
+              "accuracy": 0.44776119402985076
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": 0.19623045180071783,
+          "std_sharpe": 2.1908812996523723,
+          "min_sharpe": -3.611232814702495,
+          "max_sharpe": 5.085251284188788,
+          "pct_positive_sharpe": 0.4444444444444444,
+          "mean_accuracy": 0.5263041975648298
+        },
+        {
+          "ticker": "AMZN",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -1.5262162598371907,
+              "accuracy": 0.47761194029850745
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -4.259845653439194,
+              "accuracy": 0.42857142857142855
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 2.6309618600505256,
+              "accuracy": 0.582089552238806
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": 1.9451775473347264,
+              "accuracy": 0.484375
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -0.18086241119648683,
+              "accuracy": 0.5373134328358209
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 1.6941538894899548,
+              "accuracy": 0.532258064516129
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": -0.1360823701904835,
+              "accuracy": 0.5074626865671642
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 6.512741319145459,
+              "accuracy": 0.6875
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -0.6265549318351149,
+              "accuracy": 0.417910447761194
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": 0.6726081099469108,
+          "std_sharpe": 2.8448674961090603,
+          "min_sharpe": -4.259845653439194,
+          "max_sharpe": 6.512741319145459,
+          "pct_positive_sharpe": 0.4444444444444444,
+          "mean_accuracy": 0.51723250586545
+        },
+        {
+          "ticker": "NVDA",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -0.7190650030623716,
+              "accuracy": 0.5223880597014925
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": 3.512742534057812,
+              "accuracy": 0.6031746031746031
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 2.090712962861443,
+              "accuracy": 0.5671641791044776
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -0.7157214949382437,
+              "accuracy": 0.4375
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -1.5662156351306595,
+              "accuracy": 0.44776119402985076
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 2.2437123576917952,
+              "accuracy": 0.5161290322580645
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 1.5609064042754581,
+              "accuracy": 0.5373134328358209
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 0.18286015683155343,
+              "accuracy": 0.484375
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 3.449251297031139,
+              "accuracy": 0.6119402985074627
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": 1.1154648421797697,
+          "std_sharpe": 1.7762593004861353,
+          "min_sharpe": -1.5662156351306595,
+          "max_sharpe": 3.512742534057812,
+          "pct_positive_sharpe": 0.6666666666666666,
+          "mean_accuracy": 0.5253050888457524
+        }
+      ],
+      "status": "FAIL",
+      "status_display": "\u274c FAIL"
+    },
+    "purged_kfold": {
+      "model_type": "rf",
+      "total_folds": 25,
+      "mean_train_sharpe": 15.530363455023618,
+      "mean_test_sharpe": -0.31218004431957014,
+      "std_test_sharpe": 1.043991053785906,
+      "mean_overfitting_gap": 15.84254349934319,
+      "pct_positive_sharpe": 0.36,
+      "mean_accuracy": 0.4944376237623762,
+      "per_ticker_results": [
+        {
+          "ticker": "AAPL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 13.44000317876115,
+              "test_sharpe": 0.7255199046112708,
+              "accuracy": 0.5,
+              "overfitting_gap": 12.71448327414988
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 14.243633559895052,
+              "test_sharpe": -0.40916046034845377,
+              "accuracy": 0.49,
+              "overfitting_gap": 14.652794020243507
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 14.130111903736633,
+              "test_sharpe": 0.34422507466568,
+              "accuracy": 0.505,
+              "overfitting_gap": 13.785886829070954
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 14.04202761890692,
+              "test_sharpe": -0.8405397807347248,
+              "accuracy": 0.44,
+              "overfitting_gap": 14.882567399641644
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 16.07380860356139,
+              "test_sharpe": 0.33079928389887875,
+              "accuracy": 0.5099009900990099,
+              "overfitting_gap": 15.74300931966251
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.030168804418530194,
+          "mean_train_sharpe": 14.385916972972229,
+          "mean_overfitting_gap": 14.355748168553697,
+          "mean_accuracy": 0.48898019801980197
+        },
+        {
+          "ticker": "MSFT",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 14.751674326872,
+              "test_sharpe": -1.1990343432512562,
+              "accuracy": 0.47,
+              "overfitting_gap": 15.950708670123255
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.771936745007936,
+              "test_sharpe": -1.6442201677697248,
+              "accuracy": 0.475,
+              "overfitting_gap": 17.416156912777662
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.394157622572624,
+              "test_sharpe": -0.3443364834483592,
+              "accuracy": 0.5,
+              "overfitting_gap": 15.738494106020983
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.92960135817117,
+              "test_sharpe": -0.46094360536459983,
+              "accuracy": 0.515,
+              "overfitting_gap": 16.39054496353577
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 16.630909551237636,
+              "test_sharpe": -0.8610850931321052,
+              "accuracy": 0.44554455445544555,
+              "overfitting_gap": 17.49199464436974
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": -0.9019239385932091,
+          "mean_train_sharpe": 15.695655920772273,
+          "mean_overfitting_gap": 16.59757985936548,
+          "mean_accuracy": 0.4811089108910891
+        },
+        {
+          "ticker": "GOOGL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 15.12871129257026,
+              "test_sharpe": -0.7577279632697572,
+              "accuracy": 0.46,
+              "overfitting_gap": 15.886439255840017
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.14352669112108,
+              "test_sharpe": -1.2750173346648885,
+              "accuracy": 0.445,
+              "overfitting_gap": 17.41854402578597
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.685198134510884,
+              "test_sharpe": -1.153062555593299,
+              "accuracy": 0.5,
+              "overfitting_gap": 17.838260690104182
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.648632319615382,
+              "test_sharpe": -0.8554469445822902,
+              "accuracy": 0.505,
+              "overfitting_gap": 16.50407926419767
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 16.06267494037642,
+              "test_sharpe": -1.6510970432142398,
+              "accuracy": 0.4801980198019802,
+              "overfitting_gap": 17.71377198359066
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": -1.1384703682648951,
+          "mean_train_sharpe": 15.933748675638805,
+          "mean_overfitting_gap": 17.0722190439037,
+          "mean_accuracy": 0.4780396039603961
+        },
+        {
+          "ticker": "AMZN",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 15.635301843787603,
+              "test_sharpe": 2.5001133127427706,
+              "accuracy": 0.6,
+              "overfitting_gap": 13.135188531044832
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.021039096410206,
+              "test_sharpe": 0.0198525977107312,
+              "accuracy": 0.49,
+              "overfitting_gap": 15.001186498699475
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.596190563172197,
+              "test_sharpe": -0.00024814055468622506,
+              "accuracy": 0.525,
+              "overfitting_gap": 15.596438703726884
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.243044407742024,
+              "test_sharpe": -1.1809596147916346,
+              "accuracy": 0.495,
+              "overfitting_gap": 16.42400402253366
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 15.680294938503994,
+              "test_sharpe": -1.008817736012071,
+              "accuracy": 0.4504950495049505,
+              "overfitting_gap": 16.689112674516064
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.06598808381902206,
+          "mean_train_sharpe": 15.435174169923206,
+          "mean_overfitting_gap": 15.369186086104182,
+          "mean_accuracy": 0.5120990099009901
+        },
+        {
+          "ticker": "NVDA",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 15.17103318890746,
+              "test_sharpe": -1.662604127174475,
+              "accuracy": 0.46,
+              "overfitting_gap": 16.833637316081933
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.735642140668276,
+              "test_sharpe": 1.6480453349787734,
+              "accuracy": 0.56,
+              "overfitting_gap": 15.087596805689502
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.4479554284975,
+              "test_sharpe": 1.1992292955708281,
+              "accuracy": 0.51,
+              "overfitting_gap": 15.248726132926674
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.85212949882003,
+              "test_sharpe": 0.313697911606043,
+              "accuracy": 0.51,
+              "overfitting_gap": 15.538431587213987
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 16.79984742216463,
+              "test_sharpe": 0.4183175701323355,
+              "accuracy": 0.5198019801980198,
+              "overfitting_gap": 16.381529852032294
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.383337197022701,
+          "mean_train_sharpe": 16.20132153581158,
+          "mean_overfitting_gap": 15.817984338788879,
+          "mean_accuracy": 0.511960396039604
+        }
+      ],
+      "status": "FAIL",
+      "status_display": "\u274c FAIL"
+    }
+  },
+  "xgb": {
+    "model_type": "xgb",
+    "holdout_test": {
+      "status": "FAIL",
+      "status_display": "\u274c FAIL",
+      "model_type": "xgb",
+      "avg_holdout_sharpe": 0.12414385249961477,
+      "avg_holdout_accuracy": 0.4859437751004016,
+      "avg_train_sharpe": 17.190432109981863,
+      "avg_degradation": 17.066288257482253,
+      "avg_max_drawdown": -0.2948364845043879,
+      "optimization_benchmark": 2.77,
+      "degradation_vs_optimization": 2.6458561475003854,
+      "per_ticker_results": [
+        {
+          "ticker": "AAPL",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 16.987925905273123,
+          "holdout_sharpe": 0.6729390995122895,
+          "sharpe_degradation": 16.31498680576083,
+          "train_accuracy": 0.9707446808510638,
+          "holdout_accuracy": 0.4979919678714859,
+          "max_drawdown": -0.15143456950914014,
+          "total_return": 0.1790254402030942
+        },
+        {
+          "ticker": "MSFT",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 17.581094040081535,
+          "holdout_sharpe": 0.6557879756635469,
+          "sharpe_degradation": 16.92530606441799,
+          "train_accuracy": 0.9853723404255319,
+          "holdout_accuracy": 0.4899598393574297,
+          "max_drawdown": -0.19185231608533632,
+          "total_return": 0.13685881526080368
+        },
+        {
+          "ticker": "GOOGL",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 17.07660675349739,
+          "holdout_sharpe": 1.3078865014383612,
+          "sharpe_degradation": 15.76872025205903,
+          "train_accuracy": 0.9667553191489362,
+          "holdout_accuracy": 0.5461847389558233,
+          "max_drawdown": -0.21760019355936303,
+          "total_return": 0.4432537995047865
+        },
+        {
+          "ticker": "AMZN",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 16.504686107296486,
+          "holdout_sharpe": -2.0362369481505365,
+          "sharpe_degradation": 18.540923055447024,
+          "train_accuracy": 0.9654255319148937,
+          "holdout_accuracy": 0.41365461847389556,
+          "max_drawdown": -0.5335451146884694,
+          "total_return": -0.5254539831970997
+        },
+        {
+          "ticker": "NVDA",
+          "train_samples": 752,
+          "holdout_samples": 249,
+          "train_sharpe": 17.801847743760806,
+          "holdout_sharpe": 0.02034263403441247,
+          "sharpe_degradation": 17.781505109726393,
+          "train_accuracy": 0.9827127659574468,
+          "holdout_accuracy": 0.4819277108433735,
+          "max_drawdown": -0.3797502286796304,
+          "total_return": -0.10615681456708581
+        }
+      ]
+    },
+    "walk_forward": {
+      "model_type": "xgb",
+      "total_folds": 45,
+      "mean_sharpe": -0.2031603034353086,
+      "std_sharpe": 2.0627346391982786,
+      "min_sharpe": -3.8965049428502354,
+      "max_sharpe": 3.865328693017188,
+      "pct_positive_sharpe": 0.5111111111111111,
+      "mean_accuracy": 0.4927062210920138,
+      "per_ticker_results": [
+        {
+          "ticker": "AAPL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -0.6653602229945172,
+              "accuracy": 0.5373134328358209
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -3.8965049428502354,
+              "accuracy": 0.5079365079365079
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 0.6425487195449324,
+              "accuracy": 0.4925373134328358
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -2.2829198361907412,
+              "accuracy": 0.375
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -1.435275683600157,
+              "accuracy": 0.5074626865671642
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": -2.4268837334592437,
+              "accuracy": 0.46774193548387094
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 2.097952800381947,
+              "accuracy": 0.582089552238806
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 0.18077011812674448,
+              "accuracy": 0.46875
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -2.8088160021323056,
+              "accuracy": 0.40298507462686567
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": -1.1771654203526196,
+          "std_sharpe": 1.7966602676240864,
+          "min_sharpe": -3.8965049428502354,
+          "max_sharpe": 2.097952800381947,
+          "pct_positive_sharpe": 0.3333333333333333,
+          "mean_accuracy": 0.4824240559024301
+        },
+        {
+          "ticker": "MSFT",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 0.3307477030536263,
+              "accuracy": 0.5223880597014925
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -1.9657587265320788,
+              "accuracy": 0.4126984126984127
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 0.8012179502444456,
+              "accuracy": 0.5522388059701493
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -2.3235547852782594,
+              "accuracy": 0.421875
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -0.6348382454016734,
+              "accuracy": 0.4925373134328358
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 0.8398438637935132,
+              "accuracy": 0.5483870967741935
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 0.2551657559042694,
+              "accuracy": 0.47761194029850745
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": -2.9241486262789187,
+              "accuracy": 0.421875
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.5757601727579456,
+              "accuracy": 0.47761194029850745
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": -0.4495072153041256,
+          "std_sharpe": 1.5056589556102071,
+          "min_sharpe": -2.9241486262789187,
+          "max_sharpe": 1.5757601727579456,
+          "pct_positive_sharpe": 0.5555555555555556,
+          "mean_accuracy": 0.480802618797122
+        },
+        {
+          "ticker": "GOOGL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 2.701721034364333,
+              "accuracy": 0.5223880597014925
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": 1.008177221681112,
+              "accuracy": 0.5396825396825397
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 0.8702033074075969,
+              "accuracy": 0.5223880597014925
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -0.5745295569813069,
+              "accuracy": 0.53125
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -3.1153194804650406,
+              "accuracy": 0.40298507462686567
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": -0.2295940293980603,
+              "accuracy": 0.4838709677419355
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 0.7368765600180971,
+              "accuracy": 0.5074626865671642
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 0.14325590759359427,
+              "accuracy": 0.546875
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 3.5913005262705524,
+              "accuracy": 0.6268656716417911
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": 0.5702323878323197,
+          "std_sharpe": 1.8164510194384533,
+          "min_sharpe": -3.1153194804650406,
+          "max_sharpe": 3.5913005262705524,
+          "pct_positive_sharpe": 0.6666666666666666,
+          "mean_accuracy": 0.5204186732959202
+        },
+        {
+          "ticker": "AMZN",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -3.630847232146274,
+              "accuracy": 0.40298507462686567
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -3.408753119832151,
+              "accuracy": 0.4603174603174603
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 2.3508408474916536,
+              "accuracy": 0.582089552238806
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -1.3921878451986414,
+              "accuracy": 0.484375
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -1.216205228821078,
+              "accuracy": 0.43283582089552236
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 1.555560405898439,
+              "accuracy": 0.5161290322580645
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": -0.636195337345988,
+              "accuracy": 0.44776119402985076
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 3.865328693017188,
+              "accuracy": 0.609375
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -1.659418716357646,
+              "accuracy": 0.3880597014925373
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": -0.4635419481438331,
+          "std_sharpe": 2.411351698530064,
+          "min_sharpe": -3.630847232146274,
+          "max_sharpe": 3.865328693017188,
+          "pct_positive_sharpe": 0.3333333333333333,
+          "mean_accuracy": 0.4804364262065674
+        },
+        {
+          "ticker": "NVDA",
+          "folds": [
+            {
+              "fold": 1,
+              "train_start": "2022-01-03",
+              "train_end": "2023-07-24",
+              "test_start": "2023-07-25",
+              "test_end": "2023-10-27",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": -2.463125308212776,
+              "accuracy": 0.3880597014925373
+            },
+            {
+              "fold": 2,
+              "train_start": "2022-04-07",
+              "train_end": "2023-10-26",
+              "test_start": "2023-10-27",
+              "test_end": "2024-01-30",
+              "train_samples": 390,
+              "test_samples": 63,
+              "sharpe": -2.380734338171516,
+              "accuracy": 0.3968253968253968
+            },
+            {
+              "fold": 3,
+              "train_start": "2022-07-11",
+              "train_end": "2024-01-29",
+              "test_start": "2024-01-30",
+              "test_end": "2024-05-03",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 3.1854347507432696,
+              "accuracy": 0.5970149253731343
+            },
+            {
+              "fold": 4,
+              "train_start": "2022-10-13",
+              "train_end": "2024-05-02",
+              "test_start": "2024-05-03",
+              "test_end": "2024-08-06",
+              "train_samples": 389,
+              "test_samples": 64,
+              "sharpe": -2.0088584678698065,
+              "accuracy": 0.421875
+            },
+            {
+              "fold": 5,
+              "train_start": "2023-01-16",
+              "train_end": "2024-08-05",
+              "test_start": "2024-08-06",
+              "test_end": "2024-11-08",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.629572641662792,
+              "accuracy": 0.5522388059701493
+            },
+            {
+              "fold": 6,
+              "train_start": "2023-04-20",
+              "train_end": "2024-11-07",
+              "test_start": "2024-11-08",
+              "test_end": "2025-02-11",
+              "train_samples": 391,
+              "test_samples": 62,
+              "sharpe": 0.8818590752667926,
+              "accuracy": 0.5161290322580645
+            },
+            {
+              "fold": 7,
+              "train_start": "2023-07-24",
+              "train_end": "2025-02-10",
+              "test_start": "2025-02-11",
+              "test_end": "2025-05-16",
+              "train_samples": 389,
+              "test_samples": 67,
+              "sharpe": 1.5240185438214313,
+              "accuracy": 0.5373134328358209
+            },
+            {
+              "fold": 8,
+              "train_start": "2023-10-26",
+              "train_end": "2025-05-15",
+              "test_start": "2025-05-16",
+              "test_end": "2025-08-19",
+              "train_samples": 388,
+              "test_samples": 64,
+              "sharpe": 3.163849133421503,
+              "accuracy": 0.578125
+            },
+            {
+              "fold": 9,
+              "train_start": "2024-01-29",
+              "train_end": "2025-08-18",
+              "test_start": "2025-08-19",
+              "test_end": "2025-11-21",
+              "train_samples": 390,
+              "test_samples": 67,
+              "sharpe": 1.0056100784637454,
+              "accuracy": 0.5074626865671642
+            }
+          ],
+          "num_folds": 9,
+          "mean_sharpe": 0.504180678791715,
+          "std_sharpe": 2.118873224413762,
+          "min_sharpe": -2.463125308212776,
+          "max_sharpe": 3.1854347507432696,
+          "pct_positive_sharpe": 0.6666666666666666,
+          "mean_accuracy": 0.49944933125802976
+        }
+      ],
+      "status": "FAIL",
+      "status_display": "\u274c FAIL"
+    },
+    "purged_kfold": {
+      "model_type": "xgb",
+      "total_folds": 25,
+      "mean_train_sharpe": 16.45452911824464,
+      "mean_test_sharpe": 0.21024160162134212,
+      "std_test_sharpe": 0.9385706086328274,
+      "mean_overfitting_gap": 16.244287516623302,
+      "pct_positive_sharpe": 0.56,
+      "mean_accuracy": 0.5034217821782179,
+      "per_ticker_results": [
+        {
+          "ticker": "AAPL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 14.545596122061163,
+              "test_sharpe": 0.5775622777009474,
+              "accuracy": 0.52,
+              "overfitting_gap": 13.968033844360216
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 14.992918108593582,
+              "test_sharpe": 1.1831869812259526,
+              "accuracy": 0.52,
+              "overfitting_gap": 13.809731127367629
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.20354888118184,
+              "test_sharpe": -0.3485524560116111,
+              "accuracy": 0.46,
+              "overfitting_gap": 15.55210133719345
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.193270429740219,
+              "test_sharpe": -1.8494520363462132,
+              "accuracy": 0.425,
+              "overfitting_gap": 17.04272246608643
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 17.064907016709885,
+              "test_sharpe": 1.1649860523159785,
+              "accuracy": 0.5148514851485149,
+              "overfitting_gap": 15.899920964393907
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.14554616377701085,
+          "mean_train_sharpe": 15.400048111657338,
+          "mean_overfitting_gap": 15.254501947880328,
+          "mean_accuracy": 0.487970297029703
+        },
+        {
+          "ticker": "MSFT",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 15.655463419106285,
+              "test_sharpe": 1.712707623103785,
+              "accuracy": 0.54,
+              "overfitting_gap": 13.9427557960025
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.47673981207395,
+              "test_sharpe": 0.9486621303124563,
+              "accuracy": 0.52,
+              "overfitting_gap": 15.528077681761495
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.387696559937286,
+              "test_sharpe": 0.21977086943806173,
+              "accuracy": 0.54,
+              "overfitting_gap": 16.167925690499224
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.699799283547424,
+              "test_sharpe": 0.1668501543888397,
+              "accuracy": 0.52,
+              "overfitting_gap": 16.532949129158585
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 17.478755994755772,
+              "test_sharpe": -0.08705404392817373,
+              "accuracy": 0.4405940594059406,
+              "overfitting_gap": 17.565810038683946
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.5921873466629937,
+          "mean_train_sharpe": 16.539691013884145,
+          "mean_overfitting_gap": 15.94750366722115,
+          "mean_accuracy": 0.5121188118811881
+        },
+        {
+          "ticker": "GOOGL",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 16.55352694973422,
+              "test_sharpe": 1.458516798509391,
+              "accuracy": 0.52,
+              "overfitting_gap": 15.095010151224828
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.95996277455033,
+              "test_sharpe": 2.1063069889815953,
+              "accuracy": 0.54,
+              "overfitting_gap": 14.853655785568735
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 17.56696180791672,
+              "test_sharpe": -1.3027763424496313,
+              "accuracy": 0.465,
+              "overfitting_gap": 18.869738150366352
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.98256865701838,
+              "test_sharpe": -0.3645162147925048,
+              "accuracy": 0.515,
+              "overfitting_gap": 17.347084871810885
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 17.134454217193763,
+              "test_sharpe": -0.5660119537175811,
+              "accuracy": 0.5247524752475248,
+              "overfitting_gap": 17.700466170911344
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.26630385530625383,
+          "mean_train_sharpe": 17.039494881282685,
+          "mean_overfitting_gap": 16.773191025976427,
+          "mean_accuracy": 0.512950495049505
+        },
+        {
+          "ticker": "AMZN",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 16.263277846254503,
+              "test_sharpe": -0.7135687234674141,
+              "accuracy": 0.495,
+              "overfitting_gap": 16.976846569721918
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.768302594566102,
+              "test_sharpe": 0.6618345203196105,
+              "accuracy": 0.49,
+              "overfitting_gap": 15.106468074246491
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.24874119244203,
+              "test_sharpe": 0.06725349444583792,
+              "accuracy": 0.51,
+              "overfitting_gap": 16.181487697996193
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 15.928726660442885,
+              "test_sharpe": -0.14500440376305176,
+              "accuracy": 0.5,
+              "overfitting_gap": 16.073731064205937
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 16.55970292088975,
+              "test_sharpe": -0.986687635041889,
+              "accuracy": 0.4504950495049505,
+              "overfitting_gap": 17.54639055593164
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": -0.22323454950138127,
+          "mean_train_sharpe": 16.153750242919052,
+          "mean_overfitting_gap": 16.376984792420437,
+          "mean_accuracy": 0.4890990099009901
+        },
+        {
+          "ticker": "NVDA",
+          "folds": [
+            {
+              "fold": 1,
+              "train_samples": 801,
+              "test_samples": 200,
+              "purged_samples": 1,
+              "train_sharpe": 16.10502735312415,
+              "test_sharpe": 0.34967454239367785,
+              "accuracy": 0.52,
+              "overfitting_gap": 15.755352810730471
+            },
+            {
+              "fold": 2,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 17.687342717795076,
+              "test_sharpe": 1.1142295542766778,
+              "accuracy": 0.52,
+              "overfitting_gap": 16.5731131635184
+            },
+            {
+              "fold": 3,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 17.31679875850122,
+              "test_sharpe": -0.493104189936961,
+              "accuracy": 0.5,
+              "overfitting_gap": 17.809902948438182
+            },
+            {
+              "fold": 4,
+              "train_samples": 796,
+              "test_samples": 200,
+              "purged_samples": 6,
+              "train_sharpe": 16.85125746856722,
+              "test_sharpe": -0.15437024835705704,
+              "accuracy": 0.52,
+              "overfitting_gap": 17.005627716924277
+            },
+            {
+              "fold": 5,
+              "train_samples": 795,
+              "test_samples": 202,
+              "purged_samples": 5,
+              "train_sharpe": 17.73788040941226,
+              "test_sharpe": 0.53559630093283,
+              "accuracy": 0.5148514851485149,
+              "overfitting_gap": 17.20228410847943
+            }
+          ],
+          "num_folds": 5,
+          "mean_test_sharpe": 0.2704051918618335,
+          "mean_train_sharpe": 17.139661341479986,
+          "mean_overfitting_gap": 16.869256149618153,
+          "mean_accuracy": 0.514970297029703
+        }
+      ],
+      "status": "FAIL",
+      "status_display": "\u274c FAIL"
+    }
+  }
+}

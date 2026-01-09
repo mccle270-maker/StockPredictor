@@ -44,13 +44,16 @@ def model_selector_widget(
 ) -> str:
     """
     Model type dropdown.
+    
+    NOTE: GBRT removed from options (2026-01-07) due to severe overfitting.
+    See GBRT_INVESTIGATION_REPORT.md for details.
     """
-    options = {"rf": "Random Forest", "xgb": "XGBoost", "gbrt": "Gradient Boosting"}
+    options = {"rf": "Random Forest", "xgb": "XGBoost"}
     return st.selectbox(
         "Model Type",
         options=list(options.keys()),
         format_func=lambda x: options[x],
-        index=list(options.keys()).index(default),
+        index=list(options.keys()).index(default) if default in options else 0,
         key=key,
     )
 

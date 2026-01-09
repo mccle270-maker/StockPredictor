@@ -16,6 +16,7 @@ from ..config import (
     FEATURE_COLUMNS, MACRO_COLUMNS,
     USE_ELASTICNET_SELECT, ELASTICNET_L1_RATIO, ELASTICNET_CV_FOLDS,
     USE_OLSSIGSELECT, OLSSIG_ALPHA, OLSSIG_TOPK, OLSSIG_MINFEATURES,
+    is_elasticnet_enabled,  # Runtime check function
 )
 from ..core.features import build_all_features, add_gbm_features, build_target, get_available_features
 from ..core.models import make_model, select_features_elasticnet, select_features_ols_pvalue
@@ -47,12 +48,12 @@ def build_features_and_target(
     horizon: int = 1,
     use_vol_scaled_target: bool = False,
     run_gaf: bool = False,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, float, float | None, pd.DatetimeIndex]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, float, float | None, float | None, pd.DatetimeIndex]:
     """
     Build feature matrix X, target y, and the last row x_last for prediction.
     
     Returns:
-        (X, y, x_last, last_close, last_vol_20d, prob_up_gaf, dates)
+        (X, y, x_last, last_close, last_vol_20d, prob_up_gaf, last_rsi, dates)
     """
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
@@ -91,14 +92,23 @@ def build_features_and_target(
     last_vol_20d = float(vol_20d.iloc[-1]) if not vol_20d.empty else 0.01
     last_close = float(hist["Close"].iloc[-1])
     
-    # Collect available feature columns
-    feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
-    macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
-    feat_cols = feat_cols_available + macro_cols_available
+    # Extract RSI for signal filtering
+    last_rsi = None
+    if "rsi14" in hist.columns:
+        rsi_vals = hist["rsi14"].dropna()
+        if len(rsi_vals) > 0:
+            last_rsi = float(rsi_vals.iloc[-1])
+    
+    # Collect available feature columns (deduplicate)
+    feat_cols_available = list(dict.fromkeys([c for c in FEATURE_COLUMNS if c in hist.columns]))
+    macro_cols_available = list(dict.fromkeys([c for c in MACRO_COLUMNS if c in hist.columns]))
+    feat_cols = feat_cols_available + [c for c in macro_cols_available if c not in feat_cols_available]
     
     # Quality filter: drop mostly-missing features
     data_quality = hist[feat_cols].isna().sum() / len(hist)
-    feat_cols = [c for c in feat_cols if data_quality[c] < 0.5]
+    # Convert to dict for safe scalar access
+    data_quality_dict = data_quality.to_dict() if hasattr(data_quality, 'to_dict') else {}
+    feat_cols = [c for c in feat_cols if data_quality_dict.get(c, 0) < 0.5]
     
     # Fill NaNs
     hist[feat_cols] = hist[feat_cols].ffill().bfill().fillna(0)
@@ -127,7 +137,7 @@ def build_features_and_target(
     x_last = df[feat_cols].values[-1]
     dates = df.index[:-1]
     
-    return X, y, x_last, last_close, last_vol_20d, prob_up_gaf, dates
+    return X, y, x_last, last_close, last_vol_20d, prob_up_gaf, last_rsi, dates
 
 
 def predict_next_for_ticker(
@@ -144,9 +154,9 @@ def predict_next_for_ticker(
     
     Returns dict with: ticker, model_type, horizon, last_close, vol_20d, pe_ratio,
     pred_next_ret, pred_next_price, prob_up, prob_down, prob_up_gaf, confidence_score,
-    num_features, top_features, elasticnet metadata.
+    num_features, top_features, rsi14, elasticnet metadata.
     """
-    X, y, x_last, last_close, last_vol_20d, prob_up_gaf, dates = build_features_and_target(
+    X, y, x_last, last_close, last_vol_20d, prob_up_gaf, last_rsi, dates = build_features_and_target(
         ticker=ticker,
         period=period,
         horizon=horizon,
@@ -174,8 +184,9 @@ def predict_next_for_ticker(
         x_last = x_last[ols_mask]
         actual_feat_cols = ols_names
     
-    # ElasticNet selection (optional)
-    if USE_ELASTICNET_SELECT:
+    # ElasticNet selection (optional) - check at RUNTIME
+    use_elasticnet_now = is_elasticnet_enabled()
+    if use_elasticnet_now:
         try:
             train_end = int(n * 0.8)
             X_en_train = X[:train_end]
@@ -193,9 +204,11 @@ def predict_next_for_ticker(
             X = X[:, en_mask]
             x_last = x_last[en_mask]
             actual_feat_cols = en_names
-            print(f"{ticker} ElasticNet selected {len(actual_feat_cols)} features")
+            print(f"✂️ {ticker} ElasticNet selected {len(actual_feat_cols)} features")
         except Exception as e:
             print(f"{ticker} ElasticNet selection failed: {e}")
+    else:
+        print(f"📊 {ticker} Using ALL {X.shape[1]} features (ElasticNet disabled)")
     
     # Auto-optimize: prune weak features
     train_end = int(n * 0.8)
@@ -251,6 +264,18 @@ def predict_next_for_ticker(
     fund_feats = get_fundamental_features(ticker)
     pe_ratio = fund_feats.get("fund_pe_trailing", None)
     
+    # Compute prediction z-score (how extreme is this prediction vs training predictions)
+    pred_zscore = 0.0
+    try:
+        # Get predictions for training data to compute mean/std
+        train_preds = model.predict(X_train)
+        train_mean = float(np.mean(train_preds))
+        train_std = float(np.std(train_preds))
+        if train_std > 1e-9:
+            pred_zscore = float((pred_ret - train_mean) / train_std)
+    except Exception:
+        pass
+    
     # Feature importance
     top_features_str = "NA"
     if hasattr(model, "feature_importances_"):
@@ -266,17 +291,19 @@ def predict_next_for_ticker(
         "vol_20d": last_vol_20d,
         "pe_ratio": pe_ratio,
         "pred_next_ret": pred_ret,
+        "pred_zscore": pred_zscore,  # Z-score of prediction
         "confidence_score": confidence_score,
         "pred_next_price": pred_price,
         "prob_up": prob_up,
         "prob_down": prob_down,
         "prob_up_gaf": prob_up_gaf,
+        "rsi14": last_rsi,  # For signal filtering
         "num_features": len(actual_feat_cols),
         "top_features": top_features_str,
-        "elasticnet_enabled": bool(USE_ELASTICNET_SELECT),
+        "elasticnet_enabled": use_elasticnet_now,  # Runtime check value
         "elasticnet_l1_ratio": float(ELASTICNET_L1_RATIO),
         "elasticnet_cv_folds": int(ELASTICNET_CV_FOLDS),
-        "elasticnet_selected_n": len(actual_feat_cols) if USE_ELASTICNET_SELECT else None,
+        "elasticnet_selected_n": len(actual_feat_cols) if use_elasticnet_now else None,
     }
 
 

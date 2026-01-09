@@ -1,0 +1,868 @@
+{
+  "timestamp": "2026-01-07T16:06:38.859328",
+  "tickers_analyzed": [
+    "SPY",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "JPM",
+    "XOM",
+    "JNJ"
+  ],
+  "data_period": "2y",
+  "nan_threshold": 0.05,
+  "features_checked": 57,
+  "per_feature": {
+    "ret_1d": {
+      "feature": "ret_1d",
+      "avg_nan_pct": 0.4,
+      "max_nan_pct": 0.4,
+      "min_nan_pct": 0.4,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "ret_3d": {
+      "feature": "ret_3d",
+      "avg_nan_pct": 0.8,
+      "max_nan_pct": 0.8,
+      "min_nan_pct": 0.8,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "ret_5d": {
+      "feature": "ret_5d",
+      "avg_nan_pct": 1.2,
+      "max_nan_pct": 1.2,
+      "min_nan_pct": 1.2,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "ret_10d": {
+      "feature": "ret_10d",
+      "avg_nan_pct": 2.2,
+      "max_nan_pct": 2.2,
+      "min_nan_pct": 2.2,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "ret_20d": {
+      "feature": "ret_20d",
+      "avg_nan_pct": 4.19,
+      "max_nan_pct": 4.19,
+      "min_nan_pct": 4.19,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Short rolling window warmup",
+      "fix_category": "A",
+      "is_problem": "False"
+    },
+    "cumret_3d": {
+      "feature": "cumret_3d",
+      "avg_nan_pct": 0.8,
+      "max_nan_pct": 0.8,
+      "min_nan_pct": 0.8,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "cumret_5d": {
+      "feature": "cumret_5d",
+      "avg_nan_pct": 1.2,
+      "max_nan_pct": 1.2,
+      "min_nan_pct": 1.2,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "cumret_10d": {
+      "feature": "cumret_10d",
+      "avg_nan_pct": 2.2,
+      "max_nan_pct": 2.2,
+      "min_nan_pct": 2.2,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "vol_10d": {
+      "feature": "vol_10d",
+      "avg_nan_pct": 2.4,
+      "max_nan_pct": 2.4,
+      "min_nan_pct": 2.4,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "vol_20d": {
+      "feature": "vol_20d",
+      "avg_nan_pct": 4.39,
+      "max_nan_pct": 4.39,
+      "min_nan_pct": 4.39,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "Short rolling window warmup",
+      "fix_category": "A",
+      "is_problem": "False"
+    },
+    "vol_60d": {
+      "feature": "vol_60d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "vol_ratio_10_60": {
+      "feature": "vol_ratio_10_60",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "atr_14": {
+      "feature": "atr_14",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "atr_pct_14": {
+      "feature": "atr_pct_14",
+      "avg_nan_pct": 0.4,
+      "max_nan_pct": 0.4,
+      "min_nan_pct": 0.4,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "rsi14": {
+      "feature": "rsi14",
+      "avg_nan_pct": 2.79,
+      "max_nan_pct": 2.79,
+      "min_nan_pct": 2.79,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "macd": {
+      "feature": "macd",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "macdsignal": {
+      "feature": "macdsignal",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "macdhist": {
+      "feature": "macdhist",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "bb_pctb": {
+      "feature": "bb_pctb",
+      "avg_nan_pct": 3.99,
+      "max_nan_pct": 3.99,
+      "min_nan_pct": 3.99,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "bb_width": {
+      "feature": "bb_width",
+      "avg_nan_pct": 3.99,
+      "max_nan_pct": 3.99,
+      "min_nan_pct": 3.99,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "mfi14": {
+      "feature": "mfi14",
+      "avg_nan_pct": 2.83,
+      "max_nan_pct": 3.19,
+      "min_nan_pct": 2.79,
+      "worst_ticker": "JNJ",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "adx_14": {
+      "feature": "adx_14",
+      "avg_nan_pct": 0.42,
+      "max_nan_pct": 0.6,
+      "min_nan_pct": 0.4,
+      "worst_ticker": "JNJ",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "close_position": {
+      "feature": "close_position",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "daily_range": {
+      "feature": "daily_range",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "high_low_ratio": {
+      "feature": "high_low_ratio",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "gbm_mu_60d": {
+      "feature": "gbm_mu_60d",
+      "avg_nan_pct": 12.18,
+      "max_nan_pct": 12.18,
+      "min_nan_pct": 12.18,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_sig_60d": {
+      "feature": "gbm_sig_60d",
+      "avg_nan_pct": 12.18,
+      "max_nan_pct": 12.18,
+      "min_nan_pct": 12.18,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_prob_up_1d": {
+      "feature": "gbm_prob_up_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_exp_ret_1d": {
+      "feature": "gbm_exp_ret_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_p05_ret_1d": {
+      "feature": "gbm_p05_ret_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_p95_ret_1d": {
+      "feature": "gbm_p95_ret_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_prob_up_5d": {
+      "feature": "gbm_prob_up_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_exp_ret_5d": {
+      "feature": "gbm_exp_ret_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_p05_ret_5d": {
+      "feature": "gbm_p05_ret_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "gbm_p95_ret_5d": {
+      "feature": "gbm_p95_ret_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    "mkt_ret_1d": {
+      "feature": "mkt_ret_1d",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "vix": {
+      "feature": "vix",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "t10y": {
+      "feature": "t10y",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "term_spread": {
+      "feature": "term_spread",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "unrate": {
+      "feature": "unrate",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "cpi": {
+      "feature": "cpi",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "oas": {
+      "feature": "oas",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "fed_funds": {
+      "feature": "fed_funds",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "MACRO",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "regime_bull": {
+      "feature": "regime_bull",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "regime_bear": {
+      "feature": "regime_bear",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "regime_vix_low": {
+      "feature": "regime_vix_low",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "regime_vix_medium": {
+      "feature": "regime_vix_medium",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "regime_vix_high": {
+      "feature": "regime_vix_high",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "bull_streak": {
+      "feature": "bull_streak",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "bear_streak": {
+      "feature": "bear_streak",
+      "avg_nan_pct": 0.2,
+      "max_nan_pct": 0.2,
+      "min_nan_pct": 0.2,
+      "worst_ticker": "SPY",
+      "category": "REGIME",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "fund_pe_trailing": {
+      "feature": "fund_pe_trailing",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "FUNDAMENTAL",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "fund_pb": {
+      "feature": "fund_pb",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "FUNDAMENTAL",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "fund_marketcap": {
+      "feature": "fund_marketcap",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "FUNDAMENTAL",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "rel_strength_1d": {
+      "feature": "rel_strength_1d",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "RELATIVE_STRENGTH",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "rel_momentum_5d": {
+      "feature": "rel_momentum_5d",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "RELATIVE_STRENGTH",
+      "likely_cause": "Unknown cause - needs investigation",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "beta_60_spx": {
+      "feature": "beta_60_spx",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    },
+    "corr_20_spx": {
+      "feature": "corr_20_spx",
+      "avg_nan_pct": 0.0,
+      "max_nan_pct": 0.0,
+      "min_nan_pct": 0.0,
+      "worst_ticker": "SPY",
+      "category": "TECHNICAL",
+      "likely_cause": "Possible calculation issue or data gaps",
+      "fix_category": "C",
+      "is_problem": "False"
+    }
+  },
+  "per_ticker": {
+    "SPY": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "AAPL": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "MSFT": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "NVDA": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "GOOGL": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "AMZN": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "META": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "JPM": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "XOM": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    },
+    "JNJ": {
+      "rows": 501,
+      "features_with_nan": 39,
+      "problem_features": 12
+    }
+  },
+  "problem_features": [
+    {
+      "feature": "vol_60d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "vol_ratio_10_60",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "ROLLING",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_prob_up_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_exp_ret_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_p05_ret_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_p95_ret_1d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_prob_up_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_exp_ret_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_p05_ret_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_p95_ret_5d",
+      "avg_nan_pct": 12.38,
+      "max_nan_pct": 12.38,
+      "min_nan_pct": 12.38,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_mu_60d",
+      "avg_nan_pct": 12.18,
+      "max_nan_pct": 12.18,
+      "min_nan_pct": 12.18,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    },
+    {
+      "feature": "gbm_sig_60d",
+      "avg_nan_pct": 12.18,
+      "max_nan_pct": 12.18,
+      "min_nan_pct": 12.18,
+      "worst_ticker": "SPY",
+      "category": "GBM",
+      "likely_cause": "60-day rolling window warmup period",
+      "fix_category": "A",
+      "is_problem": "True"
+    }
+  ],
+  "by_category": {
+    "ROLLING": [
+      "vol_60d",
+      "vol_ratio_10_60"
+    ],
+    "GBM": [
+      "gbm_mu_60d",
+      "gbm_sig_60d",
+      "gbm_prob_up_1d",
+      "gbm_exp_ret_1d",
+      "gbm_p05_ret_1d",
+      "gbm_p95_ret_1d",
+      "gbm_prob_up_5d",
+      "gbm_exp_ret_5d",
+      "gbm_p05_ret_5d",
+      "gbm_p95_ret_5d"
+    ]
+  },
+  "by_fix_type": {
+    "A": [
+      "vol_60d",
+      "vol_ratio_10_60",
+      "gbm_mu_60d",
+      "gbm_sig_60d",
+      "gbm_prob_up_1d",
+      "gbm_exp_ret_1d",
+      "gbm_p05_ret_1d",
+      "gbm_p95_ret_1d",
+      "gbm_prob_up_5d",
+      "gbm_exp_ret_5d",
+      "gbm_p05_ret_5d",
+      "gbm_p95_ret_5d"
+    ]
+  },
+  "problem_count": 12
+}

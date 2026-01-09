@@ -1,0 +1,241 @@
+{
+  "timestamp": "2026-01-07T19:43:56.991583",
+  "tickers_tested": [
+    "AAPL",
+    "MSFT",
+    "AMZN"
+  ],
+  "period": "2y",
+  "configurations": [
+    {
+      "name": "A: All Features (Baseline)",
+      "description": "Use all available features",
+      "num_features": 151,
+      "ticker_results": {
+        "AAPL": {
+          "sharpe": -0.17931458389397625,
+          "accuracy": 0.40397350993377484,
+          "max_drawdown": -0.05634110599406234,
+          "total_return": -0.01315453902882402,
+          "num_features": 150,
+          "num_trades": 37,
+          "test_samples": 151
+        },
+        "MSFT": {
+          "sharpe": 0.7113944134294643,
+          "accuracy": 0.5364238410596026,
+          "max_drawdown": -0.05655787011819633,
+          "total_return": 0.03488599172804463,
+          "num_features": 150,
+          "num_trades": 38,
+          "test_samples": 151
+        },
+        "AMZN": {
+          "sharpe": 1.1007809691782842,
+          "accuracy": 0.4768211920529801,
+          "max_drawdown": -0.16224753281323676,
+          "total_return": 0.12332151930275215,
+          "num_features": 150,
+          "num_trades": 73,
+          "test_samples": 151
+        }
+      },
+      "avg_sharpe": 0.5442869329045907,
+      "avg_accuracy": 0.4724061810154525,
+      "avg_max_dd": -0.09171550297516513
+    },
+    {
+      "name": "B: Top 30 Features",
+      "description": "Only top 30 most important features",
+      "num_features": 30,
+      "ticker_results": {
+        "AAPL": {
+          "sharpe": 2.1475418548711875,
+          "accuracy": 0.4966887417218543,
+          "max_drawdown": -0.04294129378522891,
+          "total_return": 0.14614701796516427,
+          "num_features": 30,
+          "num_trades": 23,
+          "test_samples": 151
+        },
+        "MSFT": {
+          "sharpe": 1.2747040296886953,
+          "accuracy": 0.5298013245033113,
+          "max_drawdown": -0.05675285242798197,
+          "total_return": 0.08012158830860616,
+          "num_features": 30,
+          "num_trades": 41,
+          "test_samples": 151
+        },
+        "AMZN": {
+          "sharpe": 1.793163635220859,
+          "accuracy": 0.47019867549668876,
+          "max_drawdown": -0.07631655866371187,
+          "total_return": 0.25621387131446594,
+          "num_features": 30,
+          "num_trades": 92,
+          "test_samples": 151
+        }
+      },
+      "avg_sharpe": 1.738469839926914,
+      "avg_accuracy": 0.49889624724061815,
+      "avg_max_dd": -0.05867023495897425
+    },
+    {
+      "name": "C: Top 50 Features",
+      "description": "Top 50 most important features",
+      "num_features": 50,
+      "ticker_results": {
+        "AAPL": {
+          "sharpe": 1.7791733836562607,
+          "accuracy": 0.46357615894039733,
+          "max_drawdown": -0.05691101637645991,
+          "total_return": 0.14699568338103286,
+          "num_features": 50,
+          "num_trades": 32,
+          "test_samples": 151
+        },
+        "MSFT": {
+          "sharpe": 1.0945024428185908,
+          "accuracy": 0.48344370860927155,
+          "max_drawdown": -0.0610965346324762,
+          "total_return": 0.052424689985107964,
+          "num_features": 50,
+          "num_trades": 32,
+          "test_samples": 151
+        },
+        "AMZN": {
+          "sharpe": 1.7181805158039483,
+          "accuracy": 0.5231788079470199,
+          "max_drawdown": -0.073383300934634,
+          "total_return": 0.26062792575181293,
+          "num_features": 50,
+          "num_trades": 104,
+          "test_samples": 151
+        }
+      },
+      "avg_sharpe": 1.5306187807596,
+      "avg_accuracy": 0.4900662251655629,
+      "avg_max_dd": -0.06379695064785669
+    },
+    {
+      "name": "D: Remove Low Importance",
+      "description": "Remove features with <1% importance",
+      "num_features": 20,
+      "ticker_results": {
+        "AAPL": {
+          "sharpe": 2.3261399465682304,
+          "accuracy": 0.4768211920529801,
+          "max_drawdown": -0.015913025308516543,
+          "total_return": 0.15829803512899554,
+          "num_features": 19,
+          "num_trades": 20,
+          "test_samples": 151
+        },
+        "MSFT": {
+          "sharpe": 1.8211795133158566,
+          "accuracy": 0.5629139072847682,
+          "max_drawdown": -0.06964932485461063,
+          "total_return": 0.10756602103499424,
+          "num_features": 19,
+          "num_trades": 54,
+          "test_samples": 151
+        },
+        "AMZN": {
+          "sharpe": 2.2101191465973766,
+          "accuracy": 0.5165562913907285,
+          "max_drawdown": -0.10039387046079729,
+          "total_return": 0.324618621013087,
+          "num_features": 19,
+          "num_trades": 93,
+          "test_samples": 151
+        }
+      },
+      "avg_sharpe": 2.1191462021604877,
+      "avg_accuracy": 0.5187637969094923,
+      "avg_max_dd": -0.06198540687464149
+    },
+    {
+      "name": "E: Remove Correlated",
+      "description": "Remove low importance AND correlated features",
+      "num_features": 19,
+      "ticker_results": {
+        "AAPL": {
+          "sharpe": 1.2589088341809787,
+          "accuracy": 0.46357615894039733,
+          "max_drawdown": -0.07156632804778501,
+          "total_return": 0.11321736972688301,
+          "num_features": 18,
+          "num_trades": 50,
+          "test_samples": 151
+        },
+        "MSFT": {
+          "sharpe": 1.381450556086488,
+          "accuracy": 0.5231788079470199,
+          "max_drawdown": -0.052841656264717374,
+          "total_return": 0.07568135968875245,
+          "num_features": 18,
+          "num_trades": 44,
+          "test_samples": 151
+        },
+        "AMZN": {
+          "sharpe": 1.8068647621588396,
+          "accuracy": 0.5033112582781457,
+          "max_drawdown": -0.0675484006414102,
+          "total_return": 0.2242930129050542,
+          "num_features": 18,
+          "num_trades": 73,
+          "test_samples": 151
+        }
+      },
+      "avg_sharpe": 1.482408050808769,
+      "avg_accuracy": 0.49668874172185423,
+      "avg_max_dd": -0.0639854616513042
+    }
+  ],
+  "best_config": "D_remove_low_importance",
+  "best_sharpe": 2.1191,
+  "best_accuracy": 0.5188,
+  "comparison_table": [
+    {
+      "config": "D_remove_low_importance",
+      "name": "D: Remove Low Importance",
+      "num_features": 20,
+      "avg_sharpe": 2.1191,
+      "avg_accuracy": 0.5188,
+      "avg_max_dd": -0.062
+    },
+    {
+      "config": "B_top_30",
+      "name": "B: Top 30 Features",
+      "num_features": 30,
+      "avg_sharpe": 1.7385,
+      "avg_accuracy": 0.4989,
+      "avg_max_dd": -0.0587
+    },
+    {
+      "config": "C_top_50",
+      "name": "C: Top 50 Features",
+      "num_features": 50,
+      "avg_sharpe": 1.5306,
+      "avg_accuracy": 0.4901,
+      "avg_max_dd": -0.0638
+    },
+    {
+      "config": "E_remove_correlated",
+      "name": "E: Remove Correlated",
+      "num_features": 19,
+      "avg_sharpe": 1.4824,
+      "avg_accuracy": 0.4967,
+      "avg_max_dd": -0.064
+    },
+    {
+      "config": "A_all_features",
+      "name": "A: All Features (Baseline)",
+      "num_features": 151,
+      "avg_sharpe": 0.5443,
+      "avg_accuracy": 0.4724,
+      "avg_max_dd": -0.0917
+    }
+  ]
+}

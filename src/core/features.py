@@ -315,6 +315,52 @@ def add_regime_features(df: pd.DataFrame, vix_series: Optional[pd.Series] = None
 
 
 # ============================================================================
+# ADDITIONAL TECHNICAL INDICATORS (for optimized feature set)
+# ============================================================================
+
+def add_momentum_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    """Add momentum indicators needed for optimized feature set."""
+    close = df["Close"]
+    
+    # OBV (On-Balance Volume)
+    if "Volume" in df.columns:
+        obv = (np.sign(close.diff()) * df["Volume"]).fillna(0).cumsum()
+        df["obv"] = obv.shift(1)
+    else:
+        df["obv"] = 0.0
+    
+    # Momentum (rate of change)
+    df["momentum"] = close.pct_change(10).shift(1)
+    
+    # Williams %R
+    high_14 = df["High"].rolling(14).max()
+    low_14 = df["Low"].rolling(14).min()
+    df["williams_r"] = (-100 * (high_14 - close) / (high_14 - low_14).replace(0, np.nan)).shift(1)
+    
+    # CCI (Commodity Channel Index)
+    typical_price = (df["High"] + df["Low"] + close) / 3
+    sma_tp = typical_price.rolling(20).mean()
+    mad = typical_price.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean(), raw=True)
+    df["cci"] = ((typical_price - sma_tp) / (0.015 * mad.replace(0, np.nan))).shift(1)
+    
+    # Stochastic %K
+    df["stoch_k"] = (100 * (close - low_14) / (high_14 - low_14).replace(0, np.nan)).shift(1)
+    
+    # MFI (Money Flow Index) - already exists but ensure it's named correctly
+    if "mfi14" not in df.columns and "mfi" not in df.columns:
+        typical_price = (df["High"] + df["Low"] + close) / 3
+        raw_mf = typical_price * df["Volume"]
+        positive_mf = raw_mf.where(typical_price > typical_price.shift(1), 0)
+        negative_mf = raw_mf.where(typical_price < typical_price.shift(1), 0)
+        mfr = positive_mf.rolling(14).sum() / negative_mf.rolling(14).sum().replace(0, np.nan)
+        df["mfi"] = (100 - (100 / (1 + mfr))).shift(1)
+    elif "mfi14" in df.columns:
+        df["mfi"] = df["mfi14"]
+    
+    return df
+
+
+# ============================================================================
 # ALL FEATURES COMBINED
 # ============================================================================
 
@@ -324,6 +370,7 @@ def build_all_features(
     vix_series: Optional[pd.Series] = None,
     macro_df: Optional[pd.DataFrame] = None,
     fundamentals: Optional[dict] = None,
+    use_optimized_features: bool = False,
 ) -> pd.DataFrame:
     """
     Build all features for a stock DataFrame.
@@ -334,10 +381,14 @@ def build_all_features(
         vix_series: VIX series for regime detection
         macro_df: Macro data (FRED) to join
         fundamentals: Dict of fundamental values (P/E, P/B, etc.)
+        use_optimized_features: If True, only compute features needed for OPTIMIZED_FEATURES
     
     Returns:
         DataFrame with all features added
     """
+    import logging
+    logger = logging.getLogger("feature_engineering")
+    
     # Price-based features
     df = add_returns(df)
     df = add_volatility(df)
@@ -347,6 +398,9 @@ def build_all_features(
     
     # GBM probabilities
     df = add_gbm_features(df)
+    
+    # Add momentum indicators (needed for optimized features)
+    df = add_momentum_indicators(df)
     
     # Relative strength
     df = add_relative_strength(df, spx_df)
@@ -369,7 +423,66 @@ def build_all_features(
         for key, value in fundamentals.items():
             df[key] = value if value is not None else 0.0
     
+    # If optimized features requested, filter down to just those columns
+    if use_optimized_features:
+        from ..config import OPTIMIZED_FEATURES, is_optimized_mode
+        if is_optimized_mode():
+            available_opt = [f for f in OPTIMIZED_FEATURES if f in df.columns]
+            missing_opt = [f for f in OPTIMIZED_FEATURES if f not in df.columns]
+            if missing_opt:
+                logger.warning(f"Missing optimized features: {missing_opt}")
+            logger.info(f"🎯 Using {len(available_opt)}/{len(OPTIMIZED_FEATURES)} optimized features")
+    
     return df
+
+
+def build_optimized_features(
+    df: pd.DataFrame,
+    spx_df: Optional[pd.DataFrame] = None,
+    vix_series: Optional[pd.Series] = None,
+) -> Tuple[pd.DataFrame, list]:
+    """
+    Build only the optimized feature set for faster inference.
+    
+    This is an optimized path that only computes the 20 features from
+    the Model Improvement Report, skipping unnecessary calculations.
+    
+    Args:
+        df: OHLCV DataFrame
+        spx_df: SPX price DataFrame (optional)
+        vix_series: VIX series (optional)
+    
+    Returns:
+        (DataFrame with optimized features, list of feature columns)
+    """
+    from ..config import OPTIMIZED_FEATURES
+    import logging
+    logger = logging.getLogger("feature_engineering")
+    
+    logger.info("⚡ Building optimized feature set (20 features)")
+    
+    # Price-based features
+    df = add_returns(df)
+    df = add_volatility(df)
+    
+    # Technical indicators
+    df = add_rsi(df)
+    df = add_macd(df)
+    df = add_bollinger_bands(df)
+    df = add_adx(df)
+    
+    # GBM probabilities
+    df = add_gbm_features(df)
+    
+    # Momentum indicators
+    df = add_momentum_indicators(df)
+    
+    # Filter to only optimized features that exist
+    available = [f for f in OPTIMIZED_FEATURES if f in df.columns]
+    
+    logger.info(f"✅ Built {len(available)}/{len(OPTIMIZED_FEATURES)} optimized features")
+    
+    return df, available
 
 
 def build_target(df: pd.DataFrame, horizon: int = 1, price_col: str = "Close") -> pd.Series:
@@ -400,3 +513,154 @@ def get_available_features(df: pd.DataFrame, max_nan_pct: float = 0.5) -> list:
             if nan_pct < max_nan_pct:
                 available.append(col)
     return available
+
+
+
+def validate_features(
+    df: pd.DataFrame,
+    required_features: Optional[list] = None,
+    max_row_nan_pct: float = 0.20,
+    max_feature_nan_pct: float = 0.10,
+    warn_feature_nan_pct: float = 0.02,
+    drop_warmup: bool = True,
+    min_rows_after_clean: int = 50,
+) -> Tuple[pd.DataFrame, dict]:
+    """
+    Validate and clean feature DataFrame.
+    
+    Args:
+        df: DataFrame with features
+        required_features: List of required feature columns (uses FEATURE_COLUMNS if None)
+        max_row_nan_pct: Drop rows with more than this % of NaN features (0.20 = 20%)
+        max_feature_nan_pct: Error if any feature has >this NaN rate after cleaning
+        warn_feature_nan_pct: Warn if any feature has >this NaN rate
+        drop_warmup: If True, drop initial rows where many features are NaN (warmup period)
+        min_rows_after_clean: Minimum rows required after cleaning
+    
+    Returns:
+        (cleaned_df, quality_report) tuple
+    """
+    import logging
+    logger = logging.getLogger("feature_validation")
+    
+    if required_features is None:
+        from ..config import FEATURE_COLUMNS
+        required_features = FEATURE_COLUMNS
+    
+    # Initialize report
+    report = {
+        "original_rows": len(df),
+        "missing_features": [],
+        "nan_rates_before": {},
+        "nan_rates_after": {},
+        "rows_dropped": 0,
+        "warnings": [],
+        "status": "OK",
+    }
+    
+    # Check for missing features
+    available_features = [f for f in required_features if f in df.columns]
+    missing = [f for f in required_features if f not in df.columns]
+    
+    if missing:
+        report["missing_features"] = missing
+        logger.warning(f"Missing features: {missing[:5]}{'...' if len(missing) > 5 else ''}")
+    
+    if not available_features:
+        report["status"] = "ERROR"
+        report["warnings"].append("No required features available")
+        return df, report
+    
+    # Calculate NaN rates before cleaning
+    for feat in available_features:
+        nan_rate = df[feat].isna().mean()
+        report["nan_rates_before"][feat] = round(float(nan_rate), 4)
+    
+    # Step 1: Drop warmup rows (rows where many features are NaN)
+    if drop_warmup:
+        # Calculate % of NaN per row for required features
+        row_nan_pct = df[available_features].isna().mean(axis=1)
+        
+        # Find first row where NaN% drops below threshold
+        valid_mask = row_nan_pct <= max_row_nan_pct
+        if valid_mask.any():
+            first_valid_idx = valid_mask.idxmax()
+            rows_before = len(df)
+            df = df.loc[first_valid_idx:].copy()
+            report["rows_dropped"] = rows_before - len(df)
+            
+            if report["rows_dropped"] > 0:
+                logger.info(f"Dropped {report['rows_dropped']} warmup rows")
+    
+    # Step 2: Forward-fill remaining NaNs
+    for feat in available_features:
+        if df[feat].isna().any():
+            df[feat] = df[feat].ffill().bfill()
+            # Final fallback to 0 for any remaining NaNs
+            if df[feat].isna().any():
+                df[feat] = df[feat].fillna(0)
+    
+    # Step 3: Handle infinities
+    for feat in available_features:
+        if np.isinf(df[feat]).any():
+            # Replace inf with max/min finite values
+            max_val = df[feat].replace([np.inf, -np.inf], np.nan).max()
+            min_val = df[feat].replace([np.inf, -np.inf], np.nan).min()
+            df[feat] = df[feat].replace(np.inf, max_val).replace(-np.inf, min_val)
+    
+    # Step 4: Calculate NaN rates after cleaning
+    high_nan_features = []
+    warn_features = []
+    
+    for feat in available_features:
+        nan_rate = df[feat].isna().mean()
+        report["nan_rates_after"][feat] = round(float(nan_rate), 4)
+        
+        if nan_rate > max_feature_nan_pct:
+            high_nan_features.append((feat, nan_rate))
+        elif nan_rate > warn_feature_nan_pct:
+            warn_features.append((feat, nan_rate))
+    
+    # Log warnings
+    for feat, rate in warn_features:
+        msg = f"Feature {feat} has {rate*100:.1f}% NaN rate after cleaning"
+        report["warnings"].append(msg)
+        logger.warning(msg)
+    
+    # Check minimum rows
+    if len(df) < min_rows_after_clean:
+        report["status"] = "ERROR"
+        report["warnings"].append(f"Only {len(df)} rows after cleaning (need {min_rows_after_clean})")
+    
+    # Error if any feature has too many NaNs
+    if high_nan_features:
+        report["status"] = "ERROR"
+        for feat, rate in high_nan_features:
+            report["warnings"].append(f"Feature {feat} still has {rate*100:.1f}% NaN (>{max_feature_nan_pct*100}%)")
+    
+    report["final_rows"] = len(df)
+    
+    return df, report
+
+
+def get_feature_quality_summary(df: pd.DataFrame) -> dict:
+    """Quick summary of feature quality for a DataFrame."""
+    from ..config import FEATURE_COLUMNS
+    
+    available = [f for f in FEATURE_COLUMNS if f in df.columns]
+    
+    summary = {
+        "total_features": len(FEATURE_COLUMNS),
+        "available_features": len(available),
+        "missing_features": len(FEATURE_COLUMNS) - len(available),
+        "rows": len(df),
+    }
+    
+    if available:
+        nan_rates = {f: df[f].isna().mean() for f in available}
+        summary["avg_nan_rate"] = np.mean(list(nan_rates.values()))
+        summary["max_nan_rate"] = max(nan_rates.values())
+        summary["features_over_5pct_nan"] = sum(1 for r in nan_rates.values() if r > 0.05)
+    
+    return summary
+

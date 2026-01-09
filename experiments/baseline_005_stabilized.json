@@ -1,0 +1,87 @@
+{
+  "experiment_id": "BASELINE_005_STABILIZED",
+  "created": "2026-01-07T12:05:00.000000",
+  "description": "Stabilized baseline after aggressive stabilization testing. Uses top performers + higher z-score.",
+  "previous_baseline": "BASELINE_004",
+  "status": "CANDIDATE_FOR_PRODUCTION",
+  "robustness_validated": false,
+  "robustness_notes": "No config passes strict thresholds (worst Sharpe > -0.5). This is best available.",
+  
+  "changes_applied": [
+    "BASELINE_001 -> BASELINE_002: z_score_threshold: 0 -> 1.6",
+    "BASELINE_002 -> BASELINE_003: regime_filter: OFF -> ON",
+    "BASELINE_003 -> BASELINE_004: position_sizing: vol_only -> vol_x_confidence",
+    "BASELINE_004 -> BASELINE_005: tickers: 10 -> 3 (top performers), z_score: 1.6 -> 2.0"
+  ],
+  
+  "config": {
+    "tickers": ["AAPL", "MSFT", "AMZN"],
+    "excluded_tickers": ["SPY", "META"],
+    "test_fraction": 0.25,
+    "min_train_rows": 500,
+    "models": ["rf", "xgb", "gbrt"],
+    "ensemble_method": "average",
+    "z_score_threshold": 2.0,
+    "regime_filter": true,
+    "regime_bear_scale": 0.5,
+    "regime_neutral_scale": 0.75,
+    "position_sizing": "vol_scaling_x_confidence",
+    "max_position_size": 0.5,
+    "trade_limits": false,
+    "vol_scaling": true,
+    "trade_threshold": 0.0
+  },
+  
+  "stabilization_metrics": {
+    "mean_sharpe": 0.5496,
+    "worst_sharpe_3mo": -2.3518,
+    "worst_drawdown": -0.1314,
+    "positive_rate": 0.556,
+    "num_windows_tested": 63,
+    "source": "AGGRESSIVE_V4_TOP_PERFORMERS"
+  },
+  
+  "stability_thresholds": {
+    "target_worst_sharpe": -0.5,
+    "achieved_worst_sharpe": -2.35,
+    "threshold_gap": "4.7x worse than target",
+    "target_max_drawdown": -0.15,
+    "achieved_max_drawdown": -0.1314,
+    "drawdown_status": "PASS"
+  },
+  
+  "circuit_breakers_recommended": {
+    "daily_loss_limit": -0.03,
+    "weekly_loss_limit": -0.05,
+    "consecutive_loss_limit": 3,
+    "notes": "Implement these in auto_paper_trade.py to limit worst-case damage"
+  },
+  
+  "realistic_expectations": {
+    "annual_sharpe_range": [0.3, 0.6],
+    "worst_quarter_sharpe": [-1.5, -2.5],
+    "max_drawdown_range": [-0.10, -0.15],
+    "win_rate_range": [0.50, 0.60]
+  },
+  
+  "comparison_to_alternatives": {
+    "MSFT_only": {
+      "mean_sharpe": 0.2802,
+      "worst_sharpe": -1.8067,
+      "drawdown": -0.0979,
+      "notes": "Lower Sharpe but better worst-case. Single-stock concentration risk."
+    },
+    "z_score_3.0": {
+      "mean_sharpe": 0.2379,
+      "worst_sharpe": -2.0000,
+      "drawdown": -0.0484,
+      "notes": "Very low drawdown but only 24% positive rate (mostly cash)."
+    }
+  },
+  
+  "decision_required": {
+    "option_a": "Accept this config with realistic expectations and circuit breakers",
+    "option_b": "Use MSFT-only for most stable worst-case",
+    "option_c": "Further research on regime detection / ensemble voting"
+  }
+}

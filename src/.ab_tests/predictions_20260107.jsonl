@@ -1,0 +1,4 @@
+{"timestamp": "2026-01-07T20:27:03.092287", "ticker": "AAPL", "variant": "optimized", "prediction": 0.05, "actual": null, "position": 1.0, "pnl": null, "metadata": {}}
+{"timestamp": "2026-01-07T20:27:03.356607", "ticker": "TEST_0", "variant": "optimized", "prediction": 0.0014370159478858113, "actual": null, "position": null, "pnl": null, "metadata": {}}
+{"timestamp": "2026-01-07T20:27:03.356822", "ticker": "TEST_1", "variant": "optimized", "prediction": -0.00409915903583169, "actual": null, "position": null, "pnl": null, "metadata": {}}
+{"timestamp": "2026-01-07T20:27:03.356891", "ticker": "TEST_2", "variant": "optimized", "prediction": 0.003372355829924345, "actual": null, "position": null, "pnl": null, "metadata": {}}

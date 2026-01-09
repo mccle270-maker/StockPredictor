@@ -1,0 +1,385 @@
+{
+  "experiment_id": "POSITION_SIZING_001",
+  "created": "2026-01-07T11:11:55.830905",
+  "variable_tested": "position_sizing_method",
+  "baseline_reference": "BASELINE_003",
+  "methods_tested": {
+    "A": "vol_scaling_only",
+    "B": "vol_scaling_x_confidence",
+    "C": "vol_x_conf_with_cap"
+  },
+  "decision_rule": "Accept if drawdown decreases OR variance decreases without Sharpe loss",
+  "results": {
+    "A": {
+      "method": "A",
+      "method_name": "vol_scaling_only",
+      "avg_sharpe": 0.1286,
+      "avg_max_drawdown": -0.1128,
+      "avg_std_daily_returns": 0.004566,
+      "avg_worst_5day_loss": -0.0606,
+      "avg_win_rate": 0.4989,
+      "total_trades": 988,
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "sharpe": -0.5133,
+          "max_drawdown": -0.1747,
+          "std_daily_returns": 0.004908,
+          "worst_5day_loss": -0.0897,
+          "total_return": -0.0997,
+          "trade_count": 102,
+          "win_rate": 0.4405
+        },
+        {
+          "ticker": "AAPL",
+          "sharpe": 0.285,
+          "max_drawdown": -0.1957,
+          "std_daily_returns": 0.006544,
+          "worst_5day_loss": -0.0824,
+          "total_return": 0.0738,
+          "trade_count": 84,
+          "win_rate": 0.5111
+        },
+        {
+          "ticker": "MSFT",
+          "sharpe": 0.3978,
+          "max_drawdown": -0.045,
+          "std_daily_returns": 0.002729,
+          "worst_5day_loss": -0.0381,
+          "total_return": 0.0429,
+          "trade_count": 106,
+          "win_rate": 0.5125
+        },
+        {
+          "ticker": "NVDA",
+          "sharpe": 0.2215,
+          "max_drawdown": -0.1227,
+          "std_daily_returns": 0.005035,
+          "worst_5day_loss": -0.0425,
+          "total_return": 0.0441,
+          "trade_count": 102,
+          "win_rate": 0.4667
+        },
+        {
+          "ticker": "GOOGL",
+          "sharpe": 0.5707,
+          "max_drawdown": -0.0667,
+          "std_daily_returns": 0.003503,
+          "worst_5day_loss": -0.0307,
+          "total_return": 0.0791,
+          "trade_count": 108,
+          "win_rate": 0.5595
+        },
+        {
+          "ticker": "AMZN",
+          "sharpe": -0.2767,
+          "max_drawdown": -0.0661,
+          "std_daily_returns": 0.003335,
+          "worst_5day_loss": -0.0452,
+          "total_return": -0.0365,
+          "trade_count": 104,
+          "win_rate": 0.5067
+        },
+        {
+          "ticker": "META",
+          "sharpe": -0.2445,
+          "max_drawdown": -0.1733,
+          "std_daily_returns": 0.006212,
+          "worst_5day_loss": -0.1126,
+          "total_return": -0.0601,
+          "trade_count": 81,
+          "win_rate": 0.4133
+        },
+        {
+          "ticker": "JPM",
+          "sharpe": 0.2187,
+          "max_drawdown": -0.1123,
+          "std_daily_returns": 0.004344,
+          "worst_5day_loss": -0.0488,
+          "total_return": 0.0376,
+          "trade_count": 100,
+          "win_rate": 0.5258
+        },
+        {
+          "ticker": "XOM",
+          "sharpe": 0.0518,
+          "max_drawdown": -0.0975,
+          "std_daily_returns": 0.00347,
+          "worst_5day_loss": -0.0821,
+          "total_return": 0.0071,
+          "trade_count": 97,
+          "win_rate": 0.5
+        },
+        {
+          "ticker": "JNJ",
+          "sharpe": 0.5755,
+          "max_drawdown": -0.0739,
+          "std_daily_returns": 0.005577,
+          "worst_5day_loss": -0.0338,
+          "total_return": 0.127,
+          "trade_count": 104,
+          "win_rate": 0.5526
+        }
+      ]
+    },
+    "B": {
+      "method": "B",
+      "method_name": "vol_scaling_x_confidence",
+      "avg_sharpe": 0.1294,
+      "avg_max_drawdown": -0.084,
+      "avg_std_daily_returns": 0.003444,
+      "avg_worst_5day_loss": -0.0484,
+      "avg_win_rate": 0.4989,
+      "total_trades": 1284,
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "sharpe": -0.6402,
+          "max_drawdown": -0.1479,
+          "std_daily_returns": 0.0043,
+          "worst_5day_loss": -0.0884,
+          "total_return": -0.1089,
+          "trade_count": 131,
+          "win_rate": 0.4405
+        },
+        {
+          "ticker": "AAPL",
+          "sharpe": 0.2881,
+          "max_drawdown": -0.1473,
+          "std_daily_returns": 0.005374,
+          "worst_5day_loss": -0.0695,
+          "total_return": 0.0612,
+          "trade_count": 125,
+          "win_rate": 0.5111
+        },
+        {
+          "ticker": "MSFT",
+          "sharpe": 0.4018,
+          "max_drawdown": -0.0363,
+          "std_daily_returns": 0.002198,
+          "worst_5day_loss": -0.0306,
+          "total_return": 0.0349,
+          "trade_count": 132,
+          "win_rate": 0.5125
+        },
+        {
+          "ticker": "NVDA",
+          "sharpe": 0.4059,
+          "max_drawdown": -0.0708,
+          "std_daily_returns": 0.002997,
+          "worst_5day_loss": -0.0217,
+          "total_return": 0.0481,
+          "trade_count": 133,
+          "win_rate": 0.4667
+        },
+        {
+          "ticker": "GOOGL",
+          "sharpe": 0.4119,
+          "max_drawdown": -0.0489,
+          "std_daily_returns": 0.002772,
+          "worst_5day_loss": -0.0284,
+          "total_return": 0.0452,
+          "trade_count": 137,
+          "win_rate": 0.5595
+        },
+        {
+          "ticker": "AMZN",
+          "sharpe": -0.1812,
+          "max_drawdown": -0.0501,
+          "std_daily_returns": 0.002618,
+          "worst_5day_loss": -0.0329,
+          "total_return": -0.0188,
+          "trade_count": 124,
+          "win_rate": 0.5067
+        },
+        {
+          "ticker": "META",
+          "sharpe": -0.2169,
+          "max_drawdown": -0.1177,
+          "std_daily_returns": 0.004497,
+          "worst_5day_loss": -0.0833,
+          "total_return": -0.0386,
+          "trade_count": 111,
+          "win_rate": 0.4133
+        },
+        {
+          "ticker": "JPM",
+          "sharpe": 0.2589,
+          "max_drawdown": -0.0887,
+          "std_daily_returns": 0.003459,
+          "worst_5day_loss": -0.0361,
+          "total_return": 0.0354,
+          "trade_count": 140,
+          "win_rate": 0.5258
+        },
+        {
+          "ticker": "XOM",
+          "sharpe": 0.0393,
+          "max_drawdown": -0.0772,
+          "std_daily_returns": 0.002573,
+          "worst_5day_loss": -0.0679,
+          "total_return": 0.004,
+          "trade_count": 124,
+          "win_rate": 0.5
+        },
+        {
+          "ticker": "JNJ",
+          "sharpe": 0.5259,
+          "max_drawdown": -0.0549,
+          "std_daily_returns": 0.003657,
+          "worst_5day_loss": -0.0251,
+          "total_return": 0.0761,
+          "trade_count": 127,
+          "win_rate": 0.5526
+        }
+      ]
+    },
+    "C": {
+      "method": "C",
+      "method_name": "vol_x_conf_with_cap",
+      "avg_sharpe": 0.1714,
+      "avg_max_drawdown": -0.1744,
+      "avg_std_daily_returns": 0.00816,
+      "avg_worst_5day_loss": -0.1045,
+      "avg_win_rate": 0.4989,
+      "total_trades": 964,
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "sharpe": -0.5638,
+          "max_drawdown": -0.1749,
+          "std_daily_returns": 0.005066,
+          "worst_5day_loss": -0.1147,
+          "total_return": -0.113,
+          "trade_count": 102,
+          "win_rate": 0.4405
+        },
+        {
+          "ticker": "AAPL",
+          "sharpe": 0.5391,
+          "max_drawdown": -0.1779,
+          "std_daily_returns": 0.009134,
+          "worst_5day_loss": -0.0793,
+          "total_return": 0.1948,
+          "trade_count": 82,
+          "win_rate": 0.5111
+        },
+        {
+          "ticker": "MSFT",
+          "sharpe": 0.5782,
+          "max_drawdown": -0.0929,
+          "std_daily_returns": 0.006357,
+          "worst_5day_loss": -0.0793,
+          "total_return": 0.1454,
+          "trade_count": 104,
+          "win_rate": 0.5125
+        },
+        {
+          "ticker": "NVDA",
+          "sharpe": -0.1105,
+          "max_drawdown": -0.3496,
+          "std_daily_returns": 0.01617,
+          "worst_5day_loss": -0.1266,
+          "total_return": -0.0707,
+          "trade_count": 100,
+          "win_rate": 0.4667
+        },
+        {
+          "ticker": "GOOGL",
+          "sharpe": 0.8836,
+          "max_drawdown": -0.1076,
+          "std_daily_returns": 0.008026,
+          "worst_5day_loss": -0.0544,
+          "total_return": 0.2805,
+          "trade_count": 107,
+          "win_rate": 0.5595
+        },
+        {
+          "ticker": "AMZN",
+          "sharpe": -0.143,
+          "max_drawdown": -0.1363,
+          "std_daily_returns": 0.007349,
+          "worst_5day_loss": -0.0932,
+          "total_return": -0.0416,
+          "trade_count": 104,
+          "win_rate": 0.5067
+        },
+        {
+          "ticker": "META",
+          "sharpe": -0.2306,
+          "max_drawdown": -0.3073,
+          "std_daily_returns": 0.011757,
+          "worst_5day_loss": -0.2053,
+          "total_return": -0.1073,
+          "trade_count": 74,
+          "win_rate": 0.4133
+        },
+        {
+          "ticker": "JPM",
+          "sharpe": 0.216,
+          "max_drawdown": -0.1375,
+          "std_daily_returns": 0.006503,
+          "worst_5day_loss": -0.0692,
+          "total_return": 0.0556,
+          "trade_count": 94,
+          "win_rate": 0.5258
+        },
+        {
+          "ticker": "XOM",
+          "sharpe": -0.1376,
+          "max_drawdown": -0.1967,
+          "std_daily_returns": 0.006576,
+          "worst_5day_loss": -0.1908,
+          "total_return": -0.0358,
+          "trade_count": 95,
+          "win_rate": 0.5
+        },
+        {
+          "ticker": "JNJ",
+          "sharpe": 0.6823,
+          "max_drawdown": -0.0629,
+          "std_daily_returns": 0.004665,
+          "worst_5day_loss": -0.0321,
+          "total_return": 0.1259,
+          "trade_count": 102,
+          "win_rate": 0.5526
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "method": "B",
+      "method_name": "vol_scaling_x_confidence",
+      "sharpe_delta": 0.0008,
+      "dd_delta": 0.0288,
+      "std_delta": -0.001122,
+      "dd_improved": "True",
+      "variance_improved": "True",
+      "sharpe_maintained": "True",
+      "accept": "True"
+    },
+    {
+      "method": "C",
+      "method_name": "vol_x_conf_with_cap",
+      "sharpe_delta": 0.0428,
+      "dd_delta": -0.0616,
+      "std_delta": 0.003594,
+      "dd_improved": "False",
+      "variance_improved": "False",
+      "sharpe_maintained": "True",
+      "accept": "False"
+    }
+  ],
+  "best_method": {
+    "method": "B",
+    "method_name": "vol_scaling_x_confidence",
+    "sharpe_delta": 0.0008,
+    "dd_delta": 0.0288,
+    "std_delta": -0.001122,
+    "dd_improved": "True",
+    "variance_improved": "True",
+    "sharpe_maintained": "True",
+    "accept": "True"
+  }
+}

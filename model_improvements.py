@@ -340,46 +340,90 @@ def apply_position_holding(
 
 class ModelEnsemble:
     """
-    Combine Random Forest, XGBoost, and Gradient Boosting with voting.
+    Combine Random Forest and XGBoost with voting.
     Reduces overfitting and improves robustness.
+    
+    UPDATED 2026-01-08: Now uses REGULARIZED XGB config with zero overfitting.
+    RF is included but with lower weight since it showed negative test Sharpe.
+    
+    NOTE: GBRT removed from ensemble (2026-01-07) due to severe overfitting.
+    See GBRT_INVESTIGATION_REPORT.md for details.
     """
     
-    def __init__(self, include_xgb: bool = True):
+    def __init__(self, include_xgb: bool = True, weights: str = "xgb_only"):
         """
         Args:
             include_xgb: Include XGBoost in ensemble (requires xgboost package)
+            weights: Weighting scheme:
+                - "xgb_only": Use only XGB (recommended - RF has negative Sharpe)
+                - "xgb_heavy": XGB 80%, RF 20%
+                - "equal": 50/50 (not recommended)
         """
-        from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+        from sklearn.ensemble import RandomForestRegressor
+        from src.config import get_model_config
         
-        estimators = [
-            ('rf', RandomForestRegressor(
-                n_estimators=100, max_depth=15, random_state=42, n_jobs=-1
-            )),
-            ('gb', GradientBoostingRegressor(
-                n_estimators=100, max_depth=6, learning_rate=0.05, random_state=42
-            )),
-        ]
+        # Get REGULARIZED configurations (zero overfitting)
+        xgb_config = get_model_config("xgb")  # Uses xgb_regularized_v3
+        rf_config = get_model_config("rf")    # Uses rf_default_v1
+        
+        # Remove non-RF parameters if present
+        rf_config.pop("class_weight", None)
+        rf_config.pop("oob_score", None)  # Can cause issues with small datasets
+        
+        estimators = []
+        
+        # Add RF only if not xgb_only mode
+        if weights != "xgb_only":
+            estimators.append(
+                ('rf', RandomForestRegressor(**rf_config)),
+            )
+        
+        # GBRT REMOVED - severe overfitting (Train R²=0.97, Test R²=-0.20)
+        # See investigate_gbrt.py and GBRT_INVESTIGATION_REPORT.md
         
         if include_xgb:
             try:
                 from xgboost import XGBRegressor
+                # Use REGULARIZED XGB config (Test Sharpe 0.84, Gap -0.03)
                 estimators.append(
                     ('xgb', XGBRegressor(
-                        n_estimators=100, max_depth=6, learning_rate=0.05, 
-                        random_state=42, n_jobs=-1
+                        n_estimators=xgb_config.get("n_estimators", 100),
+                        max_depth=xgb_config.get("max_depth", 3),
+                        learning_rate=xgb_config.get("learning_rate", 0.01),
+                        subsample=xgb_config.get("subsample", 0.6),
+                        colsample_bytree=xgb_config.get("colsample_bytree", 0.5),
+                        min_child_weight=xgb_config.get("min_child_weight", 50),
+                        reg_alpha=xgb_config.get("reg_alpha", 1.0),
+                        reg_lambda=xgb_config.get("reg_lambda", 10.0),
+                        random_state=42,
+                        n_jobs=-1
                     ))
                 )
             except ImportError:
-                print("[ModelEnsemble] XGBoost not available, using RF + GB only")
+                print("[ModelEnsemble] XGBoost not available, using RF only")
+                # Fall back to RF if XGB not available
+                if weights == "xgb_only":
+                    estimators.append(
+                        ('rf', RandomForestRegressor(**rf_config)),
+                    )
         
-        self.ensemble = VotingRegressor(estimators=estimators)
+        # Set weights based on scheme
+        # UPDATED 2026-01-08: XGB-only or XGB-heavy recommended (RF has negative test Sharpe)
+        if weights == "xgb_only":
+            ensemble_weights = None  # Single model, no weights needed
+        elif weights == "xgb_heavy" and include_xgb:
+            ensemble_weights = [0.2, 0.8]  # RF 20%, XGB 80%
+        else:
+            ensemble_weights = None  # Equal weights (default)
+        
+        self.ensemble = VotingRegressor(estimators=estimators, weights=ensemble_weights)
     
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
         """Fit ensemble on training data."""
         self.ensemble.fit(X_train, y_train)
     
     def predict(self, X_test: np.ndarray) -> np.ndarray:
-        """Generate predictions (average of 3 models)."""
+        """Generate predictions (average of models)."""
         return self.ensemble.predict(X_test)
 
 
@@ -537,3 +581,303 @@ def apply_all_improvements(
     }
     
     return positions, metrics
+
+
+# ========================================
+# OPTIMIZED: TEMPERATURE SCALING CALIBRATION
+# ========================================
+
+class TemperatureScaler:
+    """
+    Temperature scaling for probability calibration.
+    
+    From Model Improvement Pipeline Experiment 6 (2026-01-07):
+    - Optimal temperature: T=2.9
+    - Sharpe improvement: +7.2%
+    - Better Brier score (improved calibration)
+    """
+    
+    def __init__(self, temperature: float = 2.9):
+        """
+        Args:
+            temperature: Scaling factor. T>1 softens probabilities, T<1 sharpens.
+                        Default 2.9 from Optuna optimization.
+        """
+        self.temperature = temperature
+    
+    def calibrate(self, probabilities: np.ndarray) -> np.ndarray:
+        """
+        Apply temperature scaling to probabilities.
+        
+        Args:
+            probabilities: Raw model probabilities (0 to 1)
+            
+        Returns:
+            Calibrated probabilities
+        """
+        # Convert probabilities to logits
+        probs = np.clip(probabilities, 1e-10, 1 - 1e-10)
+        logits = np.log(probs / (1 - probs))
+        
+        # Scale by temperature
+        scaled_logits = logits / self.temperature
+        
+        # Convert back to probabilities
+        calibrated = 1 / (1 + np.exp(-scaled_logits))
+        
+        return calibrated
+    
+    def find_optimal_temperature(
+        self, 
+        probabilities: np.ndarray, 
+        y_true: np.ndarray,
+        temp_range: Tuple[float, float] = (0.5, 5.0),
+        n_steps: int = 50,
+    ) -> float:
+        """
+        Find optimal temperature using Brier score on validation data.
+        
+        Args:
+            probabilities: Raw model probabilities
+            y_true: True binary labels (0/1)
+            temp_range: Range of temperatures to search
+            n_steps: Number of steps in grid search
+            
+        Returns:
+            Optimal temperature
+        """
+        from sklearn.metrics import brier_score_loss
+        
+        best_temp = self.temperature
+        best_brier = float('inf')
+        
+        for temp in np.linspace(temp_range[0], temp_range[1], n_steps):
+            self.temperature = temp
+            calibrated = self.calibrate(probabilities)
+            brier = brier_score_loss(y_true, calibrated)
+            
+            if brier < best_brier:
+                best_brier = brier
+                best_temp = temp
+        
+        self.temperature = best_temp
+        return best_temp
+
+
+# ========================================
+# OPTIMIZED PREDICTOR: ALL IMPROVEMENTS COMBINED
+# ========================================
+
+class OptimizedPredictor:
+    """
+    Production-ready predictor with all optimizations from Model Improvement Pipeline.
+    
+    Includes:
+    - Optimized XGBoost hyperparameters (Experiment 3)
+    - Temperature scaling calibration (Experiment 6)
+    - Volatility weighting
+    - Confidence-weighted position sizing
+    
+    Usage:
+        predictor = OptimizedPredictor()
+        predictor.fit(X_train, y_train)
+        positions, confidence = predictor.predict_positions(X_test)
+    """
+    
+    # Best hyperparameters from Experiment 3 (50 Optuna trials)
+    OPTIMIZED_PARAMS = {
+        "n_estimators": 450,
+        "max_depth": 7,
+        "learning_rate": 0.048,
+        "subsample": 0.998,
+        "colsample_bytree": 0.67,
+        "min_child_weight": 19,
+        "reg_alpha": 0.012,
+        "reg_lambda": 9.3,
+        "random_state": 42,
+        "n_jobs": -1,
+    }
+    
+    # Temperature from Experiment 6
+    OPTIMAL_TEMPERATURE = 2.9
+    
+    def __init__(
+        self,
+        use_calibration: bool = True,
+        use_volatility_weighting: bool = True,
+        confidence_threshold: float = 0.55,
+    ):
+        """
+        Args:
+            use_calibration: Apply temperature scaling to probabilities
+            use_volatility_weighting: Scale positions by inverse volatility
+            confidence_threshold: Minimum probability to take a position
+        """
+        self.use_calibration = use_calibration
+        self.use_volatility_weighting = use_volatility_weighting
+        self.confidence_threshold = confidence_threshold
+        
+        # Initialize components
+        self.model = None
+        self.scaler = StandardScaler()
+        self.temperature_scaler = TemperatureScaler(self.OPTIMAL_TEMPERATURE)
+        
+        self._is_fitted = False
+    
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray):
+        """
+        Fit the optimized model.
+        
+        Args:
+            X_train: Feature matrix (n_samples, n_features)
+            y_train: Target returns (will be converted to binary for classification)
+        """
+        try:
+            from xgboost import XGBClassifier
+        except ImportError:
+            raise ImportError("XGBoost required. Install with: pip install xgboost")
+        
+        # Convert to binary classification
+        y_binary = (y_train > 0).astype(int)
+        
+        # Scale features
+        X_scaled = self.scaler.fit_transform(X_train)
+        
+        # Create and fit model
+        self.model = XGBClassifier(
+            **self.OPTIMIZED_PARAMS,
+            objective='binary:logistic',
+            use_label_encoder=False,
+            verbosity=0,
+        )
+        self.model.fit(X_scaled, y_binary)
+        
+        # Calibrate temperature on training data
+        if self.use_calibration:
+            train_probs = self.model.predict_proba(X_scaled)[:, 1]
+            optimal_temp = self.temperature_scaler.find_optimal_temperature(
+                train_probs, y_binary
+            )
+            print(f"[OptimizedPredictor] Calibrated temperature: T={optimal_temp:.2f}")
+        
+        self._is_fitted = True
+        return self
+    
+    def predict_probability(self, X_test: np.ndarray) -> np.ndarray:
+        """
+        Predict calibrated probability of upward movement.
+        
+        Args:
+            X_test: Feature matrix
+            
+        Returns:
+            Array of calibrated probabilities (0 to 1)
+        """
+        if not self._is_fitted:
+            raise ValueError("Model not fitted. Call fit() first.")
+        
+        X_scaled = self.scaler.transform(X_test)
+        raw_probs = self.model.predict_proba(X_scaled)[:, 1]
+        
+        if self.use_calibration:
+            return self.temperature_scaler.calibrate(raw_probs)
+        return raw_probs
+    
+    def predict_positions(
+        self, 
+        X_test: np.ndarray,
+        volatilities: Optional[pd.Series] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Predict positions with confidence weighting.
+        
+        Args:
+            X_test: Feature matrix
+            volatilities: Optional volatility series for vol-weighting
+            
+        Returns:
+            (positions, confidences) tuple
+        """
+        probs = self.predict_probability(X_test)
+        
+        # Calculate confidence (distance from 0.5)
+        confidence = np.abs(probs - 0.5) * 2  # Scale to 0-1
+        
+        # Positions: 1 if bullish and confident, -1 if bearish and confident, 0 otherwise
+        positions = np.zeros_like(probs)
+        bullish = probs > self.confidence_threshold
+        bearish = probs < (1 - self.confidence_threshold)
+        
+        positions[bullish] = confidence[bullish]
+        positions[bearish] = -confidence[bearish]
+        
+        # Apply volatility weighting
+        if self.use_volatility_weighting and volatilities is not None:
+            positions = apply_volatility_weighting(positions, volatilities)
+        
+        return positions, confidence
+    
+    def get_feature_importance(self) -> pd.DataFrame:
+        """Get feature importance from the XGBoost model."""
+        if not self._is_fitted:
+            raise ValueError("Model not fitted. Call fit() first.")
+        
+        importance = self.model.feature_importances_
+        return pd.DataFrame({
+            'feature': range(len(importance)),
+            'importance': importance
+        }).sort_values('importance', ascending=False)
+    
+    def backtest(
+        self,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        volatilities: Optional[pd.Series] = None,
+    ) -> dict:
+        """
+        Run backtest and return performance metrics.
+        
+        Args:
+            X_test: Test features
+            y_test: Actual returns
+            volatilities: Optional volatility series
+            
+        Returns:
+            Dictionary of performance metrics
+        """
+        positions, confidence = self.predict_positions(X_test, volatilities)
+        
+        # Calculate strategy returns
+        strategy_returns = positions * y_test
+        
+        # Convert to Series for pandas operations
+        strategy_returns = pd.Series(strategy_returns)
+        
+        # Metrics
+        total_return = (1 + strategy_returns).prod() - 1
+        mean_ret = strategy_returns.mean()
+        std_ret = strategy_returns.std()
+        sharpe = (mean_ret / std_ret * np.sqrt(252)) if std_ret > 0 else 0
+        
+        # Direction accuracy
+        predictions = (positions > 0).astype(int)
+        actuals = (y_test > 0).astype(int)
+        accuracy = (predictions == actuals).mean()
+        
+        # Max drawdown
+        cumulative = (1 + strategy_returns).cumprod()
+        peak = cumulative.expanding().max()
+        drawdown = (cumulative - peak) / peak
+        max_drawdown = drawdown.min()
+        
+        return {
+            'sharpe': float(sharpe),
+            'accuracy': float(accuracy),
+            'total_return': float(total_return),
+            'max_drawdown': float(max_drawdown),
+            'mean_daily_return': float(mean_ret),
+            'volatility': float(std_ret),
+            'avg_confidence': float(confidence.mean()),
+            'num_trades': int((positions != 0).sum()),
+        }
+

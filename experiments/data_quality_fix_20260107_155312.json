@@ -1,0 +1,4560 @@
+{
+  "diagnosis": {
+    "timestamp": "2026-01-07T15:53:07.104334",
+    "tickers": {
+      "SPY": {
+        "ticker": "SPY",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "AAPL": {
+        "ticker": "AAPL",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.006,
+            "nan_count": 3,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "MSFT": {
+        "ticker": "MSFT",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "NVDA": {
+        "ticker": "NVDA",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "GOOGL": {
+        "ticker": "GOOGL",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "AMZN": {
+        "ticker": "AMZN",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "META": {
+        "ticker": "META",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "JPM": {
+        "ticker": "JPM",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.006,
+            "nan_count": 3,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "XOM": {
+        "ticker": "XOM",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      },
+      "JNJ": {
+        "ticker": "JNJ",
+        "total_rows": 502,
+        "features": {
+          "ret_1d": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "ret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "ret_20d": {
+            "status": "ERROR",
+            "nan_rate": 0.0418,
+            "nan_count": 21,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "cumret_3d": {
+            "status": "OK",
+            "nan_rate": 0.008,
+            "nan_count": 4,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_5d": {
+            "status": "OK",
+            "nan_rate": 0.012,
+            "nan_count": 6,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "cumret_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0219,
+            "nan_count": 11,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_10d": {
+            "status": "ERROR",
+            "nan_rate": 0.0239,
+            "nan_count": 12,
+            "inf_count": 0,
+            "cause": "Calculation errors or missing dependencies"
+          },
+          "vol_20d": {
+            "status": "WARMUP",
+            "nan_rate": 0.0438,
+            "nan_count": 22,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (22 rows for 21-day indicator)"
+          },
+          "vol_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "vol_ratio_10_60": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "atr_14": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "atr_pct_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "rsi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0279,
+            "nan_count": 14,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "macd": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdsignal": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "macdhist": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bb_pctb": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "bb_width": {
+            "status": "WARMUP",
+            "nan_rate": 0.0398,
+            "nan_count": 20,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (20 rows for 21-day indicator)"
+          },
+          "mfi14": {
+            "status": "WARMUP",
+            "nan_rate": 0.0319,
+            "nan_count": 16,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (14 rows for 15-day indicator)"
+          },
+          "adx_14": {
+            "status": "OK",
+            "nan_rate": 0.004,
+            "nan_count": 2,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "close_position": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "daily_range": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "high_low_ratio": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "gbm_mu_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_sig_60d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1215,
+            "nan_count": 61,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (61 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_1d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_prob_up_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_exp_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p05_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "gbm_p95_ret_5d": {
+            "status": "WARMUP",
+            "nan_rate": 0.1235,
+            "nan_count": 62,
+            "inf_count": 0,
+            "cause": "Rolling window warmup (62 rows for 61-day indicator)"
+          },
+          "mkt_ret_1d": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "vix": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "t10y": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "term_spread": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "unrate": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "cpi": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "oas": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fed_funds": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "regime_bull": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_bear": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "regime_vix_low": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_medium": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "regime_vix_high": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "bull_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "bear_streak": {
+            "status": "OK",
+            "nan_rate": 0.002,
+            "nan_count": 1,
+            "inf_count": 0,
+            "cause": "Minor edge cases"
+          },
+          "fund_pe_trailing": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_pb": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "fund_marketcap": {
+            "status": "MISSING",
+            "nan_rate": 1.0,
+            "nan_count": 502,
+            "cause": "Feature not calculated"
+          },
+          "rel_strength_1d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "rel_momentum_5d": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "beta_60_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          },
+          "corr_20_spx": {
+            "status": "OK",
+            "nan_rate": 0.0,
+            "nan_count": 0,
+            "inf_count": 0,
+            "cause": "None"
+          }
+        },
+        "problem_features": [
+          "vol_60d",
+          "vol_ratio_10_60",
+          "gbm_mu_60d",
+          "gbm_sig_60d",
+          "gbm_prob_up_1d",
+          "gbm_exp_ret_1d",
+          "gbm_p05_ret_1d",
+          "gbm_p95_ret_1d",
+          "gbm_prob_up_5d",
+          "gbm_exp_ret_5d",
+          "gbm_p05_ret_5d",
+          "gbm_p95_ret_5d",
+          "mkt_ret_1d",
+          "vix",
+          "t10y",
+          "term_spread",
+          "unrate",
+          "cpi",
+          "oas",
+          "fed_funds",
+          "fund_pe_trailing",
+          "fund_pb",
+          "fund_marketcap"
+        ]
+      }
+    },
+    "feature_summary": {
+      "ret_1d": {
+        "avg_nan_rate": 0.004,
+        "max_nan_rate": 0.004,
+        "consistent_problem": "False"
+      },
+      "ret_3d": {
+        "avg_nan_rate": 0.008,
+        "max_nan_rate": 0.008,
+        "consistent_problem": "False"
+      },
+      "ret_5d": {
+        "avg_nan_rate": 0.012,
+        "max_nan_rate": 0.012,
+        "consistent_problem": "False"
+      },
+      "ret_10d": {
+        "avg_nan_rate": 0.0219,
+        "max_nan_rate": 0.0219,
+        "consistent_problem": "False"
+      },
+      "ret_20d": {
+        "avg_nan_rate": 0.0418,
+        "max_nan_rate": 0.0418,
+        "consistent_problem": "False"
+      },
+      "cumret_3d": {
+        "avg_nan_rate": 0.008,
+        "max_nan_rate": 0.008,
+        "consistent_problem": "False"
+      },
+      "cumret_5d": {
+        "avg_nan_rate": 0.012,
+        "max_nan_rate": 0.012,
+        "consistent_problem": "False"
+      },
+      "cumret_10d": {
+        "avg_nan_rate": 0.0219,
+        "max_nan_rate": 0.0219,
+        "consistent_problem": "False"
+      },
+      "vol_10d": {
+        "avg_nan_rate": 0.0239,
+        "max_nan_rate": 0.0239,
+        "consistent_problem": "False"
+      },
+      "vol_20d": {
+        "avg_nan_rate": 0.0438,
+        "max_nan_rate": 0.0438,
+        "consistent_problem": "False"
+      },
+      "vol_60d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "vol_ratio_10_60": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "atr_14": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "atr_pct_14": {
+        "avg_nan_rate": 0.004,
+        "max_nan_rate": 0.004,
+        "consistent_problem": "False"
+      },
+      "rsi14": {
+        "avg_nan_rate": 0.0279,
+        "max_nan_rate": 0.0279,
+        "consistent_problem": "False"
+      },
+      "macd": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "macdsignal": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "macdhist": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "bb_pctb": {
+        "avg_nan_rate": 0.0398,
+        "max_nan_rate": 0.0398,
+        "consistent_problem": "False"
+      },
+      "bb_width": {
+        "avg_nan_rate": 0.0398,
+        "max_nan_rate": 0.0398,
+        "consistent_problem": "False"
+      },
+      "mfi14": {
+        "avg_nan_rate": 0.0283,
+        "max_nan_rate": 0.0319,
+        "consistent_problem": "False"
+      },
+      "adx_14": {
+        "avg_nan_rate": 0.0044,
+        "max_nan_rate": 0.006,
+        "consistent_problem": "False"
+      },
+      "close_position": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "daily_range": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "high_low_ratio": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "gbm_mu_60d": {
+        "avg_nan_rate": 0.1215,
+        "max_nan_rate": 0.1215,
+        "consistent_problem": "True"
+      },
+      "gbm_sig_60d": {
+        "avg_nan_rate": 0.1215,
+        "max_nan_rate": 0.1215,
+        "consistent_problem": "True"
+      },
+      "gbm_prob_up_1d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_exp_ret_1d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_p05_ret_1d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_p95_ret_1d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_prob_up_5d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_exp_ret_5d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_p05_ret_5d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "gbm_p95_ret_5d": {
+        "avg_nan_rate": 0.1235,
+        "max_nan_rate": 0.1235,
+        "consistent_problem": "True"
+      },
+      "mkt_ret_1d": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "vix": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "t10y": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "term_spread": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "unrate": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "cpi": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "oas": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "fed_funds": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "regime_bull": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "regime_bear": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "regime_vix_low": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      },
+      "regime_vix_medium": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      },
+      "regime_vix_high": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      },
+      "bull_streak": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "bear_streak": {
+        "avg_nan_rate": 0.002,
+        "max_nan_rate": 0.002,
+        "consistent_problem": "False"
+      },
+      "fund_pe_trailing": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "fund_pb": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "fund_marketcap": {
+        "avg_nan_rate": 1.0,
+        "max_nan_rate": 1.0,
+        "consistent_problem": "True"
+      },
+      "rel_strength_1d": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      },
+      "rel_momentum_5d": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      },
+      "beta_60_spx": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      },
+      "corr_20_spx": {
+        "avg_nan_rate": 0.0,
+        "max_nan_rate": 0.0,
+        "consistent_problem": "False"
+      }
+    }
+  },
+  "verify_results": {
+    "tickers_passing": 10,
+    "problem_count_after": 0,
+    "per_ticker": {
+      "SPY": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "AAPL": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "MSFT": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "NVDA": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "GOOGL": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "AMZN": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "META": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "JPM": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "XOM": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      },
+      "JNJ": {
+        "passed": true,
+        "rows_dropped": 62,
+        "final_rows": 440,
+        "features_over_5pct": 0,
+        "max_nan_rate": 0.0
+      }
+    }
+  }
+}

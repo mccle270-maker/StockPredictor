@@ -1,0 +1,23 @@
+{
+  "date": "2026-01-07",
+  "metrics": {
+    "current_equity": 50000.0,
+    "peak_equity": 50000.0,
+    "current_drawdown_pct": 0.0,
+    "sharpe_21d": 0.0,
+    "sharpe_63d": 0.0,
+    "win_rate_20": 0.0,
+    "win_rate_all": 0.0,
+    "pnl_today": 0.0,
+    "pnl_week": 0.0,
+    "pnl_month": 0.0,
+    "pnl_total": 0.0,
+    "trades_today": 0,
+    "trades_week": 0,
+    "trades_total": 0,
+    "last_updated": "2026-01-08T03:12:42.294742+00:00"
+  },
+  "ticker_breakdown": {},
+  "active_alerts": [],
+  "trades_today": []
+}

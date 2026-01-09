@@ -56,14 +56,16 @@ def _prepare_features(
     # Target
     hist["ftarget_ret_horizon_ahead"] = hist["Close"].pct_change(horizon).shift(-horizon)
     
-    # Collect available features
-    feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
-    macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
-    feat_cols = feat_cols_available + macro_cols_available
+    # Collect available features (deduplicate)
+    feat_cols_available = list(dict.fromkeys([c for c in FEATURE_COLUMNS if c in hist.columns]))
+    macro_cols_available = list(dict.fromkeys([c for c in MACRO_COLUMNS if c in hist.columns]))
+    feat_cols = feat_cols_available + [c for c in macro_cols_available if c not in feat_cols_available]
     
     # Quality filter
     data_quality = hist[feat_cols].isna().sum() / len(hist)
-    feat_cols = [c for c in feat_cols if data_quality[c] < 0.5]
+    # Convert to dict for safe scalar access
+    data_quality_dict = data_quality.to_dict() if hasattr(data_quality, 'to_dict') else {}
+    feat_cols = [c for c in feat_cols if data_quality_dict.get(c, 0) < 0.5]
     
     # Fill NaNs
     hist[feat_cols] = hist[feat_cols].ffill().bfill().fillna(0)
@@ -189,7 +191,7 @@ def backtest_one_ticker(
     """
     # --- Config snapshot integration ---
     from ..core.versioning import create_config_snapshot, save_config_snapshot
-    from ..core.config import get_model_version_info, FEATURE_COLUMNS
+    from ..config import get_model_version_info, FEATURE_COLUMNS
     import os
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:
@@ -292,7 +294,7 @@ def walk_forward_backtest(
     """
     # --- Config snapshot integration ---
     from ..core.versioning import create_config_snapshot, save_config_snapshot
-    from ..core.config import get_model_version_info, FEATURE_COLUMNS
+    from ..config import get_model_version_info, FEATURE_COLUMNS
     import os
     hist = get_price_history(ticker, period=period, interval="1d")
     if hist is None or hist.empty:

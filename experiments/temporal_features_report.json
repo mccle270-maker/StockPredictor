@@ -1,0 +1,102 @@
+{
+  "timestamp": "2026-01-07T19:52:34.471829",
+  "tickers_tested": [
+    "AAPL",
+    "MSFT",
+    "AMZN"
+  ],
+  "period": "2y",
+  "new_features": [
+    "momentum_5d",
+    "momentum_10d",
+    "momentum_20d",
+    "momentum_consistency_5d",
+    "momentum_consistency_10d",
+    "momentum_acceleration",
+    "trend_strength_20d",
+    "trend_direction",
+    "price_vs_sma20",
+    "price_vs_sma50",
+    "price_zscore_20d",
+    "bollinger_position",
+    "mean_reversion_signal",
+    "dist_from_20d_high",
+    "dist_from_20d_low",
+    "vol_5d",
+    "vol_10d",
+    "vol_percentile",
+    "vol_regime_low",
+    "vol_regime_high",
+    "vol_change",
+    "vol_expansion",
+    "vol_contraction",
+    "vol_breakout"
+  ],
+  "baseline_sharpe": 2.2123524117568185,
+  "baseline_accuracy": 0.532150776053215,
+  "enhanced_sharpe": 2.0844294999068618,
+  "enhanced_accuracy": 0.5521064301552107,
+  "improvement_pct": -5.782212235724858,
+  "feature_importance": [
+    {
+      "feature": "bollinger_position",
+      "importance": 0.026880156248807907
+    },
+    {
+      "feature": "vol_regime_high",
+      "importance": 0.01601237617433071
+    },
+    {
+      "feature": "momentum_10d",
+      "importance": 0.010783483274281025
+    },
+    {
+      "feature": "mean_reversion_signal",
+      "importance": 0.009514980018138885
+    },
+    {
+      "feature": "price_vs_sma50",
+      "importance": 0.00907535944133997
+    },
+    {
+      "feature": "price_vs_sma20",
+      "importance": 0.008368073962628841
+    },
+    {
+      "feature": "momentum_acceleration",
+      "importance": 0.006802406627684832
+    },
+    {
+      "feature": "mean_reversion_signal",
+      "importance": 0.006754324305802584
+    },
+    {
+      "feature": "momentum_5d",
+      "importance": 0.006391049362719059
+    },
+    {
+      "feature": "dist_from_20d_low",
+      "importance": 0.00603849533945322
+    },
+    {
+      "feature": "vol_5d",
+      "importance": 0.006007562391459942
+    },
+    {
+      "feature": "trend_strength_20d",
+      "importance": 0.005896500777453184
+    },
+    {
+      "feature": "dist_from_20d_high",
+      "importance": 0.005839217454195023
+    },
+    {
+      "feature": "price_zscore_20d",
+      "importance": 0.004761632066220045
+    },
+    {
+      "feature": "vol_percentile",
+      "importance": 0.004590478725731373
+    }
+  ]
+}

@@ -1,0 +1,342 @@
+{
+  "experiment_id": "REGIME_FILTER_001",
+  "created": "2026-01-07T11:01:05.154880",
+  "variable_tested": "regime_filter",
+  "baseline_reference": "BASELINE_002",
+  "z_score_threshold_used": 1.6,
+  "decision_rule": "Accept if drawdown improves AND Sharpe does not decrease more than 0.05",
+  "results": {
+    "OFF": {
+      "regime_filter": "OFF",
+      "avg_sharpe": 0.1703,
+      "avg_max_drawdown": -0.1345,
+      "avg_win_rate": 0.4989,
+      "avg_pct_time_in_market": 0.1325,
+      "total_trades": 964,
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "sharpe": -0.5638,
+          "max_drawdown": -0.2645,
+          "total_return": -0.1767,
+          "trade_count": 102,
+          "win_rate": 0.4405,
+          "days_in_market": 84,
+          "pct_time_in_market": 0.1338,
+          "regime_breakdown": {
+            "bull": 445,
+            "bear": 20,
+            "neutral": 163
+          }
+        },
+        {
+          "ticker": "AAPL",
+          "sharpe": 0.5391,
+          "max_drawdown": -0.1843,
+          "total_return": 0.2024,
+          "trade_count": 82,
+          "win_rate": 0.5111,
+          "days_in_market": 90,
+          "pct_time_in_market": 0.1433,
+          "regime_breakdown": {
+            "bull": 280,
+            "bear": 163,
+            "neutral": 185
+          }
+        },
+        {
+          "ticker": "MSFT",
+          "sharpe": 0.5782,
+          "max_drawdown": -0.0598,
+          "total_return": 0.0931,
+          "trade_count": 104,
+          "win_rate": 0.5125,
+          "days_in_market": 80,
+          "pct_time_in_market": 0.1274,
+          "regime_breakdown": {
+            "bull": 328,
+            "bear": 121,
+            "neutral": 179
+          }
+        },
+        {
+          "ticker": "NVDA",
+          "sharpe": -0.1105,
+          "max_drawdown": -0.1593,
+          "total_return": -0.0294,
+          "trade_count": 100,
+          "win_rate": 0.4667,
+          "days_in_market": 90,
+          "pct_time_in_market": 0.1433,
+          "regime_breakdown": {
+            "bull": 393,
+            "bear": 178,
+            "neutral": 57
+          }
+        },
+        {
+          "ticker": "GOOGL",
+          "sharpe": 0.8836,
+          "max_drawdown": -0.0709,
+          "total_return": 0.1823,
+          "trade_count": 107,
+          "win_rate": 0.5595,
+          "days_in_market": 84,
+          "pct_time_in_market": 0.1338,
+          "regime_breakdown": {
+            "bull": 403,
+            "bear": 137,
+            "neutral": 88
+          }
+        },
+        {
+          "ticker": "AMZN",
+          "sharpe": -0.143,
+          "max_drawdown": -0.0758,
+          "total_return": -0.0227,
+          "trade_count": 104,
+          "win_rate": 0.5067,
+          "days_in_market": 75,
+          "pct_time_in_market": 0.1194,
+          "regime_breakdown": {
+            "bull": 407,
+            "bear": 120,
+            "neutral": 101
+          }
+        },
+        {
+          "ticker": "META",
+          "sharpe": -0.2306,
+          "max_drawdown": -0.1756,
+          "total_return": -0.0588,
+          "trade_count": 74,
+          "win_rate": 0.4133,
+          "days_in_market": 75,
+          "pct_time_in_market": 0.1194,
+          "regime_breakdown": {
+            "bull": 394,
+            "bear": 140,
+            "neutral": 94
+          }
+        },
+        {
+          "ticker": "JPM",
+          "sharpe": 0.216,
+          "max_drawdown": -0.1215,
+          "total_return": 0.0488,
+          "trade_count": 94,
+          "win_rate": 0.5258,
+          "days_in_market": 97,
+          "pct_time_in_market": 0.1545,
+          "regime_breakdown": {
+            "bull": 476,
+            "bear": 54,
+            "neutral": 98
+          }
+        },
+        {
+          "ticker": "XOM",
+          "sharpe": -0.1482,
+          "max_drawdown": -0.1451,
+          "total_return": -0.0279,
+          "trade_count": 95,
+          "win_rate": 0.5,
+          "days_in_market": 81,
+          "pct_time_in_market": 0.129,
+          "regime_breakdown": {
+            "bull": 205,
+            "bear": 189,
+            "neutral": 234
+          }
+        },
+        {
+          "ticker": "JNJ",
+          "sharpe": 0.6823,
+          "max_drawdown": -0.0878,
+          "total_return": 0.1773,
+          "trade_count": 102,
+          "win_rate": 0.5526,
+          "days_in_market": 76,
+          "pct_time_in_market": 0.121,
+          "regime_breakdown": {
+            "bull": 160,
+            "bear": 189,
+            "neutral": 279
+          }
+        }
+      ]
+    },
+    "ON": {
+      "regime_filter": "ON",
+      "avg_sharpe": 0.1274,
+      "avg_max_drawdown": -0.1128,
+      "avg_win_rate": 0.4989,
+      "avg_pct_time_in_market": 0.1325,
+      "total_trades": 988,
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "sharpe": -0.5133,
+          "max_drawdown": -0.1747,
+          "total_return": -0.0997,
+          "trade_count": 102,
+          "win_rate": 0.4405,
+          "days_in_market": 84,
+          "pct_time_in_market": 0.1338,
+          "regime_breakdown": {
+            "bull": 445,
+            "bear": 20,
+            "neutral": 163
+          }
+        },
+        {
+          "ticker": "AAPL",
+          "sharpe": 0.285,
+          "max_drawdown": -0.1957,
+          "total_return": 0.0738,
+          "trade_count": 84,
+          "win_rate": 0.5111,
+          "days_in_market": 90,
+          "pct_time_in_market": 0.1433,
+          "regime_breakdown": {
+            "bull": 280,
+            "bear": 163,
+            "neutral": 185
+          }
+        },
+        {
+          "ticker": "MSFT",
+          "sharpe": 0.3978,
+          "max_drawdown": -0.045,
+          "total_return": 0.0429,
+          "trade_count": 106,
+          "win_rate": 0.5125,
+          "days_in_market": 80,
+          "pct_time_in_market": 0.1274,
+          "regime_breakdown": {
+            "bull": 328,
+            "bear": 121,
+            "neutral": 179
+          }
+        },
+        {
+          "ticker": "NVDA",
+          "sharpe": 0.2215,
+          "max_drawdown": -0.1227,
+          "total_return": 0.0441,
+          "trade_count": 102,
+          "win_rate": 0.4667,
+          "days_in_market": 90,
+          "pct_time_in_market": 0.1433,
+          "regime_breakdown": {
+            "bull": 393,
+            "bear": 178,
+            "neutral": 57
+          }
+        },
+        {
+          "ticker": "GOOGL",
+          "sharpe": 0.5707,
+          "max_drawdown": -0.0667,
+          "total_return": 0.0791,
+          "trade_count": 108,
+          "win_rate": 0.5595,
+          "days_in_market": 84,
+          "pct_time_in_market": 0.1338,
+          "regime_breakdown": {
+            "bull": 403,
+            "bear": 137,
+            "neutral": 88
+          }
+        },
+        {
+          "ticker": "AMZN",
+          "sharpe": -0.2767,
+          "max_drawdown": -0.0661,
+          "total_return": -0.0365,
+          "trade_count": 104,
+          "win_rate": 0.5067,
+          "days_in_market": 75,
+          "pct_time_in_market": 0.1194,
+          "regime_breakdown": {
+            "bull": 407,
+            "bear": 120,
+            "neutral": 101
+          }
+        },
+        {
+          "ticker": "META",
+          "sharpe": -0.2445,
+          "max_drawdown": -0.1733,
+          "total_return": -0.0601,
+          "trade_count": 81,
+          "win_rate": 0.4133,
+          "days_in_market": 75,
+          "pct_time_in_market": 0.1194,
+          "regime_breakdown": {
+            "bull": 394,
+            "bear": 140,
+            "neutral": 94
+          }
+        },
+        {
+          "ticker": "JPM",
+          "sharpe": 0.2187,
+          "max_drawdown": -0.1123,
+          "total_return": 0.0376,
+          "trade_count": 100,
+          "win_rate": 0.5258,
+          "days_in_market": 97,
+          "pct_time_in_market": 0.1545,
+          "regime_breakdown": {
+            "bull": 476,
+            "bear": 54,
+            "neutral": 98
+          }
+        },
+        {
+          "ticker": "XOM",
+          "sharpe": 0.0397,
+          "max_drawdown": -0.0975,
+          "total_return": 0.0054,
+          "trade_count": 97,
+          "win_rate": 0.5,
+          "days_in_market": 81,
+          "pct_time_in_market": 0.129,
+          "regime_breakdown": {
+            "bull": 205,
+            "bear": 189,
+            "neutral": 234
+          }
+        },
+        {
+          "ticker": "JNJ",
+          "sharpe": 0.5755,
+          "max_drawdown": -0.0739,
+          "total_return": 0.127,
+          "trade_count": 104,
+          "win_rate": 0.5526,
+          "days_in_market": 76,
+          "pct_time_in_market": 0.121,
+          "regime_breakdown": {
+            "bull": 160,
+            "bear": 189,
+            "neutral": 279
+          }
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "sharpe_delta": -0.0429,
+    "max_drawdown_delta": 0.0217,
+    "time_in_market_delta": 0.0,
+    "trades_delta": 24
+  },
+  "decision": {
+    "drawdown_improved": "True",
+    "sharpe_acceptable": "True",
+    "accept_regime_filter": "True",
+    "recommendation": "ACCEPT regime_filter=ON"
+  }
+}

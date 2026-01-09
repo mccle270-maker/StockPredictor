@@ -1,0 +1,52 @@
+{
+  "experiment_id": "BASELINE_004",
+  "created": "2026-01-07T11:15:00.000000",
+  "description": "Updated baseline with z_score=1.6, regime_filter=ON, position_sizing=vol_x_confidence",
+  "previous_baseline": "BASELINE_003",
+  "changes_applied": [
+    "BASELINE_001 -> BASELINE_002: z_score_threshold: 0 -> 1.6",
+    "BASELINE_002 -> BASELINE_003: regime_filter: OFF -> ON",
+    "BASELINE_003 -> BASELINE_004: position_sizing: vol_only -> vol_x_confidence"
+  ],
+  "config": {
+    "tickers": ["SPY", "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "JPM", "XOM", "JNJ"],
+    "test_fraction": 0.25,
+    "min_train_rows": 500,
+    "models": ["rf", "xgb", "gbrt"],
+    "ensemble_method": "average",
+    "z_score_threshold": 1.6,
+    "regime_filter": true,
+    "position_sizing": "vol_scaling_x_confidence",
+    "trade_limits": false,
+    "vol_scaling": true,
+    "trade_threshold": 0.0
+  },
+  "aggregate_metrics": {
+    "avg_sharpe": 0.1294,
+    "avg_max_drawdown": -0.0840,
+    "avg_std_daily_returns": 0.003444,
+    "avg_worst_5day_loss": -0.0484,
+    "avg_win_rate": 0.4989,
+    "total_trades": 1284
+  },
+  "per_ticker_metrics": [
+    {"ticker": "SPY", "sharpe": -0.64, "max_drawdown": -0.148, "std_daily_returns": 0.0043, "worst_5day_loss": -0.076, "win_rate": 0.44},
+    {"ticker": "AAPL", "sharpe": 0.29, "max_drawdown": -0.147, "std_daily_returns": 0.0054, "worst_5day_loss": -0.063, "win_rate": 0.51},
+    {"ticker": "MSFT", "sharpe": 0.40, "max_drawdown": -0.036, "std_daily_returns": 0.0022, "worst_5day_loss": -0.030, "win_rate": 0.49},
+    {"ticker": "NVDA", "sharpe": 0.41, "max_drawdown": -0.071, "std_daily_returns": 0.0030, "worst_5day_loss": -0.044, "win_rate": 0.48},
+    {"ticker": "GOOGL", "sharpe": 0.41, "max_drawdown": -0.049, "std_daily_returns": 0.0028, "worst_5day_loss": -0.037, "win_rate": 0.54},
+    {"ticker": "AMZN", "sharpe": -0.18, "max_drawdown": -0.050, "std_daily_returns": 0.0026, "worst_5day_loss": -0.036, "win_rate": 0.50},
+    {"ticker": "META", "sharpe": -0.22, "max_drawdown": -0.118, "std_daily_returns": 0.0045, "worst_5day_loss": -0.068, "win_rate": 0.48},
+    {"ticker": "JPM", "sharpe": 0.26, "max_drawdown": -0.089, "std_daily_returns": 0.0035, "worst_5day_loss": -0.055, "win_rate": 0.53},
+    {"ticker": "XOM", "sharpe": 0.04, "max_drawdown": -0.077, "std_daily_returns": 0.0026, "worst_5day_loss": -0.041, "win_rate": 0.50},
+    {"ticker": "JNJ", "sharpe": 0.53, "max_drawdown": -0.055, "std_daily_returns": 0.0037, "worst_5day_loss": -0.034, "win_rate": 0.49}
+  ],
+  "cumulative_improvement": {
+    "vs_baseline_001": {
+      "sharpe_delta": 0.223,
+      "max_drawdown_delta": 0.153,
+      "std_returns_reduction": "24.6%",
+      "notes": "From original -0.0937 Sharpe / -23.66% MaxDD to current +0.1294 Sharpe / -8.40% MaxDD"
+    }
+  }
+}

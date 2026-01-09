@@ -177,10 +177,52 @@ def build_signals_from_pred_df(
         # Get per-ticker z-score threshold
         ticker_threshold = get_zscore_threshold(tk)
         
-        # Compute z-score for prediction using ZScoreFilter
-        ticker_history = prediction_history.get(tk, [])
-        zscore_result = zscore_filter.evaluate(tk, pred, ticker_history)
-        z_score = zscore_result.z_score
+        # Calculate z-score properly
+        # Priority 1: Use pred_zscore from prediction if it's a real value (not 0.0, which indicates not calculated)
+        # Priority 2: Use ZScoreFilter with prediction_history
+        # Priority 3: Compute from prediction distribution (mean/std of all predictions in this batch)
+        
+        pred_zscore_from_model = row.get("pred_zscore")
+        has_valid_model_zscore = (
+            pred_zscore_from_model is not None 
+            and not pd.isna(pred_zscore_from_model) 
+            and abs(float(pred_zscore_from_model)) > 1e-9  # Not exactly 0.0
+        )
+        
+        ticker_history = prediction_history.get(tk, []) if prediction_history else []
+        has_prediction_history = len(ticker_history) >= 10
+        
+        if has_valid_model_zscore:
+            # Use the pre-computed z-score from the prediction model
+            z_score = float(pred_zscore_from_model)
+            zscore_result = type('ZScoreResult', (), {
+                'z_score': z_score,
+                'signal_strength': 'very_strong' if abs(z_score) >= 2.0 else 'strong' if abs(z_score) >= 1.5 else 'moderate' if abs(z_score) >= 1.0 else 'weak',
+                'history_length': -1  # Indicates from model
+            })()
+        elif has_prediction_history:
+            # Fall back to ZScoreFilter with prediction_history
+            zscore_result = zscore_filter.evaluate(tk, pred, ticker_history)
+            z_score = zscore_result.z_score
+        else:
+            # Compute z-score from the current batch of predictions
+            # This compares this prediction to all other predictions in this run
+            all_preds = pred_df["pred_next_ret"].dropna().values
+            if len(all_preds) >= 3:
+                batch_mean = float(np.mean(all_preds))
+                batch_std = float(np.std(all_preds, ddof=1))
+                if batch_std > 1e-9:
+                    z_score = float((pred - batch_mean) / batch_std)
+                else:
+                    z_score = 0.0
+            else:
+                z_score = 0.0
+            
+            zscore_result = type('ZScoreResult', (), {
+                'z_score': z_score,
+                'signal_strength': 'very_strong' if abs(z_score) >= 2.0 else 'strong' if abs(z_score) >= 1.5 else 'moderate' if abs(z_score) >= 1.0 else 'weak',
+                'history_length': len(all_preds)  # From batch
+            })()
         
         # Determine if signal passes z-score threshold
         passes_zscore = abs(z_score) >= ticker_threshold
@@ -248,6 +290,13 @@ def build_signals_from_pred_df(
         use_options = (trade_mode == "Options only") or \
                       (trade_mode == "Options if suggested" and strategy is not None)
         
+        # Get RSI for signal filtering (from prediction output)
+        rsi_value = row.get("rsi14")
+        if rsi_value is not None and not pd.isna(rsi_value):
+            rsi_value = float(rsi_value)
+        else:
+            rsi_value = None
+        
         # Build signal dict with z-score tagging
         zscore_tags = {
             "z_score": float(z_score),
@@ -255,6 +304,7 @@ def build_signals_from_pred_df(
             "z_score_threshold": ticker_threshold,
             "z_score_strength": zscore_result.signal_strength,
             "z_score_history_len": zscore_result.history_length,
+            "rsi14": rsi_value,  # For signal filtering
             "eligibility_status": eligibility_status,
             "eligibility_reason": eligibility_reason,
         }

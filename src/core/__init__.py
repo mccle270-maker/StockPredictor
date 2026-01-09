@@ -2,10 +2,12 @@
 
 from .features import (
     build_all_features,
+    build_optimized_features,
     add_returns,
     add_volatility,
     add_gbm_features,
     add_regime_features,
+    add_momentum_indicators,
     build_target,
 )
 from .models import (
@@ -14,6 +16,14 @@ from .models import (
     select_features_elasticnet,
     select_features_ols_pvalue,
     get_feature_importance,
+)
+from .calibration import (
+    temperature_scale,
+    logit_temperature_scale,
+    calibrate_predictions,
+    PredictionCalibrator,
+    get_default_temperature,
+    should_use_calibration,
 )
 from .metrics import (
     compute_sharpe,
@@ -64,14 +74,33 @@ from .regime_filter import (
     apply_regime_filter,
     get_current_regime,
 )
+from .signal_filter import (
+    apply_signal_filter,
+    calculate_momentum_zscore,
+    get_filter_stats,
+    should_trade,
+)
+from .ab_testing import (
+    ABTestConfig,
+    get_ab_config,
+    set_ab_variant,
+    get_active_variant,
+    is_optimized_active,
+    log_prediction,
+    compare_variants,
+    generate_ab_report,
+    variant_context,
+)
 
 __all__ = [
     # Features
     "build_all_features",
+    "build_optimized_features",
     "add_returns",
     "add_volatility",
     "add_gbm_features",
     "add_regime_features",
+    "add_momentum_indicators",
     "build_target",
     # Models
     "make_model",
@@ -79,6 +108,13 @@ __all__ = [
     "select_features_elasticnet",
     "select_features_ols_pvalue",
     "get_feature_importance",
+    # Calibration
+    "temperature_scale",
+    "logit_temperature_scale",
+    "calibrate_predictions",
+    "PredictionCalibrator",
+    "get_default_temperature",
+    "should_use_calibration",
     # Metrics
     "compute_sharpe",
     "compute_sortino",
@@ -113,6 +149,16 @@ __all__ = [
     "reset_trade_limiter",
     "apply_trade_limits",
     "rank_signals_by_conviction",
+    # A/B Testing
+    "ABTestConfig",
+    "get_ab_config",
+    "set_ab_variant",
+    "get_active_variant",
+    "is_optimized_active",
+    "log_prediction",
+    "compare_variants",
+    "generate_ab_report",
+    "variant_context",
     # Regime Filtering
     "RegimeFilter",
     "MarketRegime",
@@ -122,4 +168,9 @@ __all__ = [
     "reset_regime_filter",
     "apply_regime_filter",
     "get_current_regime",
+    # Signal Filtering (Trading Strategies)
+    "apply_signal_filter",
+    "calculate_momentum_zscore",
+    "get_filter_stats",
+    "should_trade",
 ]

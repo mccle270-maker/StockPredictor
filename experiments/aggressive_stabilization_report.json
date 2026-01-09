@@ -1,0 +1,293 @@
+{
+  "experiment_id": "AGGRESSIVE_STABILIZATION_001",
+  "created": "2026-01-07T12:02:31.290858",
+  "stability_thresholds": {
+    "max_allowed_worst_sharpe": -0.5,
+    "max_allowed_drawdown": -0.15,
+    "max_sharpe_std_ratio": 1.5
+  },
+  "stable_configs_found": 0,
+  "all_results": [
+    {
+      "config_name": "AGGRESSIVE_V1_ZSCORE_2.5",
+      "config": {
+        "name": "AGGRESSIVE_V1_ZSCORE_2.5",
+        "description": "Very high z-score threshold, remove problematic tickers",
+        "tickers": [
+          "AAPL",
+          "MSFT",
+          "GOOGL",
+          "AMZN",
+          "JPM",
+          "XOM",
+          "JNJ"
+        ],
+        "z_score_threshold": 2.5,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0
+      },
+      "aggregate": {
+        "mean_sharpe": 0.2693396386281819,
+        "std_sharpe": 1.5107743425499365,
+        "worst_sharpe": -2.7637559237711207,
+        "best_sharpe": 2.83288278594756,
+        "worst_drawdown": -0.10121518219406123,
+        "pct_positive_sharpe": 41.26984126984127,
+        "num_windows": 63
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": "False",
+        "drawdown_ok": "True",
+        "stability_ok": "False",
+        "positive_rate_ok": "False",
+        "ALL_PASS": "False"
+      },
+      "worst_window": {
+        "sharpe": -2.7637559237711207,
+        "max_drawdown": -0.10121518219406123,
+        "total_return": -0.08867120137008011,
+        "window_start": "2025-02-06",
+        "window_end": "2025-05-08",
+        "ticker": "XOM",
+        "num_days": 64
+      }
+    },
+    {
+      "config_name": "AGGRESSIVE_V2_ZSCORE_3.0",
+      "config": {
+        "name": "AGGRESSIVE_V2_ZSCORE_3.0",
+        "description": "Extreme z-score threshold for only highest conviction trades",
+        "tickers": [
+          "AAPL",
+          "MSFT",
+          "GOOGL",
+          "AMZN",
+          "JPM",
+          "XOM",
+          "JNJ"
+        ],
+        "z_score_threshold": 3.0,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0
+      },
+      "aggregate": {
+        "mean_sharpe": 0.2378537004318637,
+        "std_sharpe": 1.070692257235332,
+        "worst_sharpe": -2.000000000000001,
+        "best_sharpe": 2.3943055451041384,
+        "worst_drawdown": -0.04841955645083251,
+        "pct_positive_sharpe": 23.80952380952381,
+        "num_windows": 63
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": "False",
+        "drawdown_ok": "True",
+        "stability_ok": "False",
+        "positive_rate_ok": "False",
+        "ALL_PASS": "False"
+      },
+      "worst_window": {
+        "sharpe": -2.000000000000001,
+        "max_drawdown": -6.864124652494752e-05,
+        "total_return": -6.864124652494752e-05,
+        "window_start": "2025-07-10",
+        "window_end": "2025-10-08",
+        "ticker": "JPM",
+        "num_days": 64
+      }
+    },
+    {
+      "config_name": "AGGRESSIVE_V3_CONSERVATIVE_REGIME",
+      "config": {
+        "name": "AGGRESSIVE_V3_CONSERVATIVE_REGIME",
+        "description": "High z-score + very conservative regime scaling",
+        "tickers": [
+          "AAPL",
+          "MSFT",
+          "GOOGL",
+          "AMZN",
+          "JPM",
+          "XOM",
+          "JNJ"
+        ],
+        "z_score_threshold": 2.5,
+        "regime_bear_scale": 0.25,
+        "regime_neutral_scale": 0.5,
+        "max_position_size": 0.5
+      },
+      "aggregate": {
+        "mean_sharpe": 0.2693396386281819,
+        "std_sharpe": 1.5107743425499365,
+        "worst_sharpe": -2.7637559237711207,
+        "best_sharpe": 2.83288278594756,
+        "worst_drawdown": -0.05143929002127845,
+        "pct_positive_sharpe": 41.26984126984127,
+        "num_windows": 63
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": "False",
+        "drawdown_ok": "True",
+        "stability_ok": "False",
+        "positive_rate_ok": "False",
+        "ALL_PASS": "False"
+      },
+      "worst_window": {
+        "sharpe": -2.7637559237711207,
+        "max_drawdown": -0.05143929002127845,
+        "total_return": -0.04481994848333326,
+        "window_start": "2025-02-06",
+        "window_end": "2025-05-08",
+        "ticker": "XOM",
+        "num_days": 64
+      }
+    },
+    {
+      "config_name": "AGGRESSIVE_V4_TOP_PERFORMERS",
+      "config": {
+        "name": "AGGRESSIVE_V4_TOP_PERFORMERS",
+        "description": "Only use tickers with avg Sharpe > 0.2 in Phase 6",
+        "tickers": [
+          "AAPL",
+          "MSFT",
+          "AMZN"
+        ],
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0
+      },
+      "aggregate": {
+        "mean_sharpe": 0.5495564242717239,
+        "std_sharpe": 1.514077158442628,
+        "worst_sharpe": -2.3518318648849483,
+        "best_sharpe": 2.7308832313807954,
+        "worst_drawdown": -0.13135598050393268,
+        "pct_positive_sharpe": 55.55555555555556,
+        "num_windows": 27
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": "False",
+        "drawdown_ok": "True",
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": "False"
+      },
+      "worst_window": {
+        "sharpe": -2.3518318648849483,
+        "max_drawdown": -0.10498078390472695,
+        "total_return": -0.10427289300625797,
+        "window_start": "2025-05-08",
+        "window_end": "2025-08-08",
+        "ticker": "AMZN",
+        "num_days": 64
+      }
+    },
+    {
+      "config_name": "AGGRESSIVE_V5_SINGLE_BEST",
+      "config": {
+        "name": "AGGRESSIVE_V5_SINGLE_BEST",
+        "description": "Only MSFT (best avg Sharpe: 0.76)",
+        "tickers": [
+          "MSFT"
+        ],
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0
+      },
+      "aggregate": {
+        "mean_sharpe": 0.2802147325552535,
+        "std_sharpe": 0.9631361000356361,
+        "worst_sharpe": -1.8066948698169265,
+        "best_sharpe": 1.9999999999999998,
+        "worst_drawdown": -0.0978752653111824,
+        "pct_positive_sharpe": 66.66666666666667,
+        "num_windows": 9
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": "False",
+        "drawdown_ok": "True",
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": "False"
+      },
+      "worst_window": {
+        "sharpe": -1.8066948698169265,
+        "max_drawdown": -0.04407144875922242,
+        "total_return": -0.04407144875922242,
+        "window_start": "2025-07-10",
+        "window_end": "2025-10-08",
+        "ticker": "MSFT",
+        "num_days": 64
+      }
+    },
+    {
+      "config_name": "AGGRESSIVE_V6_POSITION_CAPPED",
+      "config": {
+        "name": "AGGRESSIVE_V6_POSITION_CAPPED",
+        "description": "Per-ticker position caps based on stability",
+        "tickers": [
+          "AAPL",
+          "MSFT",
+          "GOOGL",
+          "AMZN",
+          "JPM",
+          "XOM",
+          "JNJ"
+        ],
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0,
+        "ticker_position_caps": {
+          "MSFT": 1.0,
+          "AAPL": 0.8,
+          "AMZN": 0.8,
+          "GOOGL": 0.5,
+          "JPM": 0.5,
+          "XOM": 0.5,
+          "JNJ": 0.6
+        }
+      },
+      "aggregate": {
+        "mean_sharpe": 0.42728264012082745,
+        "std_sharpe": 1.6013838967713336,
+        "worst_sharpe": -2.599590564011748,
+        "best_sharpe": 3.1721997402260502,
+        "worst_drawdown": -0.10578082188174064,
+        "pct_positive_sharpe": 50.79365079365079,
+        "num_windows": 63
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": "False",
+        "drawdown_ok": "True",
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": "False"
+      },
+      "worst_window": {
+        "sharpe": -2.599590564011748,
+        "max_drawdown": -0.033399089838452946,
+        "total_return": -0.030495104910204907,
+        "window_start": "2025-07-10",
+        "window_end": "2025-10-08",
+        "ticker": "GOOGL",
+        "num_days": 64
+      }
+    }
+  ],
+  "best_candidate": {
+    "name": "AGGRESSIVE_V5_SINGLE_BEST",
+    "description": "Only MSFT (best avg Sharpe: 0.76)",
+    "tickers": [
+      "MSFT"
+    ],
+    "z_score_threshold": 2.0,
+    "regime_bear_scale": 0.5,
+    "regime_neutral_scale": 0.75,
+    "max_position_size": 1.0
+  },
+  "verdict": "PARTIALLY_STABLE"
+}

@@ -1,4 +1,4 @@
-import os, json, math
+import os, json, math, logging
 from pathlib import Path
 from datetime import datetime, timezone, date, timedelta
 from dataclasses import dataclass, asdict, field
@@ -6,6 +6,21 @@ from typing import Optional
 
 from dotenv import load_dotenv
 load_dotenv()
+
+# Try to import streamlit for secrets access (production mode)
+try:
+    import streamlit as st
+    HAS_STREAMLIT = True
+except ImportError:
+    HAS_STREAMLIT = False
+
+# Performance monitoring (optional)
+try:
+    from src.monitoring import PerformanceMonitor, AlertLevel
+    HAS_PERFORMANCE_MONITOR = True
+except ImportError:
+    PerformanceMonitor = None  # type: ignore
+    HAS_PERFORMANCE_MONITOR = False
 
 from alpaca.trading.client import TradingClient
 from alpaca.trading.requests import (
@@ -28,12 +43,321 @@ from alpaca.trading.enums import OrderSide, TimeInForce, AssetStatus, OrderClass
 from alpaca.data.historical import OptionHistoricalDataClient
 from alpaca.data.requests import OptionLatestQuoteRequest
 
+# ========== LOGGING SETUP ==========
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
-WATCHLIST = ["PLTR", "SMCI", "NVDA", "ZS", "SPY", "JPM", "MSFT", "XOM"]
+# ========== PRODUCTION CONFIGURATION ==========
+PRODUCTION_CONFIG = {
+    # Capital management
+    "starting_capital": 50000.0,
+    "max_portfolio_risk_pct": 0.10,  # 10% max drawdown before full halt
+    
+    # Position limits
+    "max_open_positions": 10,
+    "max_position_size_pct": 0.05,  # 5% of portfolio per position
+    "max_daily_trades": 20,
+    
+    # Signal thresholds
+    "z_score_threshold": 1.5,
+    "min_confidence": 0.002,
+    
+    # Ticker filters
+    "allowed_tickers": [],  # Empty = allow all tickers
+    "excluded_tickers": ["SPY", "QQQ", "IWM", "DIA", "VTI"],  # ETFs excluded by default
+    
+    # Circuit breaker thresholds
+    "circuit_breaker": {
+        "daily_loss_limit_pct": 0.02,      # 2% daily loss limit
+        "weekly_loss_limit_pct": 0.05,     # 5% weekly loss limit
+        "consecutive_loss_limit": 5,        # Stop after 5 consecutive losses
+        "max_drawdown_pct": 0.10,          # 10% max drawdown from peak
+        "cooldown_hours": 24,              # Hours to wait after circuit break
+    },
+    
+    # Take profit / Stop loss
+    "default_take_profit_pct": 0.05,  # 5%
+    "default_stop_loss_pct": 0.03,    # 3%
+    
+    # Options settings
+    "options": {
+        "dte_min": 3,
+        "dte_max": 60,
+        "max_premium": 500,
+        "max_contracts": 5,
+    },
+}
+
+# ========== API CREDENTIAL LOADING ==========
+def get_alpaca_credentials() -> tuple[str, str]:
+    """
+    Load Alpaca API credentials from multiple sources:
+    1. Streamlit secrets (production)
+    2. Environment variables (development)
+    3. .env file (fallback)
+    
+    Returns: (api_key, secret_key)
+    """
+    api_key = None
+    secret_key = None
+    
+    # Try Streamlit secrets first (production deployment)
+    if HAS_STREAMLIT:
+        try:
+            api_key = st.secrets.get("ALPACA_API_KEY") or st.secrets.get("APCA_API_KEY_ID")
+            secret_key = st.secrets.get("ALPACA_SECRET_KEY") or st.secrets.get("APCA_API_SECRET_KEY")
+        except Exception:
+            pass
+    
+    # Fall back to environment variables
+    if not api_key:
+        api_key = os.environ.get("APCA_API_KEY_ID") or os.environ.get("ALPACA_API_KEY")
+    if not secret_key:
+        secret_key = os.environ.get("APCA_API_SECRET_KEY") or os.environ.get("ALPACA_SECRET_KEY")
+    
+    if not api_key or not secret_key:
+        raise ValueError(
+            "Alpaca API credentials not found. Set ALPACA_API_KEY and ALPACA_SECRET_KEY "
+            "in streamlit secrets or environment variables."
+        )
+    
+    return api_key, secret_key
+
+
+WATCHLIST = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM"]
 
 BASE_DIR = Path(__file__).resolve().parent
 SIGNALS_PATH = BASE_DIR / "signals.json"
 TRADE_LOG_PATH = BASE_DIR / "trade_log.json"
+CIRCUIT_BREAKER_PATH = BASE_DIR / "circuit_breaker_state.json"
+
+
+# ========== CIRCUIT BREAKER ==========
+@dataclass
+class CircuitBreakerState:
+    """Tracks trading circuit breaker state for risk management."""
+    daily_pnl: float = 0.0
+    weekly_pnl: float = 0.0
+    consecutive_losses: int = 0
+    peak_equity: float = 0.0
+    current_drawdown_pct: float = 0.0
+    is_tripped: bool = False
+    trip_reason: str = ""
+    trip_time: str = ""
+    last_reset_date: str = ""
+    last_week_reset: str = ""
+    trades_today: int = 0
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> "CircuitBreakerState":
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+
+
+class CircuitBreaker:
+    """
+    Risk management circuit breaker that halts trading when limits are breached.
+    
+    Triggers on:
+    - Daily P&L loss exceeds limit (e.g., -2%)
+    - Weekly P&L loss exceeds limit (e.g., -5%)
+    - Consecutive losses exceed limit (e.g., 5 in a row)
+    - Max drawdown from peak exceeded (e.g., -10%)
+    - Max daily trades exceeded
+    """
+    
+    def __init__(self, config: dict = None, state_path: Path = CIRCUIT_BREAKER_PATH):
+        self.config = config or PRODUCTION_CONFIG["circuit_breaker"]
+        self.state_path = state_path
+        self.state = self._load_state()
+        self._check_reset()
+    
+    def _load_state(self) -> CircuitBreakerState:
+        """Load persisted circuit breaker state."""
+        if self.state_path.exists():
+            try:
+                data = json.loads(self.state_path.read_text())
+                return CircuitBreakerState.from_dict(data)
+            except Exception as e:
+                logger.warning(f"Failed to load circuit breaker state: {e}")
+        return CircuitBreakerState()
+    
+    def _save_state(self):
+        """Persist circuit breaker state."""
+        try:
+            self.state_path.write_text(json.dumps(self.state.to_dict(), indent=2))
+        except Exception as e:
+            logger.error(f"Failed to save circuit breaker state: {e}")
+    
+    def _check_reset(self):
+        """Reset daily/weekly counters at appropriate boundaries."""
+        today = date.today().isoformat()
+        week_start = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+        
+        # Reset daily counters
+        if self.state.last_reset_date != today:
+            logger.info(f"🔄 Daily reset: {self.state.last_reset_date} → {today}")
+            self.state.daily_pnl = 0.0
+            self.state.trades_today = 0
+            self.state.last_reset_date = today
+            
+            # Clear trip if it was from previous day and cooldown has passed
+            if self.state.is_tripped:
+                try:
+                    trip_time = datetime.fromisoformat(self.state.trip_time.replace('Z', '+00:00'))
+                    hours_since_trip = (datetime.now(timezone.utc) - trip_time).total_seconds() / 3600
+                    cooldown = self.config.get("cooldown_hours", 24)
+                    if hours_since_trip >= cooldown:
+                        self._clear_trip("Daily reset after cooldown")
+                except Exception:
+                    pass
+        
+        # Reset weekly counters on Monday
+        if self.state.last_week_reset != week_start:
+            logger.info(f"🔄 Weekly reset: {self.state.last_week_reset} → {week_start}")
+            self.state.weekly_pnl = 0.0
+            self.state.last_week_reset = week_start
+        
+        self._save_state()
+    
+    def _trip(self, reason: str):
+        """Trip the circuit breaker."""
+        self.state.is_tripped = True
+        self.state.trip_reason = reason
+        self.state.trip_time = datetime.now(timezone.utc).isoformat()
+        self._save_state()
+        logger.warning(f"🚨 CIRCUIT BREAKER TRIPPED: {reason}")
+    
+    def _clear_trip(self, reason: str = "Manual reset"):
+        """Clear circuit breaker trip."""
+        self.state.is_tripped = False
+        self.state.trip_reason = ""
+        self.state.trip_time = ""
+        self.state.consecutive_losses = 0
+        self._save_state()
+        logger.info(f"✅ Circuit breaker cleared: {reason}")
+    
+    def update_equity(self, current_equity: float, starting_capital: float):
+        """Update peak equity and drawdown tracking."""
+        if current_equity > self.state.peak_equity:
+            self.state.peak_equity = current_equity
+        
+        if self.state.peak_equity > 0:
+            self.state.current_drawdown_pct = (self.state.peak_equity - current_equity) / self.state.peak_equity
+        
+        # Check max drawdown
+        max_dd = self.config.get("max_drawdown_pct", 0.10)
+        if self.state.current_drawdown_pct >= max_dd:
+            self._trip(f"Max drawdown exceeded: {self.state.current_drawdown_pct:.1%} >= {max_dd:.1%}")
+        
+        self._save_state()
+    
+    def record_trade_result(self, pnl: float, is_win: bool, portfolio_value: float):
+        """Record a trade result and check limits."""
+        pnl_pct = pnl / portfolio_value if portfolio_value > 0 else 0
+        
+        self.state.daily_pnl += pnl_pct
+        self.state.weekly_pnl += pnl_pct
+        self.state.trades_today += 1
+        
+        if is_win:
+            self.state.consecutive_losses = 0
+        else:
+            self.state.consecutive_losses += 1
+        
+        # Check limits
+        daily_limit = self.config.get("daily_loss_limit_pct", 0.02)
+        weekly_limit = self.config.get("weekly_loss_limit_pct", 0.05)
+        consec_limit = self.config.get("consecutive_loss_limit", 5)
+        
+        if self.state.daily_pnl <= -daily_limit:
+            self._trip(f"Daily loss limit: {self.state.daily_pnl:.2%} <= -{daily_limit:.2%}")
+        elif self.state.weekly_pnl <= -weekly_limit:
+            self._trip(f"Weekly loss limit: {self.state.weekly_pnl:.2%} <= -{weekly_limit:.2%}")
+        elif self.state.consecutive_losses >= consec_limit:
+            self._trip(f"Consecutive losses: {self.state.consecutive_losses} >= {consec_limit}")
+        
+        self._save_state()
+    
+    def can_trade(self) -> tuple[bool, str]:
+        """Check if trading is allowed. Returns (allowed, reason)."""
+        if self.state.is_tripped:
+            return False, f"Circuit breaker tripped: {self.state.trip_reason}"
+        
+        max_daily = PRODUCTION_CONFIG.get("max_daily_trades", 20)
+        if self.state.trades_today >= max_daily:
+            return False, f"Max daily trades reached: {self.state.trades_today}/{max_daily}"
+        
+        return True, "OK"
+    
+    def get_status(self) -> dict:
+        """Get current circuit breaker status."""
+        return {
+            "is_tripped": self.state.is_tripped,
+            "trip_reason": self.state.trip_reason,
+            "daily_pnl": f"{self.state.daily_pnl:.2%}",
+            "weekly_pnl": f"{self.state.weekly_pnl:.2%}",
+            "consecutive_losses": self.state.consecutive_losses,
+            "drawdown": f"{self.state.current_drawdown_pct:.2%}",
+            "trades_today": self.state.trades_today,
+        }
+    
+    def force_reset(self):
+        """Manually reset circuit breaker (use with caution)."""
+        self._clear_trip("Manual force reset")
+        self.state.daily_pnl = 0.0
+        self.state.consecutive_losses = 0
+        self._save_state()
+        logger.warning("⚠️ Circuit breaker force reset!")
+
+
+# ========== PRE-TRADE FILTERS ==========
+def is_ticker_allowed(ticker: str) -> tuple[bool, str]:
+    """
+    Check if ticker passes pre-trade filters.
+    Returns (allowed, reason).
+    """
+    ticker = ticker.upper()
+    
+    # Check exclusion list
+    excluded = PRODUCTION_CONFIG.get("excluded_tickers", [])
+    if ticker in excluded:
+        return False, f"Ticker in exclusion list"
+    
+    # Check allowlist if enabled
+    allowed = PRODUCTION_CONFIG.get("allowed_tickers", [])
+    if allowed and ticker not in allowed:
+        return False, f"Ticker not in allowlist ({len(allowed)} tickers)"
+    
+    return True, "OK"
+
+
+def passes_signal_thresholds(spec: dict) -> tuple[bool, str]:
+    """
+    Check if signal meets minimum quality thresholds.
+    Returns (passed, reason).
+    """
+    # Z-score threshold
+    z_threshold = PRODUCTION_CONFIG.get("z_score_threshold", 2.0)
+    z_score = abs(spec.get("z_score", 0.0))
+    if z_score < z_threshold:
+        return False, f"Z-score {z_score:.2f} < {z_threshold}"
+    
+    # Confidence threshold
+    min_confidence = PRODUCTION_CONFIG.get("min_confidence", 0.002)
+    confidence = abs(spec.get("confidence_score", 0.0))
+    if confidence == 0.0:
+        confidence = abs(spec.get("pred_next_ret", 0.0))
+    if confidence < min_confidence:
+        return False, f"Confidence {confidence:.4f} < {min_confidence}"
+    
+    return True, "OK"
 
 
 # ========== TRADE MEMORY / LOGGING ==========
@@ -120,13 +444,14 @@ class TradeLog:
     def save(self):
         """Persist trades to disk."""
         try:
-            data = {tid: tr.to_dict() for tid, tr in self.trades.items()}
+            # Convert UUID keys to strings for JSON serialization
+            data = {str(tid): tr.to_dict() for tid, tr in self.trades.items()}
             # Atomic write
             import tempfile
             fd, tmp = tempfile.mkstemp(prefix="trade_log_", suffix=".json")
             try:
                 with os.fdopen(fd, "w") as f:
-                    json.dump(data, f, indent=2)
+                    json.dump(data, f, indent=2, default=str)
                 import os as os_module
                 os_module.replace(tmp, self.path)
             finally:
@@ -725,34 +1050,100 @@ def pick_iron_condor(
     return None, None, None, None, None
 
 
+def _is_spread_strategy(strategy: str | None) -> bool:
+    """Check if a strategy name indicates a multi-leg spread."""
+    if not strategy:
+        return False
+    strategy_upper = strategy.upper()
+    return any(x in strategy_upper for x in ["SPREAD", "CONDOR", "STRADDLE", "STRANGLE"])
+
+
+def _extract_spread_legs_from_notes(notes: str) -> tuple[str | None, str | None]:
+    """
+    Extract long and short leg symbols from trade notes.
+    Notes format: "BULL_CALL_SPREAD long=XYZ short=ABC ..."
+    Returns: (long_symbol, short_symbol)
+    """
+    import re
+    long_match = re.search(r'long=(\S+)', notes)
+    short_match = re.search(r'short=(\S+)', notes)
+    return (
+        long_match.group(1) if long_match else None,
+        short_match.group(1) if short_match else None,
+    )
+
+
+def _find_spread_trade_for_position(trade_log: TradeLog, symbol: str) -> TradeRecord | None:
+    """
+    Find a spread trade record that contains this symbol as one of its legs.
+    Returns the TradeRecord if found, None otherwise.
+    """
+    for tid, tr in trade_log.trades.items():
+        if tr.exit_price is not None:  # Already closed
+            continue
+        if not _is_spread_strategy(tr.strategy):
+            continue
+        # Check if symbol is in the notes (legs are stored there)
+        if symbol in (tr.notes or ""):
+            return tr
+    return None
+
+
 def maybe_close_for_targets(
     trade_client: TradingClient,
     trade_log: TradeLog,
     positions: list,
     take_profit_pct: float,
     stop_loss_pct: float,
+    circuit_breaker: CircuitBreaker = None,
+    portfolio_value: float = 0.0,
+    performance_monitor = None,
 ):
     """
     Scan open positions and close if P/L breaches take-profit or stop-loss thresholds.
     take_profit_pct/stop_loss_pct expressed as decimals (e.g., 0.05 = +5%, -0.03 = -3%).
+    
+    For option spreads, closes both legs together as an MLEG order to avoid 
+    uncovered option violations.
+    
+    Args:
+        circuit_breaker: If provided, record trade results to update daily/weekly P&L tracking
+        portfolio_value: Current portfolio value for P&L percentage calculation
+        performance_monitor: If provided, record completed trades for performance tracking
     """
     if take_profit_pct is None and stop_loss_pct is None:
         return
 
+    # Build a map of symbol -> position for quick lookup
+    position_map = {p.symbol: p for p in positions}
+    
+    # Track which symbols we've already processed (to avoid double-processing spread legs)
+    processed_symbols = set()
+    # Track which spreads we've already closed
+    closed_spreads = set()
+
     for p in positions:
         try:
             symbol = p.symbol
+            
+            # Skip if already processed as part of a spread
+            if symbol in processed_symbols:
+                continue
+            
             entry_price = float(p.avg_entry_price)
             current_price = float(p.current_price)
             side = p.side.lower()  # 'long' or 'short'
+            qty = float(p.qty)
 
             if entry_price <= 0:
                 continue
 
             if side == "long":
                 ret_pct = (current_price / entry_price) - 1.0
+                pnl = (current_price - entry_price) * qty
             else:  # short
                 ret_pct = (entry_price / current_price) - 1.0
+                pnl = (entry_price - current_price) * qty
 
             should_take = take_profit_pct is not None and ret_pct >= take_profit_pct
             should_stop = stop_loss_pct is not None and ret_pct <= -abs(stop_loss_pct)
@@ -761,8 +1152,106 @@ def maybe_close_for_targets(
                 continue
 
             action = "take-profit" if should_take else "stop-loss"
+            
+            # ========== CHECK IF THIS IS PART OF A SPREAD ==========
+            spread_trade = _find_spread_trade_for_position(trade_log, symbol)
+            
+            if spread_trade and HAS_OPTION_LEG:
+                # This position is part of a spread - close both legs together
+                spread_id = str(spread_trade.trade_id)
+                
+                # Skip if we already closed this spread
+                if spread_id in closed_spreads:
+                    processed_symbols.add(symbol)
+                    continue
+                
+                long_sym, short_sym = _extract_spread_legs_from_notes(spread_trade.notes or "")
+                
+                if not long_sym or not short_sym:
+                    print(f"{symbol}: Could not parse spread legs from notes: {spread_trade.notes}")
+                    continue
+                
+                # Check both legs are still in positions
+                if long_sym not in position_map or short_sym not in position_map:
+                    print(f"{symbol}: Spread legs missing from positions (long={long_sym}, short={short_sym})")
+                    # Fall through to single-leg close as last resort
+                else:
+                    # Calculate combined spread P&L
+                    long_pos = position_map[long_sym]
+                    short_pos = position_map[short_sym]
+                    
+                    long_pnl = (float(long_pos.current_price) - float(long_pos.avg_entry_price)) * float(long_pos.qty)
+                    short_pnl = (float(short_pos.avg_entry_price) - float(short_pos.current_price)) * float(short_pos.qty)
+                    spread_pnl = long_pnl + short_pnl
+                    
+                    # Build MLEG close order (reverse the original spread)
+                    # Original: BUY long leg, SELL short leg
+                    # Close: SELL long leg, BUY short leg
+                    legs = [
+                        OptionLegRequest(symbol=long_sym, side=OrderSide.SELL, ratio_qty=1),
+                        OptionLegRequest(symbol=short_sym, side=OrderSide.BUY, ratio_qty=1),
+                    ]
+                    
+                    # Use limit order with current spread value
+                    long_current = float(long_pos.current_price)
+                    short_current = float(short_pos.current_price)
+                    spread_credit = long_current - short_current  # Credit received when closing
+                    limit_price = max(0.01, round(spread_credit - 0.02, 2))  # Small buffer for fill
+                    
+                    close_qty = int(min(float(long_pos.qty), float(short_pos.qty)))
+                    
+                    req = LimitOrderRequest(
+                        qty=close_qty,
+                        order_class=OrderClass.MLEG,
+                        time_in_force=TimeInForce.DAY,
+                        limit_price=limit_price,
+                        legs=legs,
+                    )
+                    
+                    try:
+                        submitted = trade_client.submit_order(order_data=req)
+                        
+                        # Mark spread as closed
+                        closed_spreads.add(spread_id)
+                        processed_symbols.add(long_sym)
+                        processed_symbols.add(short_sym)
+                        
+                        # Close the trade in log
+                        exit_price = spread_credit * 100  # Per-contract value
+                        trade_log.close_by_symbol(spread_trade.underlying or spread_trade.symbol, exit_price)
+                        
+                        # Update circuit breaker
+                        if circuit_breaker is not None and portfolio_value > 0:
+                            is_win = spread_pnl > 0
+                            circuit_breaker.record_trade_result(spread_pnl, is_win, portfolio_value)
+                            logger.info(f"📊 Circuit breaker updated (spread): P&L ${spread_pnl:+.2f}")
+                        
+                        # Record to performance monitor
+                        if performance_monitor is not None:
+                            performance_monitor.record_trade(
+                                symbol=spread_trade.underlying or spread_trade.symbol,
+                                side="SELL",
+                                qty=close_qty,
+                                entry_price=spread_trade.entry_price,
+                                exit_price=exit_price,
+                                pnl=spread_pnl,
+                                trade_id=str(submitted.id),
+                                strategy=f"{spread_trade.strategy}_{action.upper()}",
+                            )
+                        
+                        print(
+                            f"{datetime.now(timezone.utc).isoformat()} {spread_trade.underlying} "
+                            f"{spread_trade.strategy} {action} close -> {submitted.id}; "
+                            f"spread_pnl=${spread_pnl:.2f}"
+                        )
+                        continue
+                        
+                    except Exception as e:
+                        print(f"{symbol}: Spread {action} close failed (trying individual legs): {e}")
+                        # Fall through to individual close as last resort
+            
+            # ========== SINGLE-LEG CLOSE (stocks or single options) ==========
             side_to_close = OrderSide.SELL if side == "long" else OrderSide.BUY
-            qty = float(p.qty)
 
             order = MarketOrderRequest(
                 symbol=symbol,
@@ -772,10 +1261,32 @@ def maybe_close_for_targets(
             )
             try:
                 submitted = trade_client.submit_order(order_data=order)
+                processed_symbols.add(symbol)
+                
                 # Log the close in trade log
                 closed = trade_log.close_by_symbol(symbol, current_price)
+                
+                # Update circuit breaker with trade result
+                if circuit_breaker is not None and portfolio_value > 0:
+                    is_win = pnl > 0
+                    circuit_breaker.record_trade_result(pnl, is_win, portfolio_value)
+                    logger.info(f"📊 Circuit breaker updated: P&L ${pnl:+.2f} ({'win' if is_win else 'loss'})")
+                
+                # Record to performance monitor
+                if performance_monitor is not None:
+                    performance_monitor.record_trade(
+                        symbol=symbol,
+                        side="BUY" if side == "long" else "SELL",
+                        qty=qty,
+                        entry_price=entry_price,
+                        exit_price=current_price,
+                        pnl=pnl,
+                        trade_id=str(submitted.id),
+                        strategy=action.upper(),
+                    )
+                
                 print(
-                    f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} exit @ {current_price:.2f} -> {submitted.id}; ret={ret_pct:.4f}"
+                    f"{datetime.now(timezone.utc).isoformat()} {symbol} {action} exit @ {current_price:.2f} -> {submitted.id}; ret={ret_pct:.4f} pnl=${pnl:.2f}"
                 )
             except Exception as e:
                 print(f"{symbol}: {action} close failed: {e}")
@@ -789,20 +1300,38 @@ def maybe_close_on_pred_target(
     positions: list,
     enable: bool,
     min_positive: float = 0.001,
+    circuit_breaker: CircuitBreaker = None,
+    portfolio_value: float = 0.0,
+    performance_monitor = None,
 ):
     """
     Close when live return >= predicted target stored in TradeLog.signal_strength.
     Only triggers for positive predicted returns above min_positive. Shorts use absolute target.
+    
+    For option spreads, closes both legs together as an MLEG order.
+    
+    Args:
+        circuit_breaker: If provided, record trade results to update daily/weekly P&L tracking
+        portfolio_value: Current portfolio value for P&L percentage calculation
+        performance_monitor: If provided, record completed trades for performance tracking
     """
     if not enable:
         return
 
-    # Map symbol -> current price/side/qty from positions
+    # Map symbol -> position for quick lookup
     pos_map = {p.symbol.upper(): p for p in positions}
+    
+    # Track which spreads we've already processed
+    processed_trades = set()
 
     for tr in trade_log.get_open_trades():
         try:
-            sym = tr.symbol.upper()
+            trade_id = str(tr.trade_id)
+            
+            # Skip if already processed
+            if trade_id in processed_trades:
+                continue
+            
             if tr.signal_strength is None:
                 continue
             target = float(tr.signal_strength)
@@ -810,6 +1339,94 @@ def maybe_close_on_pred_target(
                 continue
             target = max(target, min_positive)
 
+            # ========== CHECK IF THIS IS A SPREAD ==========
+            if _is_spread_strategy(tr.strategy) and HAS_OPTION_LEG:
+                long_sym, short_sym = _extract_spread_legs_from_notes(tr.notes or "")
+                
+                if not long_sym or not short_sym:
+                    continue
+                
+                long_pos = pos_map.get(long_sym.upper())
+                short_pos = pos_map.get(short_sym.upper())
+                
+                if not long_pos or not short_pos:
+                    continue
+                
+                # Calculate spread return based on combined P&L
+                entry_price = float(tr.entry_price)  # Original spread debit
+                long_current = float(long_pos.current_price)
+                short_current = float(short_pos.current_price)
+                current_spread_value = long_current - short_current
+                
+                if entry_price <= 0:
+                    continue
+                
+                # Spread return = (current value - entry cost) / entry cost
+                ret_pct = (current_spread_value / entry_price) - 1.0
+                
+                if ret_pct < target:
+                    continue
+                
+                # Calculate P&L
+                qty = float(long_pos.qty)
+                spread_pnl = (current_spread_value - entry_price) * qty * 100  # Per contract
+                
+                # Build MLEG close order
+                legs = [
+                    OptionLegRequest(symbol=long_sym, side=OrderSide.SELL, ratio_qty=1),
+                    OptionLegRequest(symbol=short_sym, side=OrderSide.BUY, ratio_qty=1),
+                ]
+                
+                limit_price = max(0.01, round(current_spread_value - 0.02, 2))
+                close_qty = int(min(float(long_pos.qty), float(short_pos.qty)))
+                
+                req = LimitOrderRequest(
+                    qty=close_qty,
+                    order_class=OrderClass.MLEG,
+                    time_in_force=TimeInForce.DAY,
+                    limit_price=limit_price,
+                    legs=legs,
+                )
+                
+                try:
+                    submitted = trade_client.submit_order(order_data=req)
+                    processed_trades.add(trade_id)
+                    
+                    # Close in trade log
+                    trade_log.close_by_symbol(tr.underlying or tr.symbol, current_spread_value * 100)
+                    
+                    # Update circuit breaker
+                    if circuit_breaker is not None and portfolio_value > 0:
+                        is_win = spread_pnl > 0
+                        circuit_breaker.record_trade_result(spread_pnl, is_win, portfolio_value)
+                        logger.info(f"📊 Circuit breaker updated (spread): P&L ${spread_pnl:+.2f}")
+                    
+                    # Record to performance monitor
+                    if performance_monitor is not None:
+                        performance_monitor.record_trade(
+                            symbol=tr.underlying or tr.symbol,
+                            side="SELL",
+                            qty=close_qty,
+                            entry_price=entry_price,
+                            exit_price=current_spread_value,
+                            pnl=spread_pnl,
+                            trade_id=str(submitted.id),
+                            strategy=f"{tr.strategy}_PRED_TARGET",
+                        )
+                    
+                    print(
+                        f"{datetime.now(timezone.utc).isoformat()} {tr.underlying} {tr.strategy} "
+                        f"pred-target exit -> {submitted.id}; ret={ret_pct:.4f} target={target:.4f} "
+                        f"pnl=${spread_pnl:.2f}"
+                    )
+                    continue
+                    
+                except Exception as e:
+                    print(f"{tr.symbol}: Spread pred-target close failed: {e}")
+                    continue
+            
+            # ========== SINGLE-LEG CLOSE ==========
+            sym = tr.symbol.upper()
             p = pos_map.get(sym)
             if p is None:
                 continue
@@ -817,20 +1434,22 @@ def maybe_close_on_pred_target(
             entry_price = float(tr.entry_price)
             current_price = float(p.current_price)
             side = p.side.lower()
+            qty = float(p.qty)
 
             if entry_price <= 0:
                 continue
 
             if side == "long":
                 ret_pct = (current_price / entry_price) - 1.0
+                pnl = (current_price - entry_price) * qty
             else:  # short
                 ret_pct = (entry_price / current_price) - 1.0
+                pnl = (entry_price - current_price) * qty
 
             if ret_pct < target:
                 continue
 
             side_to_close = OrderSide.SELL if side == "long" else OrderSide.BUY
-            qty = float(p.qty)
             order = MarketOrderRequest(
                 symbol=sym,
                 qty=qty,
@@ -839,9 +1458,30 @@ def maybe_close_on_pred_target(
             )
             try:
                 submitted = trade_client.submit_order(order_data=order)
+                processed_trades.add(trade_id)
                 closed = trade_log.close_by_symbol(sym, current_price)
+                
+                # Update circuit breaker with trade result
+                if circuit_breaker is not None and portfolio_value > 0:
+                    is_win = pnl > 0
+                    circuit_breaker.record_trade_result(pnl, is_win, portfolio_value)
+                    logger.info(f"📊 Circuit breaker updated: P&L ${pnl:+.2f} ({'win' if is_win else 'loss'})")
+                
+                # Record to performance monitor
+                if performance_monitor is not None:
+                    performance_monitor.record_trade(
+                        symbol=sym,
+                        side="BUY" if side == "long" else "SELL",
+                        qty=qty,
+                        entry_price=entry_price,
+                        exit_price=current_price,
+                        pnl=pnl,
+                        trade_id=str(submitted.id),
+                        strategy="PRED_TARGET",
+                    )
+                
                 print(
-                    f"{datetime.now(timezone.utc).isoformat()} {sym} pred-target exit @ {current_price:.2f} -> {submitted.id}; ret={ret_pct:.4f} target={target:.4f}"
+                    f"{datetime.now(timezone.utc).isoformat()} {sym} pred-target exit @ {current_price:.2f} -> {submitted.id}; ret={ret_pct:.4f} target={target:.4f} pnl=${pnl:.2f}"
                 )
             except Exception as e:
                 print(f"{sym}: pred-target close failed: {e}")
@@ -850,82 +1490,151 @@ def maybe_close_on_pred_target(
 
 
 def main():
-    key = os.environ["APCA_API_KEY_ID"]
-    secret = os.environ["APCA_API_SECRET_KEY"]
+    # Load credentials from secrets/environment
+    try:
+        key, secret = get_alpaca_credentials()
+    except ValueError as e:
+        logger.error(f"❌ {e}")
+        return
 
     trade_client = TradingClient(key, secret, paper=True)
     option_data_client = OptionHistoricalDataClient(key, secret)
 
+    # Initialize circuit breaker
+    circuit_breaker = CircuitBreaker()
+    cb_status = circuit_breaker.get_status()
+    logger.info(f"🔌 Circuit Breaker Status: tripped={cb_status['is_tripped']}, "
+                f"daily_pnl={cb_status['daily_pnl']}, trades_today={cb_status['trades_today']}")
+    
+    # Initialize performance monitor (if available)
+    performance_monitor = None
+    if HAS_PERFORMANCE_MONITOR:
+        starting_capital = PRODUCTION_CONFIG.get("starting_capital", 50000.0)
+        performance_monitor = PerformanceMonitor(starting_capital=starting_capital)
+        logger.info(f"📊 Performance Monitor: {len(performance_monitor.trades)} historical trades loaded")
+    
+    # Check if trading is allowed
+    can_trade, reason = circuit_breaker.can_trade()
+    if not can_trade:
+        logger.warning(f"⛔ Trading halted: {reason}")
+        return
+
     try:
         account = trade_client.get_account()
         buying_power = float(getattr(account, "buying_power", 0) or getattr(account, "cash", 0) or 0)
+        portfolio_value = float(getattr(account, "equity", 0) or getattr(account, "portfolio_value", 0) or 0)
+        starting_capital = PRODUCTION_CONFIG.get("starting_capital", 50000.0)
+        
+        logger.info(f"💰 Account: equity=${portfolio_value:,.2f}, buying_power=${buying_power:,.2f}, "
+                    f"starting_capital=${starting_capital:,.2f}")
+        
+        # Update circuit breaker with current equity
+        circuit_breaker.update_equity(portfolio_value, starting_capital)
+        
+        # Update performance monitor with current equity
+        if performance_monitor:
+            performance_monitor.update_equity(portfolio_value)
+        
+        # Re-check after equity update (may have triggered drawdown limit)
+        can_trade, reason = circuit_breaker.can_trade()
+        if not can_trade:
+            logger.warning(f"⛔ Trading halted after equity check: {reason}")
+            return
+            
     except Exception as e:
-        print(f"[Trade Log] Warning: could not fetch account info for sizing: {e}")
+        logger.warning(f"Could not fetch account info for sizing: {e}")
         buying_power = 0.0
+        portfolio_value = PRODUCTION_CONFIG.get("starting_capital", 50000.0)
     
     # Initialize trade log
     trade_log = TradeLog(TRADE_LOG_PATH)
-    print(f"[Trade Log] Loaded {len(trade_log.trades)} trades from {TRADE_LOG_PATH}")
+    logger.info(f"📋 Trade Log: {len(trade_log.trades)} trades from {TRADE_LOG_PATH}")
     stats = trade_log.get_stats()
-    print(f"[Trade Log Stats] {stats['total_trades']} closed trades | Win Rate: {stats['win_rate']:.1f}% | Total P&L: ${stats['total_pnl']:.2f}")
+    logger.info(f"📊 Stats: {stats['total_trades']} closed | Win Rate: {stats['win_rate']:.1f}% | Total P&L: ${stats['total_pnl']:.2f}")
 
     positions = trade_client.get_all_positions()
     held = {p.symbol for p in positions}
 
     # --- ENFORCE MAX OPEN POSITIONS ---
+    max_positions = PRODUCTION_CONFIG.get("max_open_positions", 10)
     open_trades = trade_log.get_open_trades()
-    if len(open_trades) >= 10:
-        print(f"[RISK] Max open positions reached ({len(open_trades)}/10). No new trades will be placed.")
+    if len(open_trades) >= max_positions:
+        logger.warning(f"🚫 Max open positions reached ({len(open_trades)}/{max_positions}). No new trades.")
         return
 
-    # --- ENFORCE MAX RISK PER TRADE (2% portfolio) ---
-    max_risk_pct = 0.02
-    portfolio_value = 0.0
-    try:
-        portfolio_value = float(getattr(account, "equity", 0) or getattr(account, "portfolio_value", 0) or 0)
-    except Exception:
-        pass
-    if portfolio_value <= 0:
-        try:
-            portfolio_value = float(getattr(account, "buying_power", 0) or getattr(account, "cash", 0) or 0)
-        except Exception:
-            portfolio_value = 0.0
+    # --- ENFORCE MAX RISK PER TRADE ---
+    max_risk_pct = PRODUCTION_CONFIG.get("max_position_size_pct", 0.05)
 
     # Auto take-profit / stop-loss on existing positions before new entries
     try:
-        take_profit_pct = float(os.environ.get("TAKE_PROFIT_PCT", "0.05")) if os.environ.get("TAKE_PROFIT_PCT") else 0.05
-        stop_loss_pct = float(os.environ.get("STOP_LOSS_PCT", "0.03")) if os.environ.get("STOP_LOSS_PCT") else 0.03
-        maybe_close_for_targets(trade_client, trade_log, positions, take_profit_pct, stop_loss_pct)
+        take_profit_pct = PRODUCTION_CONFIG.get("default_take_profit_pct", 0.05)
+        stop_loss_pct = PRODUCTION_CONFIG.get("default_stop_loss_pct", 0.03)
+        maybe_close_for_targets(
+            trade_client, trade_log, positions, take_profit_pct, stop_loss_pct,
+            circuit_breaker=circuit_breaker, portfolio_value=portfolio_value,
+            performance_monitor=performance_monitor
+        )
     except Exception as e:
-        print(f"[auto-exit] skipped due to config/error: {e}")
+        logger.warning(f"[auto-exit] skipped: {e}")
 
     # Auto close when live return meets predicted target from signal_strength
     try:
         use_pred_target = env_bool_local("PRED_TARGET_EXIT", True)
         min_positive = float(os.environ.get("PRED_TARGET_MIN", "0.001"))
-        maybe_close_on_pred_target(trade_client, trade_log, positions, use_pred_target, min_positive=min_positive)
+        maybe_close_on_pred_target(
+            trade_client, trade_log, positions, use_pred_target, min_positive=min_positive,
+            circuit_breaker=circuit_breaker, portfolio_value=portfolio_value,
+            performance_monitor=performance_monitor
+        )
     except Exception as e:
-        print(f"[pred-target-exit] skipped due to config/error: {e}")
+        logger.warning(f"[pred-target-exit] skipped: {e}")
 
     signals = load_signals()
-    print("signals.json path:", str(SIGNALS_PATH))
-    print("signals.json loaded:", signals)
+    logger.info(f"📁 signals.json path: {SIGNALS_PATH}")
+    logger.info(f"📊 Loaded {len(signals)} signals")
 
     global WATCHLIST
     if signals:
         WATCHLIST = [str(sym).upper() for sym in signals.keys()]
 
+    trades_executed = 0
+    trades_skipped = 0
+    
     for symbol, spec in signals.items():
         symbol = str(symbol).upper()
+        
+        # ===== PRE-TRADE FILTER: Ticker allowlist/blocklist =====
+        allowed, ticker_reason = is_ticker_allowed(symbol)
+        if not allowed:
+            logger.info(f"🚫 {symbol}: REJECTED - {ticker_reason}")
+            trades_skipped += 1
+            continue
+        
+        # ===== PRE-TRADE FILTER: Circuit breaker check =====
+        can_trade, cb_reason = circuit_breaker.can_trade()
+        if not can_trade:
+            logger.warning(f"⛔ {symbol}: HALTED - {cb_reason}")
+            break  # Stop processing all signals
+        
+        # ===== PRE-TRADE FILTER: Signal quality thresholds =====
+        if isinstance(spec, dict):
+            passes, threshold_reason = passes_signal_thresholds(spec)
+            if not passes:
+                logger.info(f"📉 {symbol}: FILTERED - {threshold_reason}")
+                trades_skipped += 1
+                continue
 
         # --- ENFORCE MAX OPEN POSITIONS (again, per symbol) ---
         open_trades = trade_log.get_open_trades()
-        if len(open_trades) >= 10:
-            print(f"[RISK] Max open positions reached ({len(open_trades)}/10). Skipping {symbol}.")
+        max_positions = PRODUCTION_CONFIG.get("max_open_positions", 10)
+        if len(open_trades) >= max_positions:
+            logger.warning(f"🚫 Max positions ({len(open_trades)}/{max_positions}). Skipping {symbol}.")
+            trades_skipped += 1
             continue
 
-        # --- ENFORCE MAX RISK PER TRADE (2% portfolio) ---
+        # --- ENFORCE MAX RISK PER TRADE ---
         # Compute max dollar risk for this trade
+        stop_loss_pct = PRODUCTION_CONFIG.get("default_stop_loss_pct", 0.03)
         max_trade_risk = portfolio_value * max_risk_pct if portfolio_value > 0 else 0
         # For stocks, risk = qty * (entry_price * stop_loss_pct)
         # For options, risk = premium paid * qty
@@ -936,14 +1645,13 @@ def main():
             stop_loss = stop_loss_pct if stop_loss_pct > 0 else 0.03
             max_qty = int(max_trade_risk / (last_price * stop_loss)) if last_price > 0 and stop_loss > 0 else qty_default
             if max_qty < 1:
-                print(f"[RISK] Max risk per trade too small for {symbol}. Skipping.")
+                logger.warning(f"🚫 {symbol}: Max risk per trade too small. Skipping.")
+                trades_skipped += 1
                 continue
             # Override qty in spec for this trade
             spec["qty"] = min(qty_default, max_qty)
 
-        # ...existing code...
-
-        # ===== NEW: CONFIDENCE FILTERING =====
+        # ===== CONFIDENCE FILTERING (legacy support) =====
         # Skip low-confidence predictions to improve accuracy
         # Confidence = |predicted_return| (higher absolute value = higher confidence)
         # Thresholds tuned from diagnostics: GLD/XOM=0.001, SPY/broad=0.002
@@ -1167,7 +1875,8 @@ def main():
                 underlying=symbol,
                 notes=notes,
             )
-            print(f"{datetime.now(timezone.utc).isoformat()} {symbol} {order_desc} -> {submitted.id}")
+            trades_executed += 1
+            logger.info(f"✅ {symbol} {order_desc} -> {submitted.id}")
             continue
 
         # ===== OPTIONS =====
@@ -1175,14 +1884,15 @@ def main():
             strategy = str(spec.get("strategy", "")).upper().strip()
 
             if trade_log.has_trade_today(symbol, asset_type="option", strategy=strategy, underlying=symbol):
-                print(f"{symbol}: skipped duplicate option signal (already traded {strategy} today)")
+                logger.info(f"{symbol}: skipped duplicate option signal (already traded {strategy} today)")
+                trades_skipped += 1
                 continue
 
-            # Default: 3 DTE minimum to avoid rapid decay, 60 DTE maximum
-            # This ensures options have a few days of life to allow for profitable exit
-            dte_min = int(spec.get("dte_min", 3))
-            dte_max = int(spec.get("dte_max", 60))  # Extended from 45 to 60 days
-            max_premium = float(spec.get("max_premium", 500))  # dollars per 1-lot / spread
+            # Use options config from PRODUCTION_CONFIG
+            opts_config = PRODUCTION_CONFIG.get("options", {})
+            dte_min = int(spec.get("dte_min", opts_config.get("dte_min", 3)))
+            dte_max = int(spec.get("dte_max", opts_config.get("dte_max", 60)))
+            max_premium = float(spec.get("max_premium", opts_config.get("max_premium", 500)))
             qty = int(spec.get("qty", 1))
 
             max_strike = spec.get("max_strike", None)
@@ -1490,7 +2200,7 @@ def main():
                 action = "HOLD"
             
             if action == "HOLD":
-                print(f"{symbol} (futures {contract}): HOLD")
+                logger.info(f"{symbol} (futures {contract}): HOLD")
                 continue
             
             side = OrderSide.BUY if action == "BUY" else OrderSide.SELL
@@ -1502,6 +2212,7 @@ def main():
             )
             try:
                 submitted = trade_client.submit_order(order_data=order)
+                trades_executed += 1
                 
                 # Log futures trade
                 trade_log.add_trade(
@@ -1515,12 +2226,55 @@ def main():
                     underlying=futures_symbol,
                     notes=f"Futures contract {contract}",
                 )
-                print(f"{datetime.now(timezone.utc).isoformat()} {symbol} (futures {contract}) {action} -> {submitted.id}")
+                logger.info(f"✅ {symbol} (futures {contract}) {action} -> {submitted.id}")
             except Exception as e:
-                print(f"{symbol} (futures {contract}): Order failed: {e}")
+                logger.error(f"{symbol} (futures {contract}): Order failed: {e}")
             continue
 
-        print(f"{symbol}: unknown asset '{asset}', skipping")
+        logger.warning(f"{symbol}: unknown asset '{asset}', skipping")
+        trades_skipped += 1
+    
+    # ========== TRADING SUMMARY ==========
+    logger.info("=" * 50)
+    logger.info(f"📈 TRADING SESSION COMPLETE")
+    logger.info(f"   Signals processed: {len(signals)}")
+    logger.info(f"   Trades executed: {trades_executed}")
+    logger.info(f"   Trades skipped/filtered: {trades_skipped}")
+    logger.info(f"   Circuit breaker: {'⚠️ TRIPPED' if circuit_breaker.state.is_tripped else '✅ OK'}")
+    cb_status = circuit_breaker.get_status()
+    logger.info(f"   Daily P&L: {cb_status['daily_pnl']} | Weekly: {cb_status['weekly_pnl']}")
+    logger.info(f"   Consecutive losses: {cb_status['consecutive_losses']}")
+    
+    # ========== PERFORMANCE MONITORING ==========
+    if performance_monitor:
+        logger.info("-" * 50)
+        logger.info("📊 PERFORMANCE MONITOR")
+        
+        # Check for alerts
+        alerts = performance_monitor.check_alerts()
+        if alerts:
+            for alert in alerts:
+                if alert.level == AlertLevel.CRITICAL:
+                    logger.critical(f"   🚨 {alert.message}")
+                elif alert.level == AlertLevel.WARNING:
+                    logger.warning(f"   ⚠️ {alert.message}")
+        else:
+            logger.info("   ✅ No alerts")
+        
+        # Log key metrics
+        metrics = performance_monitor.metrics
+        logger.info(f"   21d Sharpe: {metrics.sharpe_21d:.2f} | 63d Sharpe: {metrics.sharpe_63d:.2f}")
+        logger.info(f"   Win Rate (20): {metrics.win_rate_20:.1%} | Drawdown: {metrics.current_drawdown_pct:.1%}")
+        logger.info(f"   P&L Today: ${metrics.pnl_today:+,.2f} | Week: ${metrics.pnl_week:+,.2f} | Total: ${metrics.pnl_total:+,.2f}")
+        
+        # Generate and save daily summary
+        try:
+            summary = performance_monitor.generate_daily_summary()
+            logger.info(f"   📄 Daily summary saved")
+        except Exception as e:
+            logger.warning(f"   Failed to generate daily summary: {e}")
+    
+    logger.info("=" * 50)
 
 
 if __name__ == "__main__":

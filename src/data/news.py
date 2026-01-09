@@ -211,6 +211,64 @@ def get_news_sentiment(ticker: str, lookback_days: int = 7) -> Optional[float]:
     return get_sentiment_score(ticker, lookback_days)
 
 
-def detect_big_news(articles: List[Dict], sentiment_threshold: float = 0.5) -> bool:
-    """Alias for detect_significant_news."""
-    return detect_significant_news(articles, sentiment_threshold)
+def detect_big_news(ticker_or_articles, sentiment_threshold: float = 0.5):
+    """
+    Detect significant news for a ticker or from a list of articles.
+    
+    Args:
+        ticker_or_articles: Either a ticker string or list of article dicts
+        sentiment_threshold: Minimum abs(sentiment) to flag as significant
+        
+    Returns:
+        Tuple of (has_big_news: bool, details: str)
+    """
+    # Handle both ticker string and article list
+    if isinstance(ticker_or_articles, str):
+        ticker = ticker_or_articles
+        articles = get_news(ticker, limit=10)
+    else:
+        articles = ticker_or_articles
+        ticker = "Unknown"
+    
+    if not articles:
+        return False, f"No recent news found for {ticker}"
+    
+    keywords = [
+        "earnings", "guidance", "downgrade", "upgrade",
+        "lawsuit", "investigation", "merger", "acquisition",
+        "bankruptcy", "sec charges", "fraud", "buyback",
+        "restructuring", "ceo", "layoffs", "recall",
+    ]
+    
+    significant_articles = []
+    
+    for article in articles:
+        title = (article.get("title") or "").lower()
+        sentiment = article.get("sentiment")
+        
+        # Check for significant keywords
+        matched_keywords = [k for k in keywords if k in title]
+        if matched_keywords:
+            significant_articles.append({
+                "title": article.get("title"),
+                "keywords": matched_keywords,
+                "sentiment": sentiment,
+            })
+            continue
+        
+        # Check for extreme sentiment
+        if sentiment is not None and abs(sentiment) >= sentiment_threshold:
+            significant_articles.append({
+                "title": article.get("title"),
+                "reason": "extreme_sentiment",
+                "sentiment": sentiment,
+            })
+    
+    if significant_articles:
+        details = f"Found {len(significant_articles)} significant article(s)"
+        if significant_articles:
+            first = significant_articles[0]
+            details += f": '{first.get('title', '')[:50]}...'"
+        return True, details
+    
+    return False, f"No significant news (checked {len(articles)} articles)"

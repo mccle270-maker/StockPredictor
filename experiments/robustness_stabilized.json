@@ -1,0 +1,370 @@
+{
+  "experiment_id": "STABILIZATION_001",
+  "created": "2026-01-07T11:53:24.416921",
+  "purpose": "Stabilize trading strategy while preserving profitability",
+  "stability_thresholds": {
+    "max_allowed_worst_sharpe": -0.5,
+    "max_allowed_drawdown": -0.15,
+    "max_sharpe_std_ratio": 1.5
+  },
+  "original_vs_stabilized": {
+    "original": {
+      "mean_sharpe": 0.1181,
+      "worst_sharpe": -6.2885,
+      "worst_drawdown": -0.1388,
+      "std_sharpe": 2.0523,
+      "stable": false
+    },
+    "best_stabilized": {
+      "config_name": "STABLE_V1_ZSCORE_2.0",
+      "mean_sharpe": 0.134,
+      "worst_sharpe": -3.5739,
+      "worst_drawdown": -0.0341,
+      "std_sharpe": 2.4948,
+      "stable": false
+    },
+    "improvement": {
+      "worst_sharpe_delta": 2.7146,
+      "std_sharpe_delta": 0.4425
+    }
+  },
+  "recommended_config": {
+    "name": "STABLE_V1_ZSCORE_2.0",
+    "z_score_threshold": 2.0,
+    "regime_bear_scale": 0.5,
+    "regime_neutral_scale": 0.75,
+    "max_position_size": 1.0,
+    "vol_cap_multiplier": 2.0,
+    "weekly_loss_limit": null,
+    "ticker_exclusions": [],
+    "ticker_position_caps": {}
+  },
+  "verdict": "PARTIALLY_STABLE",
+  "all_results": [
+    {
+      "config_name": "STABLE_V1_ZSCORE_2.0",
+      "config": {
+        "name": "STABLE_V1_ZSCORE_2.0",
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0,
+        "vol_cap_multiplier": 2.0,
+        "weekly_loss_limit": null,
+        "ticker_exclusions": [],
+        "ticker_position_caps": {}
+      },
+      "total_windows": 27,
+      "total_tickers": 1,
+      "aggregate": {
+        "mean_sharpe": 0.134,
+        "std_sharpe": 2.4948,
+        "worst_sharpe": -3.5739,
+        "best_sharpe": 3.9931,
+        "worst_drawdown": -0.0341,
+        "pct_positive_sharpe": 51.9
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": false,
+        "drawdown_ok": true,
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": false
+      },
+      "per_ticker": [
+        {
+          "ticker": "NVDA",
+          "num_windows": 27,
+          "avg_sharpe": 0.134,
+          "worst_sharpe": -3.5739,
+          "worst_drawdown": -0.0341,
+          "pct_positive": 51.9
+        }
+      ]
+    },
+    {
+      "config_name": "STABLE_V3_STRICT_REGIME",
+      "config": {
+        "name": "STABLE_V3_STRICT_REGIME",
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.25,
+        "regime_neutral_scale": 0.5,
+        "max_position_size": 1.0,
+        "vol_cap_multiplier": 2.0,
+        "weekly_loss_limit": null,
+        "ticker_exclusions": [],
+        "ticker_position_caps": {}
+      },
+      "total_windows": 27,
+      "total_tickers": 1,
+      "aggregate": {
+        "mean_sharpe": 0.1787,
+        "std_sharpe": 2.4766,
+        "worst_sharpe": -3.5739,
+        "best_sharpe": 3.9931,
+        "worst_drawdown": -0.0261,
+        "pct_positive_sharpe": 51.9
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": false,
+        "drawdown_ok": true,
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": false
+      },
+      "per_ticker": [
+        {
+          "ticker": "NVDA",
+          "num_windows": 27,
+          "avg_sharpe": 0.1787,
+          "worst_sharpe": -3.5739,
+          "worst_drawdown": -0.0261,
+          "pct_positive": 51.9
+        }
+      ]
+    },
+    {
+      "config_name": "STABLE_V4_VOL_CAP",
+      "config": {
+        "name": "STABLE_V4_VOL_CAP",
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.25,
+        "regime_neutral_scale": 0.5,
+        "max_position_size": 0.5,
+        "vol_cap_multiplier": 1.5,
+        "weekly_loss_limit": null,
+        "ticker_exclusions": [],
+        "ticker_position_caps": {}
+      },
+      "total_windows": 27,
+      "total_tickers": 1,
+      "aggregate": {
+        "mean_sharpe": 0.1787,
+        "std_sharpe": 2.4766,
+        "worst_sharpe": -3.5739,
+        "best_sharpe": 3.9931,
+        "worst_drawdown": -0.0261,
+        "pct_positive_sharpe": 51.9
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": false,
+        "drawdown_ok": true,
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": false
+      },
+      "per_ticker": [
+        {
+          "ticker": "NVDA",
+          "num_windows": 27,
+          "avg_sharpe": 0.1787,
+          "worst_sharpe": -3.5739,
+          "worst_drawdown": -0.0261,
+          "pct_positive": 51.9
+        }
+      ]
+    },
+    {
+      "config_name": "STABLE_V5_LOSS_LIMIT",
+      "config": {
+        "name": "STABLE_V5_LOSS_LIMIT",
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.25,
+        "regime_neutral_scale": 0.5,
+        "max_position_size": 0.5,
+        "vol_cap_multiplier": 1.5,
+        "weekly_loss_limit": -0.03,
+        "ticker_exclusions": [],
+        "ticker_position_caps": {}
+      },
+      "total_windows": 27,
+      "total_tickers": 1,
+      "aggregate": {
+        "mean_sharpe": 0.1787,
+        "std_sharpe": 2.4766,
+        "worst_sharpe": -3.5739,
+        "best_sharpe": 3.9931,
+        "worst_drawdown": -0.0261,
+        "pct_positive_sharpe": 51.9
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": false,
+        "drawdown_ok": true,
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": false
+      },
+      "per_ticker": [
+        {
+          "ticker": "NVDA",
+          "num_windows": 27,
+          "avg_sharpe": 0.1787,
+          "worst_sharpe": -3.5739,
+          "worst_drawdown": -0.0261,
+          "pct_positive": 51.9
+        }
+      ]
+    },
+    {
+      "config_name": "STABLE_V6_TICKER_FILTER",
+      "config": {
+        "name": "STABLE_V6_TICKER_FILTER",
+        "z_score_threshold": 2.0,
+        "regime_bear_scale": 0.25,
+        "regime_neutral_scale": 0.5,
+        "max_position_size": 0.5,
+        "vol_cap_multiplier": 1.5,
+        "weekly_loss_limit": -0.03,
+        "ticker_exclusions": [
+          "META"
+        ],
+        "ticker_position_caps": {
+          "SPY": 0.25
+        }
+      },
+      "total_windows": 27,
+      "total_tickers": 1,
+      "aggregate": {
+        "mean_sharpe": 0.1787,
+        "std_sharpe": 2.4766,
+        "worst_sharpe": -3.5739,
+        "best_sharpe": 3.9931,
+        "worst_drawdown": -0.0261,
+        "pct_positive_sharpe": 51.9
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": false,
+        "drawdown_ok": true,
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": false
+      },
+      "per_ticker": [
+        {
+          "ticker": "NVDA",
+          "num_windows": 27,
+          "avg_sharpe": 0.1787,
+          "worst_sharpe": -3.5739,
+          "worst_drawdown": -0.0261,
+          "pct_positive": 51.9
+        }
+      ]
+    },
+    {
+      "config_name": "ORIGINAL",
+      "config": {
+        "name": "ORIGINAL",
+        "z_score_threshold": 1.6,
+        "regime_bear_scale": 0.5,
+        "regime_neutral_scale": 0.75,
+        "max_position_size": 1.0,
+        "vol_cap_multiplier": 2.0,
+        "weekly_loss_limit": null,
+        "ticker_exclusions": [],
+        "ticker_position_caps": {}
+      },
+      "total_windows": 243,
+      "total_tickers": 9,
+      "aggregate": {
+        "mean_sharpe": 0.1181,
+        "std_sharpe": 2.0523,
+        "worst_sharpe": -6.2885,
+        "best_sharpe": 4.5082,
+        "worst_drawdown": -0.1388,
+        "pct_positive_sharpe": 52.7
+      },
+      "stability_checks": {
+        "worst_sharpe_ok": false,
+        "drawdown_ok": true,
+        "stability_ok": "False",
+        "positive_rate_ok": "True",
+        "ALL_PASS": false
+      },
+      "per_ticker": [
+        {
+          "ticker": "SPY",
+          "num_windows": 27,
+          "avg_sharpe": -0.2084,
+          "worst_sharpe": -3.0672,
+          "worst_drawdown": -0.1388,
+          "pct_positive": 37.0
+        },
+        {
+          "ticker": "AAPL",
+          "num_windows": 27,
+          "avg_sharpe": 0.4202,
+          "worst_sharpe": -2.8783,
+          "worst_drawdown": -0.0902,
+          "pct_positive": 63.0
+        },
+        {
+          "ticker": "MSFT",
+          "num_windows": 27,
+          "avg_sharpe": 0.7622,
+          "worst_sharpe": -2.8637,
+          "worst_drawdown": -0.0363,
+          "pct_positive": 66.7
+        },
+        {
+          "ticker": "NVDA",
+          "num_windows": 27,
+          "avg_sharpe": 0.0009,
+          "worst_sharpe": -3.6006,
+          "worst_drawdown": -0.0416,
+          "pct_positive": 51.9
+        },
+        {
+          "ticker": "GOOGL",
+          "num_windows": 27,
+          "avg_sharpe": 0.0067,
+          "worst_sharpe": -4.6226,
+          "worst_drawdown": -0.0369,
+          "pct_positive": 48.1
+        },
+        {
+          "ticker": "AMZN",
+          "num_windows": 27,
+          "avg_sharpe": 0.2287,
+          "worst_sharpe": -4.025,
+          "worst_drawdown": -0.033,
+          "pct_positive": 55.6
+        },
+        {
+          "ticker": "META",
+          "num_windows": 27,
+          "avg_sharpe": -0.3766,
+          "worst_sharpe": -6.2885,
+          "worst_drawdown": -0.0884,
+          "pct_positive": 51.9
+        },
+        {
+          "ticker": "JPM",
+          "num_windows": 27,
+          "avg_sharpe": 0.013,
+          "worst_sharpe": -3.5125,
+          "worst_drawdown": -0.0562,
+          "pct_positive": 44.4
+        },
+        {
+          "ticker": "XOM",
+          "num_windows": 27,
+          "avg_sharpe": 0.2164,
+          "worst_sharpe": -3.2341,
+          "worst_drawdown": -0.0663,
+          "pct_positive": 55.6
+        }
+      ]
+    }
+  ],
+  "testing_plan": {
+    "phase_1": "Shadow trading for 2 weeks with recommended config",
+    "phase_2": "Paper trading with small position sizes for 4 weeks",
+    "phase_3": "Full paper trading with gradual position scaling",
+    "monitoring": [
+      "Daily Sharpe calculation",
+      "Rolling 5-day loss tracking",
+      "Regime-specific performance logging",
+      "Per-ticker Sharpe comparison"
+    ]
+  }
+}

@@ -16,3 +16,1122 @@
 {"ticker": "AAPL", "pred": -0.005478734823733134, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
 {"ticker": "NVDA", "pred": 0.02548234597760924, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
 {"ticker": "MSFT", "pred": 0.0017618701233518552, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": 0.000153327826410532, "z_score": 0.0, "rolling_mean": 0.000153327826410532, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T03:04:46.279081"}
+{"ticker": "NVDA", "prediction": 0.035409219563007355, "z_score": 0.0, "rolling_mean": 0.035409219563007355, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T03:04:46.280555"}
+{"ticker": "MSFT", "prediction": 0.015282491222023964, "z_score": 0.0, "rolling_mean": 0.015282491222023964, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T03:04:46.280984"}
+{"ticker": "AAPL", "pred": 0.000153327826410532, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.035409219563007355, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.015282491222023964, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": 0.004608391784131527, "z_score": 0.0, "rolling_mean": 0.004608391784131527, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.657169"}
+{"ticker": "XOM", "prediction": 0.004522593226283789, "z_score": 0.0, "rolling_mean": 0.004522593226283789, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.659944"}
+{"ticker": "COP", "prediction": 0.01714865118265152, "z_score": 0.0, "rolling_mean": 0.01714865118265152, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.660322"}
+{"ticker": "OXY", "prediction": -0.015233729965984821, "z_score": 0.0, "rolling_mean": -0.015233729965984821, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.660812"}
+{"ticker": "EOG", "prediction": 0.01126829069107771, "z_score": 0.0, "rolling_mean": 0.01126829069107771, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.660987"}
+{"ticker": "FANG", "prediction": 0.032344918698072433, "z_score": 0.0, "rolling_mean": 0.032344918698072433, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.661131"}
+{"ticker": "VLO", "prediction": -0.015121618285775185, "z_score": 0.0, "rolling_mean": -0.015121618285775185, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.661296"}
+{"ticker": "PSX", "prediction": 0.004404882900416851, "z_score": 0.0, "rolling_mean": 0.004404882900416851, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.661543"}
+{"ticker": "MPC", "prediction": -0.016812287271022797, "z_score": 0.0, "rolling_mean": -0.016812287271022797, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.661780"}
+{"ticker": "PBF", "prediction": -0.01846485026180744, "z_score": 0.0, "rolling_mean": -0.01846485026180744, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.662206"}
+{"ticker": "BKR", "prediction": -0.001618394278921187, "z_score": 0.0, "rolling_mean": -0.001618394278921187, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.662474"}
+{"ticker": "HAL", "prediction": -0.006058515980839729, "z_score": 0.0, "rolling_mean": -0.006058515980839729, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.662644"}
+{"ticker": "SLB", "prediction": -0.01251242309808731, "z_score": 0.0, "rolling_mean": -0.01251242309808731, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:04:45.662812"}
+{"ticker": "CVX", "pred": 0.004608391784131527, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.004522593226283789, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": 0.01714865118265152, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.015233729965984821, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.01126829069107771, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.032344918698072433, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.015121618285775185, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.004404882900416851, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": -0.016812287271022797, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": -0.01846485026180744, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": -0.001618394278921187, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": -0.006058515980839729, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.01251242309808731, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.008246765471994877, "z_score": 0.0, "rolling_mean": -0.008246765471994877, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.401274"}
+{"ticker": "XOM", "prediction": 0.00044743859325535595, "z_score": 0.0, "rolling_mean": 0.00044743859325535595, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.402836"}
+{"ticker": "COP", "prediction": -0.014193455688655376, "z_score": 0.0, "rolling_mean": -0.014193455688655376, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.403249"}
+{"ticker": "OXY", "prediction": -0.021243605762720108, "z_score": 0.0, "rolling_mean": -0.021243605762720108, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.403546"}
+{"ticker": "EOG", "prediction": 0.032699041068553925, "z_score": 0.0, "rolling_mean": 0.032699041068553925, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.403788"}
+{"ticker": "FANG", "prediction": 0.016761818900704384, "z_score": 0.0, "rolling_mean": 0.016761818900704384, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.404021"}
+{"ticker": "VLO", "prediction": -0.01307627558708191, "z_score": 0.0, "rolling_mean": -0.01307627558708191, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.404239"}
+{"ticker": "PSX", "prediction": 0.025116100907325745, "z_score": 0.0, "rolling_mean": 0.025116100907325745, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.404450"}
+{"ticker": "MPC", "prediction": 0.00023198997951112688, "z_score": 0.0, "rolling_mean": 0.00023198997951112688, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.404670"}
+{"ticker": "PBF", "prediction": 0.010083995759487152, "z_score": 0.0, "rolling_mean": 0.010083995759487152, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.404903"}
+{"ticker": "BKR", "prediction": -0.0007537282072007656, "z_score": 0.0, "rolling_mean": -0.0007537282072007656, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.405125"}
+{"ticker": "HAL", "prediction": -0.0024034236557781696, "z_score": 0.0, "rolling_mean": -0.0024034236557781696, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.405346"}
+{"ticker": "SLB", "prediction": -0.00839256402105093, "z_score": 0.0, "rolling_mean": -0.00839256402105093, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:11:57.405628"}
+{"ticker": "CVX", "pred": -0.008246765471994877, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.00044743859325535595, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": -0.014193455688655376, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.021243605762720108, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.032699041068553925, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.016761818900704384, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.01307627558708191, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.025116100907325745, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.00023198997951112688, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.010083995759487152, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": -0.0007537282072007656, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": -0.0024034236557781696, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.00839256402105093, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEE", "prediction": -0.006795169785618782, "z_score": 0.0, "rolling_mean": -0.006795169785618782, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.276884"}
+{"ticker": "EXC", "prediction": 0.0009387152967974544, "z_score": 0.0, "rolling_mean": 0.0009387152967974544, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.278821"}
+{"ticker": "DUK", "prediction": 0.007300781551748514, "z_score": 0.0, "rolling_mean": 0.007300781551748514, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.279161"}
+{"ticker": "D", "prediction": -0.007669412065297365, "z_score": 0.0, "rolling_mean": -0.007669412065297365, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.279424"}
+{"ticker": "SO", "prediction": 0.006735372822731733, "z_score": 0.0, "rolling_mean": 0.006735372822731733, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.279664"}
+{"ticker": "FSLR", "prediction": -0.023472892120480537, "z_score": 0.0, "rolling_mean": -0.023472892120480537, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.279914"}
+{"ticker": "SPWR", "prediction": 0.0740472674369812, "z_score": 0.0, "rolling_mean": 0.0740472674369812, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.280151"}
+{"ticker": "ENPH", "prediction": -0.05046885460615158, "z_score": 0.0, "rolling_mean": -0.05046885460615158, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.280386"}
+{"ticker": "PLUG", "prediction": -0.08163782209157944, "z_score": 0.0, "rolling_mean": -0.08163782209157944, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.280714"}
+{"ticker": "FCX", "prediction": -0.0028973284643143415, "z_score": 0.0, "rolling_mean": -0.0028973284643143415, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.280932"}
+{"ticker": "SCCO", "prediction": 0.007903976365923882, "z_score": 0.0, "rolling_mean": 0.007903976365923882, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.281151"}
+{"ticker": "BHP", "prediction": -0.007624392863363028, "z_score": 0.0, "rolling_mean": -0.007624392863363028, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.281364"}
+{"ticker": "RIO", "prediction": -0.004117397591471672, "z_score": 0.0, "rolling_mean": -0.004117397591471672, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.281575"}
+{"ticker": "GLNCY", "prediction": -0.0021499565336853266, "z_score": 0.0, "rolling_mean": -0.0021499565336853266, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.281780"}
+{"ticker": "CMCLF", "prediction": -0.040324173867702484, "z_score": 0.0, "rolling_mean": -0.040324173867702484, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.281984"}
+{"ticker": "AA", "prediction": -0.011318049393594265, "z_score": 0.0, "rolling_mean": -0.011318049393594265, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.282205"}
+{"ticker": "KALU", "prediction": 0.017346231266856194, "z_score": 0.0, "rolling_mean": 0.017346231266856194, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.282401"}
+{"ticker": "MP", "prediction": 0.01558085810393095, "z_score": 0.0, "rolling_mean": 0.01558085810393095, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.282602"}
+{"ticker": "ALB", "prediction": -0.010598755441606045, "z_score": 0.0, "rolling_mean": -0.010598755441606045, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.282849"}
+{"ticker": "SQM", "prediction": -0.054102856665849686, "z_score": 0.0, "rolling_mean": -0.054102856665849686, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.283056"}
+{"ticker": "NEM", "prediction": -0.03008800931274891, "z_score": 0.0, "rolling_mean": -0.03008800931274891, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.283249"}
+{"ticker": "GOLD", "prediction": -0.023008529096841812, "z_score": 0.0, "rolling_mean": -0.023008529096841812, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.283432"}
+{"ticker": "WPM", "prediction": 0.003527314867824316, "z_score": 0.0, "rolling_mean": 0.003527314867824316, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.283619"}
+{"ticker": "CVX", "prediction": 0.0044280849397182465, "z_score": 0.0, "rolling_mean": 0.0044280849397182465, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.283803"}
+{"ticker": "XOM", "prediction": 0.00047191770863719285, "z_score": 0.0, "rolling_mean": 0.00047191770863719285, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.283992"}
+{"ticker": "COP", "prediction": -0.01415229495614767, "z_score": 0.0, "rolling_mean": -0.01415229495614767, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.284184"}
+{"ticker": "OXY", "prediction": -0.01940508931875229, "z_score": 0.0, "rolling_mean": -0.01940508931875229, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.284459"}
+{"ticker": "HAL", "prediction": -0.0016507108230143785, "z_score": 0.0, "rolling_mean": -0.0016507108230143785, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.284637"}
+{"ticker": "SLB", "prediction": -0.010400149039924145, "z_score": 0.0, "rolling_mean": -0.010400149039924145, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.284817"}
+{"ticker": "VLO", "prediction": 0.0025942192878574133, "z_score": 0.0, "rolling_mean": 0.0025942192878574133, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.285005"}
+{"ticker": "GLD", "prediction": 0.0032912897877395153, "z_score": 0.0, "rolling_mean": 0.0032912897877395153, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-06T18:26:27.285193"}
+{"ticker": "NEE", "pred": -0.006795169785618782, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EXC", "pred": 0.0009387152967974544, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "DUK", "pred": 0.007300781551748514, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "D", "pred": -0.007669412065297365, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SO", "pred": 0.006735372822731733, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.023472892120480537, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SPWR", "pred": 0.0740472674369812, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ENPH", "pred": -0.05046885460615158, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PLUG", "pred": -0.08163782209157944, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.0028973284643143415, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.007903976365923882, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BHP", "pred": -0.007624392863363028, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.004117397591471672, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.0021499565336853266, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CMCLF", "pred": -0.040324173867702484, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AA", "pred": -0.011318049393594265, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "KALU", "pred": 0.017346231266856194, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MP", "pred": 0.01558085810393095, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.010598755441606045, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.054102856665849686, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEM", "pred": -0.03008800931274891, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.023008529096841812, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.003527314867824316, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.0044280849397182465, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.00047191770863719285, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": -0.01415229495614767, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.01940508931875229, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": -0.0016507108230143785, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.010400149039924145, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.0025942192878574133, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLD", "pred": 0.0032912897877395153, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.004259126331242208, "z_score": 0.0, "rolling_mean": -0.004259126331242208, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:47:40.599371"}
+{"ticker": "NVDA", "prediction": 0.029604014959909265, "z_score": 0.0, "rolling_mean": 0.029604014959909265, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:47:40.601355"}
+{"ticker": "MSFT", "prediction": 0.005424050223320456, "z_score": 0.0, "rolling_mean": 0.005424050223320456, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:47:40.601764"}
+{"ticker": "AAPL", "pred": -0.004259126331242208, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.029604014959909265, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.005424050223320456, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEE", "prediction": -0.0007227265159599483, "z_score": 0.0, "rolling_mean": -0.0007227265159599483, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.554161"}
+{"ticker": "EXC", "prediction": 0.015648096799850464, "z_score": 0.0, "rolling_mean": 0.015648096799850464, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.556591"}
+{"ticker": "DUK", "prediction": 0.015545755624771118, "z_score": 0.0, "rolling_mean": 0.015545755624771118, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.557010"}
+{"ticker": "D", "prediction": 0.006291783880442381, "z_score": 0.0, "rolling_mean": 0.006291783880442381, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.557313"}
+{"ticker": "SO", "prediction": 0.0138818034902215, "z_score": 0.0, "rolling_mean": 0.0138818034902215, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.557568"}
+{"ticker": "FSLR", "prediction": -0.016556665301322937, "z_score": 0.0, "rolling_mean": -0.016556665301322937, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.557806"}
+{"ticker": "SPWR", "prediction": 0.0740472674369812, "z_score": 0.0, "rolling_mean": 0.0740472674369812, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.558089"}
+{"ticker": "ENPH", "prediction": 0.048942916095256805, "z_score": 0.0, "rolling_mean": 0.048942916095256805, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.558350"}
+{"ticker": "PLUG", "prediction": 0.004056680481880903, "z_score": 0.0, "rolling_mean": 0.004056680481880903, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.558597"}
+{"ticker": "FCX", "prediction": -0.01848982274532318, "z_score": 0.0, "rolling_mean": -0.01848982274532318, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.558812"}
+{"ticker": "SCCO", "prediction": 0.008561297319829464, "z_score": 0.0, "rolling_mean": 0.008561297319829464, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.559019"}
+{"ticker": "BHP", "prediction": 0.005183366127312183, "z_score": 0.0, "rolling_mean": 0.005183366127312183, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.559233"}
+{"ticker": "RIO", "prediction": -0.0088597871363163, "z_score": 0.0, "rolling_mean": -0.0088597871363163, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.559443"}
+{"ticker": "GLNCY", "prediction": -0.0009134235442616045, "z_score": 0.0, "rolling_mean": -0.0009134235442616045, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.559646"}
+{"ticker": "CMCLF", "prediction": 0.008387381210923195, "z_score": 0.0, "rolling_mean": 0.008387381210923195, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.559852"}
+{"ticker": "AA", "prediction": -0.012630708515644073, "z_score": 0.0, "rolling_mean": -0.012630708515644073, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.560052"}
+{"ticker": "KALU", "prediction": 0.005884199403226376, "z_score": 0.0, "rolling_mean": 0.005884199403226376, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.560254"}
+{"ticker": "MP", "prediction": -0.026463931426405907, "z_score": 0.0, "rolling_mean": -0.026463931426405907, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.560461"}
+{"ticker": "ALB", "prediction": 0.001358145265839994, "z_score": 0.0, "rolling_mean": 0.001358145265839994, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.564590"}
+{"ticker": "SQM", "prediction": -0.020080450922250748, "z_score": 0.0, "rolling_mean": -0.020080450922250748, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.564890"}
+{"ticker": "NEM", "prediction": -0.00450826995074749, "z_score": 0.0, "rolling_mean": -0.00450826995074749, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.565098"}
+{"ticker": "GOLD", "prediction": -0.02203059010207653, "z_score": 0.0, "rolling_mean": -0.02203059010207653, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.565330"}
+{"ticker": "WPM", "prediction": 0.007666034623980522, "z_score": 0.0, "rolling_mean": 0.007666034623980522, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.565544"}
+{"ticker": "CVX", "prediction": 0.005689852871000767, "z_score": 0.0, "rolling_mean": 0.005689852871000767, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.565806"}
+{"ticker": "XOM", "prediction": 0.003671863581985235, "z_score": 0.0, "rolling_mean": 0.003671863581985235, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.565990"}
+{"ticker": "COP", "prediction": 0.0070617347955703735, "z_score": 0.0, "rolling_mean": 0.0070617347955703735, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.566175"}
+{"ticker": "OXY", "prediction": -0.017030635848641396, "z_score": 0.0, "rolling_mean": -0.017030635848641396, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.566352"}
+{"ticker": "HAL", "prediction": -0.009841473773121834, "z_score": 0.0, "rolling_mean": -0.009841473773121834, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.566525"}
+{"ticker": "SLB", "prediction": -0.013079244643449783, "z_score": 0.0, "rolling_mean": -0.013079244643449783, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.566696"}
+{"ticker": "VLO", "prediction": -0.011111770756542683, "z_score": 0.0, "rolling_mean": -0.011111770756542683, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.566867"}
+{"ticker": "GLD", "prediction": 0.005297945812344551, "z_score": 0.0, "rolling_mean": 0.005297945812344551, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T01:57:53.567041"}
+{"ticker": "NEE", "pred": -0.0007227265159599483, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EXC", "pred": 0.015648096799850464, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "DUK", "pred": 0.015545755624771118, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "D", "pred": 0.006291783880442381, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SO", "pred": 0.0138818034902215, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.016556665301322937, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SPWR", "pred": 0.0740472674369812, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.048942916095256805, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.004056680481880903, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.01848982274532318, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.008561297319829464, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.005183366127312183, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.0088597871363163, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.0009134235442616045, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CMCLF", "pred": 0.008387381210923195, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AA", "pred": -0.012630708515644073, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "KALU", "pred": 0.005884199403226376, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MP", "pred": -0.026463931426405907, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.001358145265839994, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.020080450922250748, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEM", "pred": -0.00450826995074749, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.02203059010207653, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.007666034623980522, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.005689852871000767, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.003671863581985235, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": 0.0070617347955703735, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.017030635848641396, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": -0.009841473773121834, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.013079244643449783, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.011111770756542683, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLD", "pred": 0.005297945812344551, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": 0.00625602388754487, "z_score": 0.0, "rolling_mean": 0.00625602388754487, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.308319"}
+{"ticker": "XOM", "prediction": 0.003949094098061323, "z_score": 0.0, "rolling_mean": 0.003949094098061323, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.311144"}
+{"ticker": "COP", "prediction": 0.009141219779849052, "z_score": 0.0, "rolling_mean": 0.009141219779849052, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.311557"}
+{"ticker": "OXY", "prediction": -0.017534587532281876, "z_score": 0.0, "rolling_mean": -0.017534587532281876, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.311892"}
+{"ticker": "FANG", "prediction": 0.02255259081721306, "z_score": 0.0, "rolling_mean": 0.02255259081721306, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.312192"}
+{"ticker": "MPC", "prediction": -0.011634056456387043, "z_score": 0.0, "rolling_mean": -0.011634056456387043, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.312468"}
+{"ticker": "PSX", "prediction": -0.000995357520878315, "z_score": 0.0, "rolling_mean": -0.000995357520878315, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.312720"}
+{"ticker": "PBF", "prediction": -0.02092907764017582, "z_score": 0.0, "rolling_mean": -0.02092907764017582, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.312970"}
+{"ticker": "HAL", "prediction": -0.009845830500125885, "z_score": 0.0, "rolling_mean": -0.009845830500125885, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.313305"}
+{"ticker": "SLB", "prediction": -0.013543715700507164, "z_score": 0.0, "rolling_mean": -0.013543715700507164, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.313686"}
+{"ticker": "BKR", "prediction": -0.0034472255501896143, "z_score": 0.0, "rolling_mean": -0.0034472255501896143, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.314200"}
+{"ticker": "VLO", "prediction": -0.011324669234454632, "z_score": 0.0, "rolling_mean": -0.011324669234454632, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.314542"}
+{"ticker": "EOG", "prediction": 0.011419417336583138, "z_score": 0.0, "rolling_mean": 0.011419417336583138, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.314826"}
+{"ticker": "TSLA", "prediction": -0.009837444871664047, "z_score": 0.0, "rolling_mean": -0.009837444871664047, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.315121"}
+{"ticker": "PLUG", "prediction": 0.004056680481880903, "z_score": 0.0, "rolling_mean": 0.004056680481880903, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.315356"}
+{"ticker": "FSLR", "prediction": -0.016556665301322937, "z_score": 0.0, "rolling_mean": -0.016556665301322937, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.315585"}
+{"ticker": "ENPH", "prediction": 0.048942916095256805, "z_score": 0.0, "rolling_mean": 0.048942916095256805, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.315812"}
+{"ticker": "ALB", "prediction": 0.0015970547683537006, "z_score": 0.0, "rolling_mean": 0.0015970547683537006, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.316041"}
+{"ticker": "SQM", "prediction": -0.01915845461189747, "z_score": 0.0, "rolling_mean": -0.01915845461189747, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.316261"}
+{"ticker": "FCX", "prediction": -0.014205196872353554, "z_score": 0.0, "rolling_mean": -0.014205196872353554, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.316475"}
+{"ticker": "SCCO", "prediction": 0.010086017660796642, "z_score": 0.0, "rolling_mean": 0.010086017660796642, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.316688"}
+{"ticker": "BHP", "prediction": 0.005108693148940802, "z_score": 0.0, "rolling_mean": 0.005108693148940802, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.316903"}
+{"ticker": "RIO", "prediction": -0.00961924996227026, "z_score": 0.0, "rolling_mean": -0.00961924996227026, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.317116"}
+{"ticker": "GLNCY", "prediction": -0.0006142048514448106, "z_score": 0.0, "rolling_mean": -0.0006142048514448106, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.317322"}
+{"ticker": "AA", "prediction": -0.013390269130468369, "z_score": 0.0, "rolling_mean": -0.013390269130468369, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.317523"}
+{"ticker": "NEM", "prediction": -0.012871780432760715, "z_score": 0.0, "rolling_mean": -0.012871780432760715, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.317799"}
+{"ticker": "GOLD", "prediction": -0.023151980713009834, "z_score": 0.0, "rolling_mean": -0.023151980713009834, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.318010"}
+{"ticker": "WPM", "prediction": 0.007657294161617756, "z_score": 0.0, "rolling_mean": 0.007657294161617756, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.318225"}
+{"ticker": "NVDA", "prediction": 0.034190692007541656, "z_score": 0.0, "rolling_mean": 0.034190692007541656, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.318458"}
+{"ticker": "INTC", "prediction": 0.010885940864682198, "z_score": 0.0, "rolling_mean": 0.010885940864682198, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.318680"}
+{"ticker": "F", "prediction": 0.0005926668527536094, "z_score": 0.0, "rolling_mean": 0.0005926668527536094, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.318896"}
+{"ticker": "SOFI", "prediction": 0.0015033537056297064, "z_score": 0.0, "rolling_mean": 0.0015033537056297064, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.319102"}
+{"ticker": "BBAI", "prediction": -0.017373984679579735, "z_score": 0.0, "rolling_mean": -0.017373984679579735, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T02:20:28.319321"}
+{"ticker": "CVX", "pred": 0.00625602388754487, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.003949094098061323, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": 0.009141219779849052, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.017534587532281876, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.02255259081721306, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": -0.011634056456387043, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": -0.000995357520878315, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": -0.02092907764017582, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": -0.009845830500125885, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.013543715700507164, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": -0.0034472255501896143, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.011324669234454632, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.011419417336583138, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "TSLA", "pred": -0.009837444871664047, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.004056680481880903, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.016556665301322937, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.048942916095256805, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.0015970547683537006, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.01915845461189747, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.014205196872353554, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.010086017660796642, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.005108693148940802, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.00961924996227026, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.0006142048514448106, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AA", "pred": -0.013390269130468369, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEM", "pred": -0.012871780432760715, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.023151980713009834, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.007657294161617756, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.034190692007541656, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.010885940864682198, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "F", "pred": 0.0005926668527536094, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.0015033537056297064, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BBAI", "pred": -0.017373984679579735, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": 0.005181947626905307, "z_score": 0.0, "rolling_mean": 0.005181947626905307, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.296225"}
+{"ticker": "XOM", "prediction": -0.0029347740894702474, "z_score": 0.0, "rolling_mean": -0.0029347740894702474, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.298451"}
+{"ticker": "COP", "prediction": -0.00929077644457719, "z_score": 0.0, "rolling_mean": -0.00929077644457719, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.298794"}
+{"ticker": "OXY", "prediction": -0.005183309716430279, "z_score": 0.0, "rolling_mean": -0.005183309716430279, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.299060"}
+{"ticker": "FANG", "prediction": 0.0072385633707101075, "z_score": 0.0, "rolling_mean": 0.0072385633707101075, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.299312"}
+{"ticker": "MPC", "prediction": 0.0026862914514354983, "z_score": 0.0, "rolling_mean": 0.0026862914514354983, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.299538"}
+{"ticker": "PSX", "prediction": 0.027643012067876203, "z_score": 0.0, "rolling_mean": 0.027643012067876203, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.299842"}
+{"ticker": "PBF", "prediction": 0.019880204856031824, "z_score": 0.0, "rolling_mean": 0.019880204856031824, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.300043"}
+{"ticker": "HAL", "prediction": 0.006721871965992985, "z_score": 0.0, "rolling_mean": 0.006721871965992985, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.300215"}
+{"ticker": "SLB", "prediction": -0.008212627482799432, "z_score": 0.0, "rolling_mean": -0.008212627482799432, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.300384"}
+{"ticker": "BKR", "prediction": 0.015195175343682327, "z_score": 0.0, "rolling_mean": 0.015195175343682327, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.300553"}
+{"ticker": "VLO", "prediction": 7.774979206115941e-05, "z_score": 0.0, "rolling_mean": 7.774979206115941e-05, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.300713"}
+{"ticker": "EOG", "prediction": 0.015677862793752096, "z_score": 0.0, "rolling_mean": 0.015677862793752096, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.300888"}
+{"ticker": "TSLA", "prediction": -0.00771836119595859, "z_score": 0.0, "rolling_mean": -0.00771836119595859, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.301312"}
+{"ticker": "PLUG", "prediction": -0.05453344224740009, "z_score": 0.0, "rolling_mean": -0.05453344224740009, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.301654"}
+{"ticker": "FSLR", "prediction": -0.013658162659038622, "z_score": 0.0, "rolling_mean": -0.013658162659038622, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.301944"}
+{"ticker": "ENPH", "prediction": -0.04874309229293814, "z_score": 0.0, "rolling_mean": -0.04874309229293814, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.302786"}
+{"ticker": "ALB", "prediction": -0.006384259687665861, "z_score": 0.0, "rolling_mean": -0.006384259687665861, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.303092"}
+{"ticker": "SQM", "prediction": -0.027507248468854335, "z_score": 0.0, "rolling_mean": -0.027507248468854335, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.303552"}
+{"ticker": "FCX", "prediction": -0.0006418122012794661, "z_score": 0.0, "rolling_mean": -0.0006418122012794661, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.303773"}
+{"ticker": "SCCO", "prediction": 0.005290517801699832, "z_score": 0.0, "rolling_mean": 0.005290517801699832, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.303953"}
+{"ticker": "BHP", "prediction": -0.0028798344795207508, "z_score": 0.0, "rolling_mean": -0.0028798344795207508, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.304128"}
+{"ticker": "RIO", "prediction": -0.006460608572627917, "z_score": 0.0, "rolling_mean": -0.006460608572627917, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.304295"}
+{"ticker": "GLNCY", "prediction": -0.025383491551355476, "z_score": 0.0, "rolling_mean": -0.025383491551355476, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.304459"}
+{"ticker": "AA", "prediction": -0.016331955696148336, "z_score": 0.0, "rolling_mean": -0.016331955696148336, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.304692"}
+{"ticker": "NEM", "prediction": 0.009440157339440756, "z_score": 0.0, "rolling_mean": 0.009440157339440756, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.304854"}
+{"ticker": "GOLD", "prediction": -0.013202811815891394, "z_score": 0.0, "rolling_mean": -0.013202811815891394, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.305016"}
+{"ticker": "WPM", "prediction": 0.004684695898690045, "z_score": 0.0, "rolling_mean": 0.004684695898690045, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.305381"}
+{"ticker": "NVDA", "prediction": 0.029618994290328136, "z_score": 0.0, "rolling_mean": 0.029618994290328136, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.305639"}
+{"ticker": "INTC", "prediction": -0.010493762126734515, "z_score": 0.0, "rolling_mean": -0.010493762126734515, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.305853"}
+{"ticker": "F", "prediction": -0.001419965720270592, "z_score": 0.0, "rolling_mean": -0.001419965720270592, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.306054"}
+{"ticker": "SOFI", "prediction": 0.0033541145821398095, "z_score": 0.0, "rolling_mean": 0.0033541145821398095, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.306244"}
+{"ticker": "BBAI", "prediction": -0.003709446498004379, "z_score": 0.0, "rolling_mean": -0.003709446498004379, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T18:30:19.306419"}
+{"ticker": "CVX", "pred": 0.005181947626905307, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0029347740894702474, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": -0.00929077644457719, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.005183309716430279, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.0072385633707101075, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.0026862914514354983, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.027643012067876203, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.019880204856031824, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.006721871965992985, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.008212627482799432, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.015195175343682327, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": 7.774979206115941e-05, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.015677862793752096, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "TSLA", "pred": -0.00771836119595859, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PLUG", "pred": -0.05453344224740009, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.013658162659038622, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ENPH", "pred": -0.04874309229293814, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.006384259687665861, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.027507248468854335, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.0006418122012794661, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.005290517801699832, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BHP", "pred": -0.0028798344795207508, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.006460608572627917, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.025383491551355476, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AA", "pred": -0.016331955696148336, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.009440157339440756, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.013202811815891394, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.004684695898690045, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.029618994290328136, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "INTC", "pred": -0.010493762126734515, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "F", "pred": -0.001419965720270592, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.0033541145821398095, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BBAI", "pred": -0.003709446498004379, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.003589557859517288, "z_score": 0.0, "rolling_mean": -0.003589557859517288, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:52:57.669221"}
+{"ticker": "NVDA", "prediction": 0.00688138121770076, "z_score": 0.0, "rolling_mean": 0.00688138121770076, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:52:57.670924"}
+{"ticker": "MSFT", "prediction": -0.017521463709137427, "z_score": 0.0, "rolling_mean": -0.017521463709137427, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:52:57.671441"}
+{"ticker": "AAPL", "pred": -0.003589557859517288, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.00688138121770076, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": -0.017521463709137427, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.001773268843770914, "z_score": 0.0, "rolling_mean": -0.001773268843770914, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.932329"}
+{"ticker": "XOM", "prediction": 0.014337799034875073, "z_score": 0.0, "rolling_mean": 0.014337799034875073, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.935395"}
+{"ticker": "COP", "prediction": -0.01264759657353993, "z_score": 0.0, "rolling_mean": -0.01264759657353993, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.936030"}
+{"ticker": "OXY", "prediction": -0.025485884186366155, "z_score": 0.0, "rolling_mean": -0.025485884186366155, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.936478"}
+{"ticker": "FANG", "prediction": -0.003630957784814122, "z_score": 0.0, "rolling_mean": -0.003630957784814122, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.936796"}
+{"ticker": "MPC", "prediction": 0.018202209430535996, "z_score": 0.0, "rolling_mean": 0.018202209430535996, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.937265"}
+{"ticker": "PSX", "prediction": 0.02333367922361008, "z_score": 0.0, "rolling_mean": 0.02333367922361008, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.937539"}
+{"ticker": "PBF", "prediction": 0.05149720946192732, "z_score": 0.0, "rolling_mean": 0.05149720946192732, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.937887"}
+{"ticker": "HAL", "prediction": 0.01786342246907058, "z_score": 0.0, "rolling_mean": 0.01786342246907058, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.938283"}
+{"ticker": "SLB", "prediction": 0.024515566768572594, "z_score": 0.0, "rolling_mean": 0.024515566768572594, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.938462"}
+{"ticker": "BKR", "prediction": 0.020100537935958382, "z_score": 0.0, "rolling_mean": 0.020100537935958382, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.938601"}
+{"ticker": "VLO", "prediction": -0.010188356083837264, "z_score": 0.0, "rolling_mean": -0.010188356083837264, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.938857"}
+{"ticker": "EOG", "prediction": 0.011798024306797989, "z_score": 0.0, "rolling_mean": 0.011798024306797989, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.939405"}
+{"ticker": "TSLA", "prediction": -0.005645120563951393, "z_score": 0.0, "rolling_mean": -0.005645120563951393, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.940340"}
+{"ticker": "PLUG", "prediction": -0.019379922996067417, "z_score": 0.0, "rolling_mean": -0.019379922996067417, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.940933"}
+{"ticker": "FSLR", "prediction": -0.007685183439792204, "z_score": 0.0, "rolling_mean": -0.007685183439792204, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.941366"}
+{"ticker": "ENPH", "prediction": -0.04437856874059045, "z_score": 0.0, "rolling_mean": -0.04437856874059045, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.941589"}
+{"ticker": "ALB", "prediction": 0.000515168243138197, "z_score": 0.0, "rolling_mean": 0.000515168243138197, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.941928"}
+{"ticker": "SQM", "prediction": -0.032593757155283024, "z_score": 0.0, "rolling_mean": -0.032593757155283024, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.942336"}
+{"ticker": "FCX", "prediction": 0.020096468816318536, "z_score": 0.0, "rolling_mean": 0.020096468816318536, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.942580"}
+{"ticker": "SCCO", "prediction": -0.002488930851713376, "z_score": 0.0, "rolling_mean": -0.002488930851713376, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.942862"}
+{"ticker": "BHP", "prediction": 0.005656968244157811, "z_score": 0.0, "rolling_mean": 0.005656968244157811, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.943241"}
+{"ticker": "RIO", "prediction": -0.015573575145260274, "z_score": 0.0, "rolling_mean": -0.015573575145260274, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.943467"}
+{"ticker": "GLNCY", "prediction": -0.026657420265692275, "z_score": 0.0, "rolling_mean": -0.026657420265692275, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.943765"}
+{"ticker": "AA", "prediction": 0.00478371096284996, "z_score": 0.0, "rolling_mean": 0.00478371096284996, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.944233"}
+{"ticker": "NEM", "prediction": 0.06876175306554387, "z_score": 0.0, "rolling_mean": 0.06876175306554387, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.944418"}
+{"ticker": "GOLD", "prediction": -0.023655931984756517, "z_score": 0.0, "rolling_mean": -0.023655931984756517, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.944557"}
+{"ticker": "WPM", "prediction": 0.004099432658715239, "z_score": 0.0, "rolling_mean": 0.004099432658715239, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.944902"}
+{"ticker": "NVDA", "prediction": 0.013297466415657681, "z_score": 0.0, "rolling_mean": 0.013297466415657681, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.945243"}
+{"ticker": "INTC", "prediction": 0.004163346245280785, "z_score": 0.0, "rolling_mean": 0.004163346245280785, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.945796"}
+{"ticker": "F", "prediction": 0.001662951241843693, "z_score": 0.0, "rolling_mean": 0.001662951241843693, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.946471"}
+{"ticker": "SOFI", "prediction": -0.004791567498631299, "z_score": 0.0, "rolling_mean": -0.004791567498631299, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.946875"}
+{"ticker": "BBAI", "prediction": -0.007881932699893969, "z_score": 0.0, "rolling_mean": -0.007881932699893969, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T20:59:48.947638"}
+{"ticker": "CVX", "pred": -0.001773268843770914, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.014337799034875073, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": -0.01264759657353993, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.025485884186366155, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": -0.003630957784814122, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.018202209430535996, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.02333367922361008, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.05149720946192732, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.01786342246907058, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.024515566768572594, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.020100537935958382, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.010188356083837264, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.011798024306797989, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "TSLA", "pred": -0.005645120563951393, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PLUG", "pred": -0.019379922996067417, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.007685183439792204, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ENPH", "pred": -0.04437856874059045, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.000515168243138197, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.032593757155283024, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.020096468816318536, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SCCO", "pred": -0.002488930851713376, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.005656968244157811, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.015573575145260274, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.026657420265692275, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AA", "pred": 0.00478371096284996, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.06876175306554387, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.023655931984756517, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.004099432658715239, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.013297466415657681, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.004163346245280785, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "F", "pred": 0.001662951241843693, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SOFI", "pred": -0.004791567498631299, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BBAI", "pred": -0.007881932699893969, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": 0.008263877592980862, "z_score": 0.0, "rolling_mean": 0.008263877592980862, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.040974"}
+{"ticker": "XOM", "prediction": -0.0012985792709514499, "z_score": 0.0, "rolling_mean": -0.0012985792709514499, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.044947"}
+{"ticker": "COP", "prediction": -0.009844011627137661, "z_score": 0.0, "rolling_mean": -0.009844011627137661, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.045260"}
+{"ticker": "OXY", "prediction": -0.01874668523669243, "z_score": 0.0, "rolling_mean": -0.01874668523669243, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.045436"}
+{"ticker": "FANG", "prediction": 0.009326865896582603, "z_score": 0.0, "rolling_mean": 0.009326865896582603, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.045581"}
+{"ticker": "MPC", "prediction": 0.0032070563174784184, "z_score": 0.0, "rolling_mean": 0.0032070563174784184, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.045718"}
+{"ticker": "PSX", "prediction": 0.026062987744808197, "z_score": 0.0, "rolling_mean": 0.026062987744808197, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.045840"}
+{"ticker": "PBF", "prediction": 0.017590874806046486, "z_score": 0.0, "rolling_mean": 0.017590874806046486, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.045958"}
+{"ticker": "HAL", "prediction": 0.02284388057887554, "z_score": 0.0, "rolling_mean": 0.02284388057887554, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046065"}
+{"ticker": "SLB", "prediction": -0.0018677779007703066, "z_score": 0.0, "rolling_mean": -0.0018677779007703066, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046176"}
+{"ticker": "BKR", "prediction": 0.009344588965177536, "z_score": 0.0, "rolling_mean": 0.009344588965177536, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046292"}
+{"ticker": "VLO", "prediction": -0.0025997578632086515, "z_score": 0.0, "rolling_mean": -0.0025997578632086515, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046488"}
+{"ticker": "EOG", "prediction": 0.014669610187411308, "z_score": 0.0, "rolling_mean": 0.014669610187411308, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046622"}
+{"ticker": "TSLA", "prediction": -0.011763716116547585, "z_score": 0.0, "rolling_mean": -0.011763716116547585, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046824"}
+{"ticker": "PLUG", "prediction": -0.10833165049552917, "z_score": 0.0, "rolling_mean": -0.10833165049552917, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.046962"}
+{"ticker": "FSLR", "prediction": -0.021103767678141594, "z_score": 0.0, "rolling_mean": -0.021103767678141594, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047097"}
+{"ticker": "ENPH", "prediction": -0.06211609020829201, "z_score": 0.0, "rolling_mean": -0.06211609020829201, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047234"}
+{"ticker": "ALB", "prediction": -0.009593584574759007, "z_score": 0.0, "rolling_mean": -0.009593584574759007, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047334"}
+{"ticker": "SQM", "prediction": -0.037107013165950775, "z_score": 0.0, "rolling_mean": -0.037107013165950775, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047434"}
+{"ticker": "FCX", "prediction": -0.0012931226519867778, "z_score": 0.0, "rolling_mean": -0.0012931226519867778, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047533"}
+{"ticker": "SCCO", "prediction": 0.008459757082164288, "z_score": 0.0, "rolling_mean": 0.008459757082164288, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047629"}
+{"ticker": "BHP", "prediction": 0.0036252315621823072, "z_score": 0.0, "rolling_mean": 0.0036252315621823072, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047725"}
+{"ticker": "RIO", "prediction": -0.004431325010955334, "z_score": 0.0, "rolling_mean": -0.004431325010955334, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047822"}
+{"ticker": "GLNCY", "prediction": -0.01934405229985714, "z_score": 0.0, "rolling_mean": -0.01934405229985714, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.047921"}
+{"ticker": "AA", "prediction": -0.017294855788350105, "z_score": 0.0, "rolling_mean": -0.017294855788350105, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048028"}
+{"ticker": "NEM", "prediction": 0.008448311127722263, "z_score": 0.0, "rolling_mean": 0.008448311127722263, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048157"}
+{"ticker": "GOLD", "prediction": -0.018191417679190636, "z_score": 0.0, "rolling_mean": -0.018191417679190636, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048269"}
+{"ticker": "WPM", "prediction": 0.005061445292085409, "z_score": 0.0, "rolling_mean": 0.005061445292085409, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048373"}
+{"ticker": "NVDA", "prediction": 0.036554254591464996, "z_score": 0.0, "rolling_mean": 0.036554254591464996, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048487"}
+{"ticker": "INTC", "prediction": -0.007738769985735416, "z_score": 0.0, "rolling_mean": -0.007738769985735416, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048739"}
+{"ticker": "F", "prediction": 0.006338237784802914, "z_score": 0.0, "rolling_mean": 0.006338237784802914, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.048988"}
+{"ticker": "SOFI", "prediction": -0.018153302371501923, "z_score": 0.0, "rolling_mean": -0.018153302371501923, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.049127"}
+{"ticker": "BBAI", "prediction": 0.0172477625310421, "z_score": 0.0, "rolling_mean": 0.0172477625310421, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:04:32.049243"}
+{"ticker": "CVX", "pred": 0.008263877592980862, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0012985792709514499, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": -0.009844011627137661, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.01874668523669243, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.009326865896582603, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.0032070563174784184, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.026062987744808197, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.017590874806046486, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.02284388057887554, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.0018677779007703066, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.009344588965177536, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.0025997578632086515, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.014669610187411308, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "TSLA", "pred": -0.011763716116547585, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PLUG", "pred": -0.10833165049552917, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.021103767678141594, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ENPH", "pred": -0.06211609020829201, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.009593584574759007, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.037107013165950775, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.0012931226519867778, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.008459757082164288, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.0036252315621823072, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.004431325010955334, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.01934405229985714, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AA", "pred": -0.017294855788350105, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.008448311127722263, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.018191417679190636, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.005061445292085409, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.036554254591464996, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "INTC", "pred": -0.007738769985735416, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "F", "pred": 0.006338237784802914, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SOFI", "pred": -0.018153302371501923, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.0172477625310421, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.008462207225155264, "z_score": 0.0, "rolling_mean": -0.008462207225155264, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:11:43.489488"}
+{"ticker": "NVDA", "prediction": 0.008707295789455236, "z_score": 0.0, "rolling_mean": 0.008707295789455236, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:11:43.492591"}
+{"ticker": "MSFT", "prediction": -0.01586691057437005, "z_score": 0.0, "rolling_mean": -0.01586691057437005, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:11:43.493077"}
+{"ticker": "AAPL", "pred": -0.008462207225155264, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.008707295789455236, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": -0.01586691057437005, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.007119229969314414, "z_score": 0.0, "rolling_mean": -0.007119229969314414, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:19:28.760315"}
+{"ticker": "NVDA", "prediction": 0.007873368421957391, "z_score": 0.0, "rolling_mean": 0.007873368421957391, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:19:28.764155"}
+{"ticker": "MSFT", "prediction": -0.015086182987539378, "z_score": 0.0, "rolling_mean": -0.015086182987539378, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:19:28.764510"}
+{"ticker": "AAPL", "pred": -0.007119229969314414, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.007873368421957391, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": -0.015086182987539378, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.005018880812163696, "z_score": 0.0, "rolling_mean": -0.005018880812163696, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.764054"}
+{"ticker": "XOM", "prediction": -0.0050541178772923875, "z_score": 0.0, "rolling_mean": -0.0050541178772923875, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.768210"}
+{"ticker": "COP", "prediction": 0.009853520421386307, "z_score": 0.0, "rolling_mean": 0.009853520421386307, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.768526"}
+{"ticker": "OXY", "prediction": -0.002633639049462809, "z_score": 0.0, "rolling_mean": -0.002633639049462809, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.768756"}
+{"ticker": "EOG", "prediction": -0.0076585163807357665, "z_score": 0.0, "rolling_mean": -0.0076585163807357665, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.768955"}
+{"ticker": "FANG", "prediction": 0.00862090885262841, "z_score": 0.0, "rolling_mean": 0.00862090885262841, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.769218"}
+{"ticker": "VLO", "prediction": 0.02086201182210158, "z_score": 0.0, "rolling_mean": 0.02086201182210158, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.769708"}
+{"ticker": "PSX", "prediction": 0.014475055845121034, "z_score": 0.0, "rolling_mean": 0.014475055845121034, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.769957"}
+{"ticker": "MPC", "prediction": 0.02687716075380205, "z_score": 0.0, "rolling_mean": 0.02687716075380205, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.770140"}
+{"ticker": "PBF", "prediction": 0.054722093201187684, "z_score": 0.0, "rolling_mean": 0.054722093201187684, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.770375"}
+{"ticker": "BKR", "prediction": 0.006547447508453201, "z_score": 0.0, "rolling_mean": 0.006547447508453201, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.770657"}
+{"ticker": "HAL", "prediction": 0.010216974345646371, "z_score": 0.0, "rolling_mean": 0.010216974345646371, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.770875"}
+{"ticker": "SLB", "prediction": 0.005746429660641136, "z_score": 0.0, "rolling_mean": 0.005746429660641136, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:35:45.771083"}
+{"ticker": "CVX", "pred": -0.005018880812163696, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0050541178772923875, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": 0.009853520421386307, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.002633639049462809, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.0076585163807357665, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.00862090885262841, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.02086201182210158, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.014475055845121034, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.02687716075380205, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.054722093201187684, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.006547447508453201, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.010216974345646371, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.005746429660641136, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.005189340823899809, "z_score": 0.0, "rolling_mean": -0.005189340823899809, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:37:37.026392"}
+{"ticker": "CVX", "pred": -0.005189340823899809, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.005018880812163696, "z_score": 0.0, "rolling_mean": -0.005018880812163696, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:37:48.371684"}
+{"ticker": "CVX", "pred": -0.005018880812163696, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.005018880812163696, "z_score": 0.0, "rolling_mean": -0.005018880812163696, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:37:51.171142"}
+{"ticker": "CVX", "pred": -0.005018880812163696, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.005018880812163696, "z_score": 0.0, "rolling_mean": -0.005018880812163696, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.443514"}
+{"ticker": "XOM", "prediction": -0.0050541178772923875, "z_score": 0.0, "rolling_mean": -0.0050541178772923875, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.444405"}
+{"ticker": "COP", "prediction": 0.009853520421386307, "z_score": 0.0, "rolling_mean": 0.009853520421386307, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.444924"}
+{"ticker": "OXY", "prediction": -0.002633639049462809, "z_score": 0.0, "rolling_mean": -0.002633639049462809, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.445365"}
+{"ticker": "EOG", "prediction": -0.0076585163807357665, "z_score": 0.0, "rolling_mean": -0.0076585163807357665, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.445565"}
+{"ticker": "FANG", "prediction": 0.00862090885262841, "z_score": 0.0, "rolling_mean": 0.00862090885262841, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.445809"}
+{"ticker": "VLO", "prediction": 0.02086201182210158, "z_score": 0.0, "rolling_mean": 0.02086201182210158, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.446091"}
+{"ticker": "PSX", "prediction": 0.014475055845121034, "z_score": 0.0, "rolling_mean": 0.014475055845121034, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.446287"}
+{"ticker": "MPC", "prediction": 0.02687716075380205, "z_score": 0.0, "rolling_mean": 0.02687716075380205, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.446447"}
+{"ticker": "PBF", "prediction": 0.054722093201187684, "z_score": 0.0, "rolling_mean": 0.054722093201187684, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.446635"}
+{"ticker": "BKR", "prediction": 0.006547447508453201, "z_score": 0.0, "rolling_mean": 0.006547447508453201, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.446886"}
+{"ticker": "HAL", "prediction": 0.010216974345646371, "z_score": 0.0, "rolling_mean": 0.010216974345646371, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.447132"}
+{"ticker": "SLB", "prediction": 0.005746429660641136, "z_score": 0.0, "rolling_mean": 0.005746429660641136, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:38:13.447291"}
+{"ticker": "CVX", "pred": -0.005018880812163696, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0050541178772923875, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": 0.009853520421386307, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.002633639049462809, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.0076585163807357665, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.00862090885262841, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.02086201182210158, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.014475055845121034, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.02687716075380205, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.054722093201187684, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.006547447508453201, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.010216974345646371, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.005746429660641136, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.004498939495533705, "z_score": 0.0, "rolling_mean": -0.004498939495533705, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.179882"}
+{"ticker": "XOM", "prediction": -0.006888732314109802, "z_score": 0.0, "rolling_mean": -0.006888732314109802, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.181675"}
+{"ticker": "COP", "prediction": 0.003993545193225145, "z_score": 0.0, "rolling_mean": 0.003993545193225145, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.181963"}
+{"ticker": "OXY", "prediction": -0.0018835003720596433, "z_score": 0.0, "rolling_mean": -0.0018835003720596433, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.182549"}
+{"ticker": "EOG", "prediction": -0.00860099121928215, "z_score": 0.0, "rolling_mean": -0.00860099121928215, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.182772"}
+{"ticker": "FANG", "prediction": 0.019247330725193024, "z_score": 0.0, "rolling_mean": 0.019247330725193024, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.183212"}
+{"ticker": "VLO", "prediction": -0.0008443536935374141, "z_score": 0.0, "rolling_mean": -0.0008443536935374141, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.183458"}
+{"ticker": "PSX", "prediction": 0.0021812173072248697, "z_score": 0.0, "rolling_mean": 0.0021812173072248697, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.183817"}
+{"ticker": "MPC", "prediction": 0.009479832835495472, "z_score": 0.0, "rolling_mean": 0.009479832835495472, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.183968"}
+{"ticker": "PBF", "prediction": 0.040127791464328766, "z_score": 0.0, "rolling_mean": 0.040127791464328766, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.184133"}
+{"ticker": "BKR", "prediction": 0.0038637169636785984, "z_score": 0.0, "rolling_mean": 0.0038637169636785984, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.184295"}
+{"ticker": "HAL", "prediction": 0.01337603572756052, "z_score": 0.0, "rolling_mean": 0.01337603572756052, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.184520"}
+{"ticker": "SLB", "prediction": 0.005479400046169758, "z_score": 0.0, "rolling_mean": 0.005479400046169758, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:40:54.184709"}
+{"ticker": "CVX", "pred": -0.004498939495533705, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.006888732314109802, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": 0.003993545193225145, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.0018835003720596433, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.00860099121928215, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.019247330725193024, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.0008443536935374141, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.0021812173072248697, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": 0.009479832835495472, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.040127791464328766, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.0038637169636785984, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.01337603572756052, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.005479400046169758, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "CVX", "prediction": -0.0026212818920612335, "z_score": 0.0, "rolling_mean": -0.0026212818920612335, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.344252"}
+{"ticker": "XOM", "prediction": 0.0009475300321355462, "z_score": 0.0, "rolling_mean": 0.0009475300321355462, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.349547"}
+{"ticker": "COP", "prediction": -0.0055685327388346195, "z_score": 0.0, "rolling_mean": -0.0055685327388346195, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.350476"}
+{"ticker": "OXY", "prediction": -0.006542330142110586, "z_score": 0.0, "rolling_mean": -0.006542330142110586, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.351097"}
+{"ticker": "EOG", "prediction": -0.0026723146438598633, "z_score": 0.0, "rolling_mean": -0.0026723146438598633, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.351732"}
+{"ticker": "FANG", "prediction": 0.00984570849686861, "z_score": 0.0, "rolling_mean": 0.00984570849686861, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.352686"}
+{"ticker": "VLO", "prediction": -0.015448174439370632, "z_score": 0.0, "rolling_mean": -0.015448174439370632, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.353255"}
+{"ticker": "PSX", "prediction": -0.00015245008398778737, "z_score": 0.0, "rolling_mean": -0.00015245008398778737, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.353687"}
+{"ticker": "MPC", "prediction": -0.01096786092966795, "z_score": 0.0, "rolling_mean": -0.01096786092966795, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.354162"}
+{"ticker": "PBF", "prediction": 0.017916038632392883, "z_score": 0.0, "rolling_mean": 0.017916038632392883, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.354978"}
+{"ticker": "BKR", "prediction": -0.01083462219685316, "z_score": 0.0, "rolling_mean": -0.01083462219685316, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.355296"}
+{"ticker": "HAL", "prediction": 0.0004103821993339807, "z_score": 0.0, "rolling_mean": 0.0004103821993339807, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.355581"}
+{"ticker": "SLB", "prediction": -0.0019297456601634622, "z_score": 0.0, "rolling_mean": -0.0019297456601634622, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-07T21:44:54.355788"}
+{"ticker": "CVX", "pred": -0.0026212818920612335, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.0009475300321355462, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "COP", "pred": -0.0055685327388346195, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.006542330142110586, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.0026723146438598633, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.00984570849686861, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.015448174439370632, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PSX", "pred": -0.00015245008398778737, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MPC", "pred": -0.01096786092966795, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.017916038632392883, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "BKR", "pred": -0.01083462219685316, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0004103821993339807, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.0019297456601634622, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.00035193393449339805, "z_score": 0.0, "rolling_mean": -0.00035193393449339805, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-08T01:39:32.418317"}
+{"ticker": "NVDA", "prediction": 0.0035058444958717735, "z_score": 0.0, "rolling_mean": 0.0035058444958717735, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-08T01:39:32.422109"}
+{"ticker": "MSFT", "prediction": 0.00398521749175474, "z_score": 0.0, "rolling_mean": 0.00398521749175474, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-08T01:39:32.422988"}
+{"ticker": "AAPL", "pred": -0.00035193393449339805, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.0035058444958717735, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.00398521749175474, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "prediction": -0.005336719753800893, "z_score": 0.0, "rolling_mean": -0.005336719753800893, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-08T01:40:35.464625"}
+{"ticker": "NVDA", "prediction": 0.012986095542377545, "z_score": 0.0, "rolling_mean": 0.012986095542377545, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-08T01:40:35.471725"}
+{"ticker": "MSFT", "prediction": 0.004030173476799387, "z_score": 0.0, "rolling_mean": 0.004030173476799387, "rolling_std": 0.0, "history_length": 0, "passes_threshold": false, "threshold": 1.0, "timestamp": "2026-01-08T01:40:35.472646"}
+{"ticker": "AAPL", "pred": -0.005336719753800893, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.012986095542377545, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.004030173476799387, "z_score": 0.0, "threshold": 1.0, "strength": "very_weak", "history_len": 0, "timestamp": ""}
+{"ticker": "AAPL", "pred": 0.015, "z_score": 0.2560861806821292, "threshold": 1.0, "strength": "weak", "history_len": 3, "timestamp": ""}
+{"ticker": "AMZN", "pred": 0.025, "z_score": 0.8470542899485813, "threshold": 1.0, "strength": "weak", "history_len": 3, "timestamp": ""}
+{"ticker": "CVX", "pred": -0.006592418589011653, "z_score": -0.3264111644983097, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.00439118842226913, "z_score": 0.2659749385767965, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": -0.010883051954731871, "z_score": -0.5578207166274551, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.0028976680122670137, "z_score": 0.18542391971426708, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.015703795543132684, "z_score": 0.8761052210118209, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": -0.00334282673396656, "z_score": -0.15114878906757268, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.004783854568539216, "z_score": 0.2871528601793768, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.0021120500428969385, "z_score": 0.14305266891269194, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.01247824359528829, "z_score": -0.6438552368571634, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.0054688486340791174, "z_score": -0.2658129269201478, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "TSLA", "pred": 0.012883861044977733, "z_score": 0.7240158384826225, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.01265004291881837, "z_score": 0.7114051716550849, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.01817548396300747, "z_score": -0.9511282498345095, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": -0.0031094523199151083, "z_score": -0.13856205325707002, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.014219572589927166, "z_score": 0.7960556480035166, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.006499196465139674, "z_score": -0.3213833543605117, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.0009681424747263669, "z_score": 0.08135754945960909, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.006560138350346859, "z_score": 0.3829543420040475, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.004904488677546192, "z_score": -0.23537493009098126, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.001635512151647495, "z_score": 0.11735123730876126, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": -0.016870209434991876, "z_score": -0.8807300199724788, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": -0.004551452860926754, "z_score": -0.2163344171303177, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.0018689766189005867, "z_score": 0.12994283001783413, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NVDA", "pred": -0.005794697258691951, "z_score": -0.28338713516781444, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.00827131767465043, "z_score": 0.475244502289806, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": -0.015829545675946244, "z_score": -0.8246032168012275, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BBAI", "pred": -0.01247533672707513, "z_score": -0.643698458821389, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": -0.02467432990670204, "z_score": -0.6430631491498403, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0006772229098714888, "z_score": -0.0675844547702839, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": -0.006948322989046574, "z_score": -0.21797276976024743, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.010857651941478252, "z_score": -0.31172305064796935, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.010796830989420414, "z_score": 0.20757677854326806, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.008803088217973709, "z_score": 0.15976449487122515, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.008310545235872269, "z_score": 0.14795273804974718, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.0026851354632526636, "z_score": -0.11573654638702485, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": -0.02840140089392662, "z_score": -0.7324426708509857, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.015942905098199844, "z_score": -0.43367336939289863, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.0009004683815874159, "z_score": -0.029749572229539206, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": -0.010136720724403858, "z_score": -0.2944342768139304, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035267043858766556, "z_score": 0.7944011051215112, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.012898961082100868, "z_score": -0.36067603148960625, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SQM", "pred": 0.00333658279851079, "z_score": 0.028671300928022638, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.0038368164096027613, "z_score": 0.040667488028159324, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": -2.828941069310531e-05, "z_score": -0.05202227042466021, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.016574779525399208, "z_score": -0.44882645723905223, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.011652191169559956, "z_score": -0.3307770306827373, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.02176189236342907, "z_score": 0.4705317757493741, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.03694533184170723, "z_score": 0.8346484139884992, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.031204596161842346, "z_score": -0.7996665721772646, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": -0.014671532437205315, "z_score": -0.4031843659011183, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NVDA", "pred": -0.0002831935416907072, "z_score": -0.058135169638629206, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.0024610026739537716, "z_score": 0.007673865405010948, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": -0.013519557192921638, "z_score": -0.3755586521171401, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.010349629446864128, "z_score": 0.19685236247641444, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.027604050934314728, "z_score": 0.610633571652341, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.008314142934978008, "z_score": 0.47462720932449864, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0021586145740002394, "z_score": 0.19658122795443858, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": 0.00029506554710678756, "z_score": 0.26172509256283166, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.023589182645082474, "z_score": -0.37238862793438376, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.003189645940437913, "z_score": 0.3385746181465486, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.027136335149407387, "z_score": 0.9743461134727444, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.019801277667284012, "z_score": 0.7796043509260268, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.016233621165156364, "z_score": -0.17710249546540038, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.013135818764567375, "z_score": 0.6026400642709769, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.037510037422180176, "z_score": -0.7419797050399064, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.008374675177037716, "z_score": 0.47623430722909466, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": -0.0023254866246134043, "z_score": 0.1921508663198648, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.033543966710567474, "z_score": -0.6366826978048946, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.02524811401963234, "z_score": -0.4164323481930516, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.006763921584933996, "z_score": 0.07431284675037282, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.00016605990822426975, "z_score": 0.2583000634399278, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.018009215593338013, "z_score": 0.732026083444973, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.03889669477939606, "z_score": -0.77879469912151, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.042114898562431335, "z_score": -0.8642362486213211, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": -0.0005942347343079746, "z_score": 0.23811465669943488, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.02238497883081436, "z_score": 0.8482002030657226, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.011058824136853218, "z_score": 0.5474969933970417, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.005969915073364973, "z_score": 0.4123892423154807, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": -0.022657664492726326, "z_score": -0.34765733069830757, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": 0.018648266792297363, "z_score": 0.7489925431007072, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.011830709874629974, "z_score": 0.56799013737385, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.0018592646811157465, "z_score": 0.30325372367081493, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": -0.027384528890252113, "z_score": -0.688961781759361, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.0019171609310433269, "z_score": -0.07903956085220849, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": -0.010461037047207355, "z_score": -0.28365826759383117, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.01806287281215191, "z_score": -0.46571589365682897, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.0182905662804842, "z_score": 0.4049186510871647, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.01178695447742939, "z_score": 0.24916257290937108, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.008298621512949467, "z_score": 0.16561990794426626, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": -0.006705764215439558, "z_score": -0.19372261545527134, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": -0.030380727723240852, "z_score": -0.7607182447524329, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": -0.022174401208758354, "z_score": -0.564183569429121, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.0031389365904033184, "z_score": -0.10830006884034131, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": -0.010136720724403858, "z_score": -0.27589116216709136, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035267043858766556, "z_score": 0.8114911294175142, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.01257764920592308, "z_score": -0.3343493633800439, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SQM", "pred": 0.016390565782785416, "z_score": 0.35941522391175823, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": -0.0004501278745010495, "z_score": -0.0439053427648254, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.0009732530452311039, "z_score": -0.009816556944852822, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.011154212057590485, "z_score": -0.30025923093198964, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.016803551465272903, "z_score": -0.435556197768566, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.018847042694687843, "z_score": 0.41824579706381865, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GOLD", "pred": -0.03629646450281143, "z_score": -0.9023952064501234, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": -0.018345000222325325, "z_score": -0.47247260981483036, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NVDA", "pred": -0.0039793336763978004, "z_score": -0.12842687809501777, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.009614864364266396, "z_score": 0.19714282638696679, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": -0.0066716368310153484, "z_score": -0.19290529306313778, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.010349629446864128, "z_score": 0.21473983726539128, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.027604050934314728, "z_score": 0.6279688403940253, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": -0.022164676524651417, "z_score": -0.9358480416883119, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.0019531877407817236, "z_score": 0.01144186143273913, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": -0.0014497175989504072, "z_score": -0.12221582210539586, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": -0.016238223291768047, "z_score": -0.7030716545653495, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": -0.00392900509202277, "z_score": -0.2195960869279275, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.015079361968079484, "z_score": 0.5270054360212381, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0036217293106819335, "z_score": 0.07697803680501684, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.017450357340010193, "z_score": 0.6201322548580039, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.012945624920519233, "z_score": 0.4431975358347309, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": -0.005024842040531121, "z_score": -0.2626378449113142, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.01390466191471449, "z_score": 0.48086613083643737, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FSLR", "pred": -0.013814212737730498, "z_score": -0.6078625308375194, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.014061708982694808, "z_score": 0.4870345502360665, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": -0.002278394817403318, "z_score": -0.15476420836992824, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SQM", "pred": -0.00438788925116332, "z_score": -0.23761991880092898, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": -0.0038850784514148085, "z_score": -0.2178707574100237, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.0005843203442916537, "z_score": -0.04232385551198867, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": -0.004208762720344503, "z_score": -0.23058427285159144, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": -0.013324105309159668, "z_score": -0.5886123263658412, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.0077219569137510005, "z_score": 0.2380248096924668, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.005526069912562635, "z_score": 0.15177581344109228, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.014010657515651257, "z_score": 0.4850293752032513, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": 0.0041117683209784305, "z_score": 0.0962255539765365, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.023010367080278888, "z_score": 0.8385156502633783, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.019148617692622546, "z_score": 0.6868357103213555, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.18854747712612152, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "AAPL", "pred": 0.004309169608430999, "z_score": 0.8861204322710905, "threshold": 1.0, "strength": "weak", "history_len": 3, "timestamp": ""}
+{"ticker": "MSFT", "pred": 0.0017040257909642148, "z_score": 0.19810507817924525, "threshold": 1.0, "strength": "weak", "history_len": 3, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.18853040039539337, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.18788833916187286, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.18788833916187286, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.1881326287984848, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.05799146369099617, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.057843130081892014, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.03645339980721474, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.037741769105196, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.03855070471763611, "z_score": 0.5831580712081038, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.025426223874092102, "z_score": -0.6686806540611584, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.026464827358722687, "z_score": -0.5696166165758416, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.025772185996174812, "z_score": -0.6356821082853452, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.02713262476027012, "z_score": -0.50592079059561, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.026950757950544357, "z_score": -0.3865563188650383, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.03331870958209038, "z_score": 0.8657013833474326, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.026224549859762192, "z_score": -0.5293651414989807, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.025789251551032066, "z_score": -0.6149665548588087, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.024153904989361763, "z_score": -0.9365574597729424, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.0278523750603199, "z_score": -0.23962095448378393, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.03133411705493927, "z_score": 0.38584158907169164, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.02625509537756443, "z_score": -0.5265573830559235, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.025520727038383484, "z_score": -0.6584798201694577, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.024668239057064056, "z_score": -0.8116213516127754, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.02570408023893833, "z_score": -0.16551922490337118, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.025931980460882187, "z_score": 0.12366238510836634, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.025273479521274567, "z_score": -0.7119066208616514, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.02516554668545723, "z_score": -0.8488621313414936, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.02559453621506691, "z_score": -0.3045191649653255, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.0278523750603199, "z_score": -0.23962095448378393, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.03133411705493927, "z_score": 0.38584158907169164, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.02625509537756443, "z_score": -0.5265573830559235, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.025520727038383484, "z_score": -0.6584798201694577, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.024668239057064056, "z_score": -0.8116213516127754, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.005163804883139175, "z_score": 0.10893481949390767, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": -0.017092083194775884, "z_score": -0.917714558471191, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": -0.008072949765279155, "z_score": -0.5016679063330807, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": -0.008972441480152877, "z_score": -0.5431608634474829, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.001868648668788764, "z_score": -0.04306855444099561, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.03855070471763611, "z_score": 0.5867832542125815, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.025426223874092102, "z_score": -0.6694348965354625, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.026464827358722687, "z_score": -0.570024293984665, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.02577218972146511, "z_score": -0.6363205522661661, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.027134494855999947, "z_score": -0.5059266374697772, "threshold": 1.0, "strength": "weak", "history_len": 6, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.031242914497852325, "z_score": 0.6056198369945508, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.027768364176154137, "z_score": 0.1665589345461729, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": 0.026643255725502968, "z_score": 0.024384815319786254, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02596859075129032, "z_score": -0.0608690981372331, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.024854285642504692, "z_score": -0.201678055086556, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.028909234330058098, "z_score": 0.31072477846023433, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0303224865347147, "z_score": 0.4893101293439755, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.029893329367041588, "z_score": 0.4350797640060366, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.03406653180718422, "z_score": 0.9624257109121281, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.026415051892399788, "z_score": -0.0044521194279282745, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.028655752539634705, "z_score": 0.278693599356997, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.022957857698202133, "z_score": -0.4413198180663613, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.019487084820866585, "z_score": -0.8799033844633797, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.021758178249001503, "z_score": -0.5929170875965838, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.02113480307161808, "z_score": -0.6716897754568397, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.028877031058073044, "z_score": 0.30665541801055235, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.025212816894054413, "z_score": -0.15637232044851826, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.02390451543033123, "z_score": -0.32169559055619773, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.026675570756196976, "z_score": 0.028468298137851643, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.025558244436979294, "z_score": -0.11272243350343632, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.02635466493666172, "z_score": -0.01208290581110194, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.02893827110528946, "z_score": 0.3143940051390528, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.018610795959830284, "z_score": -0.9906354627209238, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.03156071901321411, "z_score": 0.6969408007879699, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.028903797268867493, "z_score": 0.3093909835477895, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": 0.02702031098306179, "z_score": 0.03465772601336721, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02693856507539749, "z_score": 0.02273392297218184, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.02550593391060829, "z_score": -0.18623570410397355, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.029005572199821472, "z_score": 0.32423630444396306, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0298517644405365, "z_score": 0.44766547541482793, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.030265992507338524, "z_score": 0.5080865291874734, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.030720017850399017, "z_score": 0.574312581610698, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.026890093460679054, "z_score": 0.0156636487100822, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.0311218723654747, "z_score": 0.6329287769149451, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.025741947814822197, "z_score": -0.15180972010995353, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.026606885716319084, "z_score": -0.025646227954991066, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.020397426560521126, "z_score": -0.9313841429351163, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.020670117810368538, "z_score": -0.8916082465368768, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.02409760095179081, "z_score": -0.3916610923241519, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.03322974592447281, "z_score": 0.9403921089808341, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.02339247241616249, "z_score": -0.49451411601408873, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.024140069261193275, "z_score": -0.38546648550803264, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.026341069489717484, "z_score": -0.06441930445155093, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.023626718670129776, "z_score": -0.4603459689441256, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.026139909401535988, "z_score": -0.09376136376385061, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.020818036049604416, "z_score": -0.8700322679803645, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.029289716854691505, "z_score": 0.3656828428295849, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": 0.03206780552864075, "z_score": 0.7709065797186853, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.023800374940037727, "z_score": -0.43501573262510734, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.03134585916996002, "z_score": 0.6650361812867428, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.02892383746802807, "z_score": 0.29801778325826633, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": 0.026751063764095306, "z_score": -0.031231093190573066, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02652093395590782, "z_score": -0.06610356087828999, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.026466475799679756, "z_score": -0.07435581776040881, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.028817791491746902, "z_score": 0.2819482227332579, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.029365407302975655, "z_score": 0.36493058313569493, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.03224801644682884, "z_score": 0.8017435932236443, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.02955608069896698, "z_score": 0.3938240667438578, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.02715960144996643, "z_score": 0.030676216262137006, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.031169956550002098, "z_score": 0.638380970999208, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.02420668676495552, "z_score": -0.4167904667750061, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.023728251457214355, "z_score": -0.48928963557574745, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.022561077028512955, "z_score": -0.6661561304961242, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.022798730060458183, "z_score": -0.6301436393604859, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.023119067773222923, "z_score": -0.5816016159454025, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.03147907555103302, "z_score": 0.6852229792553831, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.024099474772810936, "z_score": -0.43303671823301737, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.02441808395087719, "z_score": -0.3847566264246859, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.02616705186665058, "z_score": -0.11972869453690312, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.023518897593021393, "z_score": -0.5210138434124826, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.027976416051387787, "z_score": 0.15445131962343508, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.021647736430168152, "z_score": -0.804558194768089, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.027516920119524002, "z_score": 0.08482210834150154, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": 0.03326541185379028, "z_score": 0.9559134886158569, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.024036332964897156, "z_score": -0.44260484273440076, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.026390215381979942, "z_score": -0.33669754820243386, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.025831453502178192, "z_score": -0.40440753247132427, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "COP", "pred": 0.028066331520676613, "z_score": -0.13358813525491622, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02368657849729061, "z_score": -0.6643204901899181, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.02585340291261673, "z_score": -0.40174773356730437, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.026812110096216202, "z_score": -0.28557293591821614, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.027083655819296837, "z_score": -0.2526674044159637, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.02696564979851246, "z_score": -0.26696720921614, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.023716041818261147, "z_score": -0.6607501661010021, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.023482294753193855, "z_score": -0.6890753090120056, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.027467647567391396, "z_score": -0.20613582063632008, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.030694186687469482, "z_score": 0.18485168398901325, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.027173474431037903, "z_score": -0.24178331047920676, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.03380377218127251, "z_score": 0.5616669115111129, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.03603697195649147, "z_score": 0.8322829415506267, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SQM", "pred": 0.027114324271678925, "z_score": -0.24895104418559305, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.026165226474404335, "z_score": -0.36396138981958975, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.031107347458600998, "z_score": 0.23491792924497662, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.028568072244524956, "z_score": -0.0727878950329336, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.02825346402823925, "z_score": -0.11091167932388564, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.02706712856888771, "z_score": -0.25467015353980693, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "AA", "pred": 0.02941795065999031, "z_score": 0.03019918447586513, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "NEM", "pred": 0.03656197339296341, "z_score": 0.895901882444147, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.026579387485980988, "z_score": -0.3137739368233464, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.025838827714323997, "z_score": -0.40351393574177447, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.027063002809882164, "z_score": -0.2551701072543694, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "F", "pred": 0.0241882111877203, "z_score": -0.6035333413067367, "threshold": 1.0, "strength": "weak", "history_len": 33, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.024854199960827827, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.024854199960827827, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.024155063554644585, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.07543697208166122, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.06395553052425385, "z_score": 0.0, "threshold": 1.0, "strength": "weak", "history_len": 1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.05891561135649681, "z_score": 0.741393591235679, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.05891561135649681, "z_score": 0.741393591235679, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.026894133538007736, "z_score": -0.36939263026387137, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.024054570123553276, "z_score": -0.5595369166560072, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02314796671271324, "z_score": -0.4475357758368068, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.03359885886311531, "z_score": 0.06808387736820432, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.05891561135649681, "z_score": 0.741393591235679, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.03451003506779671, "z_score": 0.4035649847962956, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.0330008938908577, "z_score": 0.2692395935800716, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.027289077639579773, "z_score": -0.31045952956290934, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.024049222469329834, "z_score": 0.14074590092962114, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.015149621292948723, "z_score": -0.5918311627784917, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.0016979100182652473, "z_score": -0.9259283269235375, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.015284430235624313, "z_score": -0.6867239742243324, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.024838509038090706, "z_score": -0.27726665257379945, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.0314619280397892, "z_score": 0.2363572380664404, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.02602013573050499, "z_score": -0.018747781039788535, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.017649155110120773, "z_score": -0.8684539413998711, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.015258361585438251, "z_score": -0.7461578963672174, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.02483450062572956, "z_score": -0.32699592978734693, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.04493265226483345, "z_score": 0.2619169933831167, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.014582192525267601, "z_score": -0.5177146730753465, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "F", "pred": 0.033678557723760605, "z_score": 0.3864361931942346, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.023952065035700798, "z_score": -0.1517004819152222, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.010340104810893536, "z_score": -0.2753788274174324, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.030067963525652885, "z_score": 0.15147715467943554, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.02550574205815792, "z_score": -0.4553117570318382, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.025728756561875343, "z_score": -0.3906819936386832, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.022717969492077827, "z_score": -0.401777144239259, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.023375123739242554, "z_score": -0.5290217678161905, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.03227518871426582, "z_score": 0.22945525404962228, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.06964091211557388, "z_score": 0.9021944171902995, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.030166499316692352, "z_score": 0.10050305314319412, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.03592231869697571, "z_score": 0.41683129834938387, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.020910590887069702, "z_score": -0.6778452436711735, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.029140930622816086, "z_score": -0.12392598095156798, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "TSLA", "pred": 0.053017616271972656, "z_score": 0.6356383400869952, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.05536836385726929, "z_score": 0.7449376385941061, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.004465562291443348, "z_score": -0.8493446899495778, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.010172264650464058, "z_score": -0.4534413549951961, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.01447911374270916, "z_score": -0.5127933858995471, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SQM", "pred": 0.011687347665429115, "z_score": -0.6414703297512099, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.0206751748919487, "z_score": -0.46372616439190195, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.028181130066514015, "z_score": -0.030286545257861813, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.022290140390396118, "z_score": -0.35000371080614473, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AA", "pred": 0.012611518613994122, "z_score": -0.7357854227787619, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.048689186573028564, "z_score": 0.37801519697391184, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.016441991552710533, "z_score": -0.3375884695537855, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "F", "pred": 0.03842597454786301, "z_score": 0.5816375841062827, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.03206677362322807, "z_score": 0.07266147419470435, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.032895151525735855, "z_score": -0.031294120959989416, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.026894133538007736, "z_score": -0.36939263026387137, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.024476654827594757, "z_score": -0.525235784359068, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02339760959148407, "z_score": -0.4344679301483081, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.03359885513782501, "z_score": 0.0680838863471468, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.05524768680334091, "z_score": 0.6208075841614125, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0345100536942482, "z_score": 0.40356627197384914, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.03242040053009987, "z_score": 0.21695805440440905, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.027289073914289474, "z_score": -0.3104596415852596, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.024049222469329834, "z_score": 0.14074590092962114, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.015149621292948723, "z_score": -0.5918311627784917, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.0016979100182652473, "z_score": -0.9259283269235375, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.018031569197773933, "z_score": -0.46583980077369563, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.02482910454273224, "z_score": -0.27734296269732434, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.0314619317650795, "z_score": 0.2363578394056275, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.026020143181085587, "z_score": -0.018746992854604797, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.017649156972765923, "z_score": -0.8684533548354805, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.016733471304178238, "z_score": -0.6694807267653282, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.026003511622548103, "z_score": -0.1954635999751865, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.044115033000707626, "z_score": 0.22276113607751397, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.015099605545401573, "z_score": -0.4875145404913381, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "F", "pred": 0.032147813588380814, "z_score": 0.27749716685356557, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.023952065035700798, "z_score": -0.1517004819152222, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.010340104810893536, "z_score": -0.2753788274174324, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AAPL", "pred": 0.028685325756669044, "z_score": -0.27728060498401075, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.047174904495477676, "z_score": 0.7607841185330929, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AMD", "pred": 0.023994527757167816, "z_score": -0.7296806356972237, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NFLX", "pred": 0.023177051916718483, "z_score": -0.47933739818969484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "MRNA", "pred": 0.039491552859544754, "z_score": 0.10955953418264834, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIVN", "pred": -0.016323715448379517, "z_score": -0.8922282420133978, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.024000171571969986, "z_score": -0.23685647079576613, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.024890530854463577, "z_score": -0.20669625324897603, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.020993784070014954, "z_score": -0.25272126226579467, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.02689140848815441, "z_score": -0.14537941373220362, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.021048935130238533, "z_score": -0.29105510886401065, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0187617689371109, "z_score": -0.3046185941527849, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035638127475976944, "z_score": -0.17600257797901117, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.02058757282793522, "z_score": -0.46561723764400215, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.039458777755498886, "z_score": 0.2037091876463484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AAPL", "pred": 0.028685325756669044, "z_score": -0.27728060498401075, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.047174904495477676, "z_score": 0.7607841185330929, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AMD", "pred": 0.023994527757167816, "z_score": -0.7296806356972237, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NFLX", "pred": 0.023177051916718483, "z_score": -0.47933739818969484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "MRNA", "pred": 0.039491552859544754, "z_score": 0.10955953418264834, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIVN", "pred": -0.016323715448379517, "z_score": -0.8922282420133978, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.024000171571969986, "z_score": -0.23685647079576613, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.024890530854463577, "z_score": -0.20669625324897603, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.020993784070014954, "z_score": -0.25272126226579467, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.02689140848815441, "z_score": -0.14537941373220362, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.021048935130238533, "z_score": -0.29105510886401065, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.0187617689371109, "z_score": -0.3046185941527849, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035638127475976944, "z_score": -0.17600257797901117, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.02058757282793522, "z_score": -0.46561723764400215, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.039458777755498886, "z_score": 0.2037091876463484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "TSLA", "pred": 0.023758284747600555, "z_score": -0.6683982165664544, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.027449050918221474, "z_score": 0.47497422053847754, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COIN", "pred": 0.022799627855420113, "z_score": -0.4942726366222708, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLTR", "pred": 0.028298180550336838, "z_score": 0.1149206455851225, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "META", "pred": 0.0250282920897007, "z_score": -0.151338235946715, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NFLX", "pred": 0.025431934744119644, "z_score": 0.06307760062504814, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "MRNA", "pred": 0.027033349499106407, "z_score": 0.08121766593909868, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIVN", "pred": 0.022636886686086655, "z_score": -0.19232714764548103, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.024680014699697495, "z_score": -0.10895391973710962, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.02476932294666767, "z_score": -0.0836007281314695, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02459259144961834, "z_score": -0.19056079293344982, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.025027001276612282, "z_score": -0.08703690352979128, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.024372778832912445, "z_score": -0.16211709013715245, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.02454291842877865, "z_score": -0.11722530076029239, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.025375761091709137, "z_score": -0.6240673645168634, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.025093181058764458, "z_score": -0.06411172310564942, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.024205561727285385, "z_score": -0.3288789735824401, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "MARA", "pred": 0.03565140813589096, "z_score": 0.41795579293997764, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AAPL", "pred": 0.029318323358893394, "z_score": -0.1825430217208595, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.04717492312192917, "z_score": 0.7607855127645022, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AMD", "pred": 0.023994527757167816, "z_score": -0.7296806356972237, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NFLX", "pred": 0.023177051916718483, "z_score": -0.47933739818969484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "MRNA", "pred": 0.039491552859544754, "z_score": 0.10955953418264834, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIVN", "pred": -0.016323715448379517, "z_score": -0.8922282420133978, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.024005794897675514, "z_score": -0.23724448222009278, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.02485252171754837, "z_score": -0.2097256452928557, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02091386914253235, "z_score": -0.2553389009883399, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.026835288852453232, "z_score": -0.14840144102717434, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.02234150469303131, "z_score": -0.22195862866486024, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.018785852938890457, "z_score": -0.30370374885334034, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035638127475976944, "z_score": -0.17600257797901117, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.02058757282793522, "z_score": -0.46561723764400215, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.039458777755498886, "z_score": 0.2037091876463484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AAPL", "pred": 0.029318323358893394, "z_score": -0.18254234289924207, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.047174908220767975, "z_score": 0.7607843443439033, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AMD", "pred": 0.023994527757167816, "z_score": -0.7296806356972237, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NFLX", "pred": 0.023177051916718483, "z_score": -0.47933739818969484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "MRNA", "pred": 0.039491552859544754, "z_score": 0.10955953418264834, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIVN", "pred": -0.016323715448379517, "z_score": -0.8922282420133978, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.024006685242056847, "z_score": -0.23718237511355383, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.024888455867767334, "z_score": -0.20684495549792511, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.021049534901976585, "z_score": -0.25107986670217025, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.027199454605579376, "z_score": -0.12622912579581305, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.022344084456562996, "z_score": -0.22175528441039202, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.01877862773835659, "z_score": -0.30402434153897234, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035638127475976944, "z_score": -0.17600257797901117, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.02058757282793522, "z_score": -0.46561723764400215, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.039458777755498886, "z_score": 0.2037091876463484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.0249661672860384, "z_score": -0.20079526949215995, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.02407502941787243, "z_score": -0.2315311429257913, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.027199307456612587, "z_score": -0.12621933565962257, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.02091359533369541, "z_score": -0.2553500241429391, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.025828182697296143, "z_score": -0.15775007030362861, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.02583310380578041, "z_score": -0.13696410739270287, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.01877863146364689, "z_score": -0.3040242381441435, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.022341329604387283, "z_score": -0.2219821522828126, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.020575614646077156, "z_score": -0.400586571763234, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.02602415159344673, "z_score": -0.14844138245315877, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.023391222581267357, "z_score": -0.3221453082868233, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.039458777755498886, "z_score": 0.2037091876463484, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.02058757282793522, "z_score": -0.46561723764400215, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.035638127475976944, "z_score": -0.17600257797901117, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ALB", "pred": 0.03486116603016853, "z_score": 0.3845155748730828, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SQM", "pred": 0.016635827720165253, "z_score": -0.9176933708696134, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.01499822735786438, "z_score": -0.6665533926485621, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.03174259141087532, "z_score": 0.22921494431081954, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.02570411004126072, "z_score": -0.3182292259614192, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.02587072364985943, "z_score": -0.34958920187293735, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.024021338671445847, "z_score": -0.3908807948246171, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AA", "pred": 0.02054731175303459, "z_score": -0.5798152326039666, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.02097083441913128, "z_score": -0.5709102792386879, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.04717491939663887, "z_score": 0.7607854597289531, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.02919788472354412, "z_score": 0.1983900634477951, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "F", "pred": 0.021749155595898628, "z_score": -0.48348426370931696, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.04675769433379173, "z_score": 0.4393307232595447, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.010340104810893536, "z_score": -0.2753788274174324, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.024629490450024605, "z_score": -0.2078635033349537, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.02357601933181286, "z_score": -0.26894279205631233, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.02607819437980652, "z_score": -0.16804294939425962, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.023818565532565117, "z_score": -0.12706681679680026, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.028482329100370407, "z_score": -0.05674147244897475, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.02852531522512436, "z_score": 0.027333749982502382, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.03856215253472328, "z_score": 0.25909053584966785, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.026769666001200676, "z_score": -0.03934349801384363, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.026710927486419678, "z_score": 0.007230603784457335, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.031168002635240555, "z_score": 0.21375072586724753, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.024873103946447372, "z_score": -0.2025197292733959, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.020543374121189117, "z_score": -0.40914607541026954, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "TSLA", "pred": 0.007137834094464779, "z_score": -0.9075269176834142, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.03563590720295906, "z_score": 0.06049970776294134, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.029635872691869736, "z_score": 0.01933101606125366, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.0360138975083828, "z_score": -0.12872235788636144, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SQM", "pred": 0.01385163888335228, "z_score": -0.8694005538088909, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.020847897976636887, "z_score": -0.4368990102804051, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.033677875995635986, "z_score": 0.345236305917707, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.02401675283908844, "z_score": -0.44767473013105247, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.02727033570408821, "z_score": -0.21911452846058924, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.01900717057287693, "z_score": -0.5814558892605106, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AA", "pred": 0.020404156297445297, "z_score": -0.38943510163135175, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.012516612187027931, "z_score": -0.8861261490728307, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.036702368408441544, "z_score": 0.44942071432774117, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.04416888952255249, "z_score": 0.4090618147519119, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.034383222460746765, "z_score": 0.6601627668924718, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "F", "pred": 0.022099653258919716, "z_score": -0.29155452994904785, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.021340379491448402, "z_score": -0.2182764219827832, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.032895151525735855, "z_score": -0.031294120959989416, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "CVX", "pred": 0.023682698607444763, "z_score": -0.27317505174398843, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "XOM", "pred": 0.023983975872397423, "z_score": -0.24349495050590222, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "COP", "pred": 0.026459820568561554, "z_score": -0.15122570321173076, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "OXY", "pred": 0.023500971496105194, "z_score": -0.13716126041028245, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FANG", "pred": 0.026461657136678696, "z_score": -0.11513108369687819, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PSX", "pred": 0.029363691806793213, "z_score": 0.07417321782784426, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PBF", "pred": 0.032670438289642334, "z_score": 0.08238690163354906, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "HAL", "pred": 0.02659648470580578, "z_score": -0.04472499558338679, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SLB", "pred": 0.027356991544365883, "z_score": 0.03657793642767238, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BKR", "pred": 0.028689563274383545, "z_score": 0.08485647101355873, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "VLO", "pred": 0.026915960013866425, "z_score": -0.09465498885633067, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "EOG", "pred": 0.021398991346359253, "z_score": -0.36485658333244847, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "PLUG", "pred": 0.04158983379602432, "z_score": 0.20110658679048118, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FSLR", "pred": 0.029852010309696198, "z_score": 0.02881364514051187, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "ENPH", "pred": 0.030926570296287537, "z_score": -0.26802041272193894, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "FCX", "pred": 0.021920768544077873, "z_score": -0.4013877588945591, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SCCO", "pred": 0.03132693096995354, "z_score": 0.14450038772920817, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BHP", "pred": 0.023847179487347603, "z_score": -0.4632979940665218, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "RIO", "pred": 0.027363818138837814, "z_score": -0.21139063256066762, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GLNCY", "pred": 0.01607886143028736, "z_score": -0.7201421824686629, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "AA", "pred": 0.015576625242829323, "z_score": -0.6005915397737444, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "GOLD", "pred": 0.014508443884551525, "z_score": -0.7712265394810588, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "WPM", "pred": 0.0329887829720974, "z_score": 0.21553783017526176, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "NVDA", "pred": 0.048311710357666016, "z_score": 0.6537064893792599, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "INTC", "pred": 0.032609231770038605, "z_score": 0.48932190872341247, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "F", "pred": 0.021168386563658714, "z_score": -0.3479049765121078, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "SOFI", "pred": 0.023338543251156807, "z_score": -0.17190469993754381, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}
+{"ticker": "BBAI", "pred": 0.027765272185206413, "z_score": -0.07707166812625808, "threshold": 1.0, "strength": "weak", "history_len": -1, "timestamp": ""}

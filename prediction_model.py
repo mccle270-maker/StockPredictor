@@ -180,7 +180,13 @@ def env_bool(name: str, default: bool = False) -> bool:
     return str(v).strip().lower() in ("1", "true", "yes", "y", "on")
 
 
-USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", True)
+def is_elasticnet_enabled() -> bool:
+    """Check if ElasticNet feature selection is enabled - called at RUNTIME, not import time."""
+    return env_bool("USE_ELASTICNET_SELECT", False)  # Default to OFF when not set
+
+
+# Keep module-level for backward compat, but prefer is_elasticnet_enabled() for runtime checks
+USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", False)  # Changed default to False
 try:
     ELASTICNET_L1_RATIO = float(os.environ.get("ELASTICNET_L1_RATIO", 0.5))
     ELASTICNET_MINFEATURES = int(os.environ.get("ELASTICNET_MINFEATURES", 12))
@@ -218,12 +224,88 @@ except Exception:
     OLSSIG_MINFEATURES = 10
 
 
-def get_heston_params_for_ticker(ticker: str) -> HestonParams | None:
-    params_by_ticker = {
+def get_heston_params_for_ticker(ticker: str, hist: pd.DataFrame = None) -> HestonParams | None:
+    """
+    Get Heston model parameters for a ticker.
+    
+    First checks hardcoded calibrated params, then estimates from historical data.
+    This allows Heston pricing for ANY ticker, not just AAPL/NVDA.
+    
+    Args:
+        ticker: Stock ticker symbol
+        hist: Optional historical price DataFrame with 'Close' column
+              If not provided, will attempt to fetch
+    
+    Returns:
+        HestonParams or None if estimation fails
+    """
+    # Hardcoded calibrated parameters for popular tickers
+    calibrated_params = {
         "AAPL": HestonParams(v0=0.04, theta=0.04, kappa=1.5, sigma=0.3, rho=-0.6),
         "NVDA": HestonParams(v0=0.06, theta=0.05, kappa=1.2, sigma=0.5, rho=-0.7),
+        "MSFT": HestonParams(v0=0.035, theta=0.035, kappa=1.8, sigma=0.25, rho=-0.55),
+        "GOOGL": HestonParams(v0=0.045, theta=0.04, kappa=1.6, sigma=0.35, rho=-0.5),
+        "AMZN": HestonParams(v0=0.05, theta=0.045, kappa=1.4, sigma=0.4, rho=-0.55),
+        "META": HestonParams(v0=0.055, theta=0.05, kappa=1.3, sigma=0.45, rho=-0.6),
+        "TSLA": HestonParams(v0=0.08, theta=0.07, kappa=1.0, sigma=0.6, rho=-0.65),
+        "SPY": HestonParams(v0=0.02, theta=0.02, kappa=2.0, sigma=0.2, rho=-0.7),
+        "QQQ": HestonParams(v0=0.03, theta=0.025, kappa=1.8, sigma=0.25, rho=-0.65),
     }
-    return params_by_ticker.get(ticker.upper())
+    
+    ticker_upper = ticker.upper()
+    if ticker_upper in calibrated_params:
+        return calibrated_params[ticker_upper]
+    
+    # Estimate parameters from historical data
+    try:
+        if hist is None:
+            hist = get_price_history(ticker, period="2y", interval="1d")
+        
+        if hist is None or len(hist) < 60:
+            return None
+        
+        close = hist["Close"].astype(float)
+        log_returns = np.log(close / close.shift(1)).dropna()
+        
+        if len(log_returns) < 30:
+            return None
+        
+        # Estimate current variance (v0) from recent 20-day realized vol
+        recent_var = log_returns.tail(20).var() * 252  # Annualized
+        v0 = float(np.clip(recent_var, 0.01, 0.25))  # Clamp to reasonable range
+        
+        # Estimate long-term variance (theta) from full history
+        long_term_var = log_returns.var() * 252
+        theta = float(np.clip(long_term_var, 0.01, 0.20))
+        
+        # Estimate mean reversion speed (kappa)
+        # Higher vol stocks tend to have slower mean reversion
+        kappa = float(np.clip(2.0 - theta * 10, 0.5, 3.0))
+        
+        # Estimate vol of vol (sigma) from rolling volatility changes
+        rolling_vol = log_returns.rolling(20).std() * np.sqrt(252)
+        vol_of_vol = rolling_vol.pct_change().dropna().std()
+        sigma = float(np.clip(vol_of_vol * 5, 0.1, 0.8))
+        
+        # Estimate correlation (rho) between returns and vol changes
+        # Most stocks have negative correlation (leverage effect)
+        try:
+            vol_changes = rolling_vol.diff().dropna()
+            aligned_returns = log_returns.loc[vol_changes.index]
+            if len(aligned_returns) > 10:
+                rho = float(np.clip(np.corrcoef(aligned_returns, vol_changes)[0, 1], -0.9, -0.1))
+                if np.isnan(rho):
+                    rho = -0.5
+            else:
+                rho = -0.5
+        except Exception:
+            rho = -0.5  # Default negative correlation
+        
+        return HestonParams(v0=v0, theta=theta, kappa=kappa, sigma=sigma, rho=rho)
+        
+    except Exception as e:
+        print(f"[Heston] Failed to estimate params for {ticker}: {e}")
+        return None
 
 from scipy.stats import norm
 
@@ -1432,12 +1514,20 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
     Create a model with hyperparameters.
     
     Args:
-        model_type: "rf", "xgb", "gbrt", "linreg"
+        model_type: "rf", "xgb", "gbrt", "linreg", "ensemble"
         random_state: Random seed
         task: "reg" (regression) or "clf" (classification)
         log_version: If True, log the model version being used
         **kwargs: Additional hyperparameters (max_depth, n_estimators, learning_rate, etc.)
     """
+    # Handle ensemble model type
+    if model_type == "ensemble":
+        if HAS_IMPROVEMENTS:
+            print("🔧 Creating ModelEnsemble (RF + GB + XGB)")
+            return ModelEnsemble(include_xgb=True)
+        else:
+            print("⚠️ model_improvements.py not available, falling back to RF")
+            model_type = "rf"
     # Log model version if enabled
     if log_version:
         try:
@@ -1489,18 +1579,34 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         return GradientBoostingRegressor(**params)
 
     if model_type == "xgb":
+        # Use centralized config from src/config.py
+        try:
+            from src.config import get_model_config
+            default_params = get_model_config("xgb")
+        except ImportError:
+            default_params = {
+                'n_estimators': 100,
+                'learning_rate': 0.01,
+                'max_depth': 3,
+                'subsample': 0.6,
+                'colsample_bytree': 0.5,
+                'min_child_weight': 50,
+                'reg_lambda': 10.0,
+                'reg_alpha': 1.0,
+            }
+        
         params = {
-            'n_estimators': kwargs.get('n_estimators', 300),
-            'learning_rate': kwargs.get('learning_rate', 0.05),
-            'max_depth': kwargs.get('max_depth', 3),           # Reduced from 4 to prevent overfitting
+            'n_estimators': kwargs.get('n_estimators', default_params.get('n_estimators', 100)),
+            'learning_rate': kwargs.get('learning_rate', default_params.get('learning_rate', 0.01)),
+            'max_depth': kwargs.get('max_depth', default_params.get('max_depth', 3)),
             'random_state': random_state,
             'tree_method': "hist",
             'verbosity': 0,
-            'subsample': kwargs.get('subsample', 0.8),
-            'colsample_bytree': kwargs.get('colsample_bytree', 0.7),
-            'min_child_weight': kwargs.get('min_child_weight', 100),  # Increased from 5 for stronger regularization
-            'reg_lambda': kwargs.get('reg_lambda', 10.0),      # Increased from 1.0 for L2 regularization
-            'reg_alpha': kwargs.get('reg_alpha', 1.0),         # Increased from 0.0 for L1 regularization
+            'subsample': kwargs.get('subsample', default_params.get('subsample', 0.6)),
+            'colsample_bytree': kwargs.get('colsample_bytree', default_params.get('colsample_bytree', 0.5)),
+            'min_child_weight': kwargs.get('min_child_weight', default_params.get('min_child_weight', 50)),
+            'reg_lambda': kwargs.get('reg_lambda', default_params.get('reg_lambda', 10.0)),
+            'reg_alpha': kwargs.get('reg_alpha', default_params.get('reg_alpha', 1.0)),
         }
         return XGBRegressor(**params)
 
@@ -1813,6 +1919,23 @@ def build_features_and_target(
             # Order features by logical vectors (momentum, volatility, trend, volume, pattern, regime, macro, fundamentals, gbm/arima/news)
             feat_cols = feat_cols_available + macro_cols_available
             ordered_feat_cols = [c for c in FEAT_GROUP_ORDER if c in feat_cols] + [c for c in feat_cols if c not in FEAT_GROUP_ORDER]
+            
+            # SAFEGUARD: Ensure we have minimum features before proceeding
+            MIN_REQUIRED_FEATURES = 5
+            if len(ordered_feat_cols) < MIN_REQUIRED_FEATURES:
+                print(f"⚠️ {ticker} only has {len(ordered_feat_cols)} features after quality filter, relaxing threshold...")
+                # Relax the NaN threshold to 70%
+                feat_cols_available = [c for c in FEATURE_COLUMNS if c in hist.columns]
+                data_quality = hist[feat_cols_available].isna().sum() / len(hist)
+                feat_cols_available = [c for c in feat_cols_available if data_quality[c] < 0.7]
+                macro_cols_available = [c for c in MACRO_COLUMNS if c in hist.columns]
+                data_quality_macro = hist[macro_cols_available].isna().sum() / len(hist)
+                macro_cols_available = [c for c in macro_cols_available if data_quality_macro[c] < 0.7]
+                feat_cols = feat_cols_available + macro_cols_available
+                ordered_feat_cols = [c for c in FEAT_GROUP_ORDER if c in feat_cols] + [c for c in feat_cols if c not in FEAT_GROUP_ORDER]
+                
+                if len(ordered_feat_cols) < MIN_REQUIRED_FEATURES:
+                    raise ValueError(f"{ticker}: Only {len(ordered_feat_cols)} features available. Insufficient data quality.")
             
             # Fill remaining NaNs with forward fill, then backward fill
             hist[ordered_feat_cols] = hist[ordered_feat_cols].fillna(method='ffill').fillna(method='bfill').fillna(0)
@@ -2354,9 +2477,15 @@ def predict_next_for_ticker(
         x_last = x_last[ols_mask]
         actual_feat_cols = ols_names
 
-
-    if USE_ELASTICNET_SELECT:
+    # Check ElasticNet at RUNTIME (not module import time)
+    use_elasticnet_now = is_elasticnet_enabled()
+    if use_elasticnet_now:
         try:
+            # Re-read config at runtime
+            en_l1_ratio = float(os.environ.get("ELASTICNET_L1_RATIO", 0.5))
+            en_cv_folds = int(os.environ.get("ELASTICNET_CV_FOLDS", 5))
+            en_min_features = int(os.environ.get("ELASTICNET_MINFEATURES", 12))
+            
             train_end_for_en = int(n * 0.8)
             X_en_train = X[:train_end_for_en]
             y_en_train = y[:train_end_for_en]
@@ -2367,19 +2496,33 @@ def predict_next_for_ticker(
                 feature_names=list(actual_feat_cols),
                 dates=dates[:train_end_for_en],
                 horizon=horizon,
-                n_splits=ELASTICNET_CV_FOLDS,
-                l1_ratio=ELASTICNET_L1_RATIO,
-                min_features=10,
+                n_splits=en_cv_folds,
+                l1_ratio=en_l1_ratio,
+                min_features=en_min_features,
             )
-            X = X[:, en_mask]
-            x_last = x_last[en_mask]
-            actual_feat_cols = en_selected_names
-            print(f"{ticker} ElasticNet selected {len(actual_feat_cols)} features")
+            
+            # SAFEGUARD: Ensure we have at least 1 feature after ElasticNet
+            if np.sum(en_mask) == 0 or len(en_selected_names) == 0:
+                print(f"⚠️ {ticker} ElasticNet selected 0 features! Falling back to all features.")
+                # Don't apply the mask - keep all features
+            else:
+                X = X[:, en_mask]
+                x_last = x_last[en_mask]
+                actual_feat_cols = en_selected_names
+                print(f"✂️ {ticker} ElasticNet selected {len(actual_feat_cols)} features (enabled via env)")
         except Exception as e:
             print(f"{ticker} ElasticNet selection failed; continuing without it. Error: {e}")
+    else:
+        print(f"📊 {ticker} Using ALL {X.shape[1]} features (ElasticNet disabled)")
+
+    # SAFEGUARD: Check if we have valid features before proceeding
+    if X.shape[1] == 0:
+        raise ValueError(f"{ticker}: No features available after preprocessing. Check data quality.")
 
 
     # --- XGBoost Feature Importance Selection (optional) ---
+    Xtest_for_zscore = None  # Will be set in each branch for z-score calculation
+    
     if USE_XGB_FEATURE_SELECTION and model_type == "xgb":
         train_end = int(n * 0.8)
         Xtrain = X[:train_end]
@@ -2399,6 +2542,7 @@ def predict_next_for_ticker(
             important_mask = np.ones(X.shape[1], dtype=bool)
             important_features = actual_feat_cols
         Xtrain_full = X[:train_end][:, important_mask]
+        Xtest_for_zscore = X[train_end:][:, important_mask]  # Store test set with same mask for z-score
         ytrain_full = y[:train_end]
         x_last_pruned = x_last[important_mask]
         actual_feat_cols = important_features
@@ -2412,21 +2556,43 @@ def predict_next_for_ticker(
         if hasattr(model_init, "feature_importances_"):
             importance = model_init.feature_importances_
             important_mask = importance > 0.001
+            # Safety check: ensure we keep at least min_features features
+            min_features = min(20, X.shape[1])  # Keep at least 20 features
+            if np.sum(important_mask) < min_features:
+                # If too few features selected, take top N by importance instead
+                top_indices = np.argsort(importance)[::-1][:min_features]
+                important_mask = np.zeros(X.shape[1], dtype=bool)
+                important_mask[top_indices] = True
+                print(f"  ⚠️ Too few features above threshold, using top {min_features} by importance")
         else:
             important_mask = np.ones(X.shape[1], dtype=bool)
 
         important_features = [actual_feat_cols[i] for i in range(len(actual_feat_cols)) if important_mask[i]]
         print(f"{ticker} Using {len(important_features)}/{len(actual_feat_cols)} features for prediction")
 
+        # SAFEGUARD: Ensure we have at least 1 feature
+        if len(important_features) == 0:
+            print(f"⚠️ {ticker} auto_optimize selected 0 features! Using all available features.")
+            important_mask = np.ones(X.shape[1], dtype=bool)
+            important_features = list(actual_feat_cols)
+
         Xtrain_full = X[:train_end][:, important_mask]
+        Xtest_for_zscore = X[train_end:][:, important_mask]  # Store test set with same mask for z-score
         ytrain_full = y[:train_end]
         x_last_pruned = x_last[important_mask]
         actual_feat_cols = important_features
     else:
+        # No feature pruning - use all features
         split_idx = int(n * 0.8)
         Xtrain_full = X[:split_idx]
+        Xtest_for_zscore = X[split_idx:]  # Store test set for z-score
         ytrain_full = y[:split_idx]
         x_last_pruned = x_last
+        print(f"📊 {ticker} auto_optimize=OFF, using ALL {X.shape[1]} features")
+
+    # FINAL SAFEGUARD: Ensure training data has features
+    if Xtrain_full.shape[1] == 0:
+        raise ValueError(f"{ticker}: No features available for training. X.shape={X.shape}")
 
     model = make_model(model_type=model_type, random_state=42, task="reg")
     model.fit(Xtrain_full, ytrain_full)
@@ -2438,6 +2604,51 @@ def predict_next_for_ticker(
     # NEW: Calculate confidence score (absolute prediction magnitude)
     # Higher |pred_ret| = higher confidence model has in the prediction
     confidence_score = float(abs(pred_ret))
+    
+    # Calculate prediction z-score using model's out-of-sample predictions
+    # This tells us how unusual this prediction is compared to historical predictions
+    pred_zscore = 0.0
+    try:
+        # FIXED 2026-01-08: Xtest_for_zscore is now pre-computed with correct features
+        # in each branch (XGB feature selection, auto_optimize, or plain)
+        
+        if Xtest_for_zscore is not None and len(Xtest_for_zscore) >= 5:
+            # Verify dimensions match model's expectation
+            expected_features = Xtrain_full.shape[1]
+            if Xtest_for_zscore.shape[1] != expected_features:
+                print(f"  ⚠️ Z-score: Feature mismatch ({Xtest_for_zscore.shape[1]} vs {expected_features}), using fallback")
+                # Fallback: use training predictions to estimate distribution
+                train_preds = model.predict(Xtrain_full)
+                pred_mean = float(np.mean(train_preds))
+                pred_std = float(np.std(train_preds, ddof=1))
+            else:
+                test_preds = model.predict(Xtest_for_zscore)
+                pred_mean = float(np.mean(test_preds))
+                pred_std = float(np.std(test_preds, ddof=1))
+            
+            # Calculate z-score
+            if pred_std > 1e-9:
+                pred_zscore = float((pred_ret - pred_mean) / pred_std)
+            else:
+                # If std is 0, use a simple sign-based z-score
+                pred_zscore = 1.0 if pred_ret > pred_mean else -1.0 if pred_ret < pred_mean else 0.0
+                print(f"  ⚠️ Z-score: Zero std, using sign-based z-score")
+            
+            print(f"  📊 {ticker} Z-score: {pred_zscore:.3f} (pred={pred_ret:.4f}, mean={pred_mean:.4f}, std={pred_std:.4f})")
+        else:
+            # Fallback: use training data to estimate prediction distribution
+            print(f"  ⚠️ Z-score: Not enough test data, using training predictions")
+            train_preds = model.predict(Xtrain_full)
+            pred_mean = float(np.mean(train_preds))
+            pred_std = float(np.std(train_preds, ddof=1))
+            if pred_std > 1e-9:
+                pred_zscore = float((pred_ret - pred_mean) / pred_std)
+            else:
+                pred_zscore = 1.0 if pred_ret > pred_mean else -1.0 if pred_ret < pred_mean else 0.0
+            print(f"  📊 {ticker} Z-score (from train): {pred_zscore:.3f}")
+    except Exception as zscore_err:
+        print(f"Z-score calculation failed: {zscore_err}")
+        pred_zscore = 0.0
 
     pred_price = float(last_close * (1 + pred_ret))
 
@@ -2446,7 +2657,10 @@ def predict_next_for_ticker(
     try:
         ydir = (y > 0).astype(int)
         ydir_train = ydir[:len(Xtrain_full)]
-        clf = make_model(model_type=model_type, random_state=42, task="clf")
+        
+        # For ensemble model, use RF classifier for probability (ensemble is regressor only)
+        clf_model_type = "rf" if model_type == "ensemble" else model_type
+        clf = make_model(model_type=clf_model_type, random_state=42, task="clf", log_version=False)
         clf.fit(Xtrain_full, ydir_train)
 
         if hasattr(clf, "predict_proba"):
@@ -2462,7 +2676,8 @@ def predict_next_for_ticker(
             pred_dir = int(clf.predict(x_last_pruned.reshape(1, -1))[0])
             prob_up = 1.0 if pred_dir == 1 else 0.0
             prob_down = 1.0 - prob_up
-    except Exception:
+    except Exception as prob_err:
+        print(f"Probability calculation failed: {prob_err}")
         prob_up = None
         prob_down = None
 
@@ -2484,23 +2699,23 @@ def predict_next_for_ticker(
         "vol_20d": last_vol_20d,
         "pe_ratio": pe_ratio,
         "pred_next_ret": pred_ret,
-        "confidence_score": confidence_score,  # NEW: Prediction confidence (|prediction magnitude|)
+        "pred_zscore": pred_zscore,  # Z-score of prediction vs historical predictions
+        "confidence_score": confidence_score,  # Prediction confidence (|prediction magnitude|)
         "pred_next_price": pred_price,
         "prob_up": prob_up,
         "prob_down": prob_down,
         "prob_up_gaf": prob_up_gaf,
         "num_features": len(actual_feat_cols),
         "top_features": top_features_str,
-        "elasticnet_enabled": bool(USE_ELASTICNET_SELECT),
-        "elasticnet_l1_ratio": float(ELASTICNET_L1_RATIO),
-        "elasticnet_cv_folds": int(ELASTICNET_CV_FOLDS),
-        "elasticnet_selected_n": int(len(actual_feat_cols)) if USE_ELASTICNET_SELECT else None,
+        "elasticnet_enabled": use_elasticnet_now,  # Runtime check, not module-level constant
+        "elasticnet_l1_ratio": float(os.environ.get("ELASTICNET_L1_RATIO", 0.5)),
+        "elasticnet_cv_folds": int(os.environ.get("ELASTICNET_CV_FOLDS", 5)),
+        "elasticnet_selected_n": int(len(actual_feat_cols)) if use_elasticnet_now else None,
     }
 
 
 
 # -------------------- Long-horizon side-car (20–30d) --------------------
-
 
 def predict_long_horizon_for_ticker(
     ticker: str,

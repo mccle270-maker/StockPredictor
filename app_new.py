@@ -30,11 +30,16 @@ from src.config import (
     FRICTION_PRESETS,
     OPTIONS_PRESETS,
     WALKFORWARD_PRESETS,
+    TRADING_STRATEGY_PRESETS,
+    TradingStrategyPreset,
     ExecutionModel,
     OptionsConfig,
     SIGNALS_PATH,
+    TRADING_STRATEGIES,
+    get_strategy_display_names,
 )
 from src.core.pricing import PricingModel
+from src.core.signal_filter import apply_signal_filter, should_trade
 from src.services.prediction import (
     predict_next_for_ticker,
     predict_long_horizon_for_ticker,
@@ -111,6 +116,14 @@ try:
     HAS_LIVE_UPDATES = True
 except ImportError:
     HAS_LIVE_UPDATES = False
+
+# Performance Monitoring (optional)
+try:
+    from src.monitoring import PerformanceMonitor, AlertLevel
+    HAS_MONITORING = True
+except ImportError:
+    HAS_MONITORING = False
+    PerformanceMonitor = None
 
 # Paths
 TRADER_PATH = BASE_DIR / "auto_paper_trade.py"
@@ -211,8 +224,8 @@ TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(\.[A-Z]{1,2})?$')
 # Valid period values
 VALID_PERIODS = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "5y", "10y", "max"]
 
-# Valid model types
-VALID_MODELS = ["rf", "xgb", "gbrt", "linreg"]
+# Valid model types (ensemble added)
+VALID_MODELS = ["rf", "xgb", "gbrt", "linreg", "ensemble"]
 
 
 class ValidationError(Exception):
@@ -603,10 +616,11 @@ def _cached_prediction(ticker: str, period: str, model_type: str, horizon: int,
     """
     import os
     # Set environment variable for Elastic Net feature selection
+    # MUST explicitly set to "1" or "0" (not just remove) for runtime check to work
     if use_elasticnet:
         os.environ["USE_ELASTICNET_SELECT"] = "1"
     else:
-        os.environ.pop("USE_ELASTICNET_SELECT", None)
+        os.environ["USE_ELASTICNET_SELECT"] = "0"  # Explicitly disable
     
     return predict_next_for_ticker(
         ticker=ticker,
@@ -956,6 +970,37 @@ def _enrich_prediction_with_options(pred: dict, ticker: str) -> dict:
     except Exception as e:
         print(f"Options enrichment failed for {ticker}: {e}")
     
+    # Add options valuation indicator (Heston model vs market IV)
+    pred["options_valuation"] = None
+    pred["options_valuation_pct"] = None
+    try:
+        from prediction_model import get_heston_params_for_ticker
+        heston_params = get_heston_params_for_ticker(ticker)
+        atm_iv = pred.get("atm_iv")
+        
+        if heston_params and atm_iv is not None:
+            import numpy as np
+            heston_fair_vol = float(np.sqrt(heston_params.theta))
+            market_iv = float(atm_iv)
+            
+            # Calculate percentage difference: positive = overpriced, negative = undervalued
+            vol_diff_pct = ((market_iv - heston_fair_vol) / heston_fair_vol) * 100
+            pred["options_valuation_pct"] = round(vol_diff_pct, 1)
+            pred["heston_fair_vol"] = round(heston_fair_vol * 100, 1)
+            
+            if vol_diff_pct > 20:
+                pred["options_valuation"] = "🔴 OVERPRICED"
+            elif vol_diff_pct > 10:
+                pred["options_valuation"] = "🟠 Slightly Overpriced"
+            elif vol_diff_pct < -20:
+                pred["options_valuation"] = "🟢 UNDERVALUED"
+            elif vol_diff_pct < -10:
+                pred["options_valuation"] = "🟡 Slightly Undervalued"
+            else:
+                pred["options_valuation"] = "⚪ Fair"
+    except Exception:
+        pass
+    
     return pred
 
 
@@ -1021,6 +1066,37 @@ def _enrich_prediction_with_options_cached(pred: dict, ticker: str, pricing_mode
                         pass
     except Exception as e:
         print(f"Options enrichment failed for {ticker}: {e}")
+    
+    # Add options valuation indicator (Heston model vs market IV)
+    pred["options_valuation"] = None
+    pred["options_valuation_pct"] = None
+    try:
+        from prediction_model import get_heston_params_for_ticker
+        heston_params = get_heston_params_for_ticker(ticker)
+        atm_iv = pred.get("atm_iv")
+        
+        if heston_params and atm_iv is not None:
+            import numpy as np
+            heston_fair_vol = float(np.sqrt(heston_params.theta))
+            market_iv = float(atm_iv)
+            
+            # Calculate percentage difference: positive = overpriced, negative = undervalued
+            vol_diff_pct = ((market_iv - heston_fair_vol) / heston_fair_vol) * 100
+            pred["options_valuation_pct"] = round(vol_diff_pct, 1)
+            pred["heston_fair_vol"] = round(heston_fair_vol * 100, 1)
+            
+            if vol_diff_pct > 20:
+                pred["options_valuation"] = "🔴 OVERPRICED"
+            elif vol_diff_pct > 10:
+                pred["options_valuation"] = "🟠 Slightly Overpriced"
+            elif vol_diff_pct < -20:
+                pred["options_valuation"] = "🟢 UNDERVALUED"
+            elif vol_diff_pct < -10:
+                pred["options_valuation"] = "🟡 Slightly Undervalued"
+            else:
+                pred["options_valuation"] = "⚪ Fair"
+    except Exception:
+        pass
     
     return pred
 
@@ -1802,116 +1878,173 @@ if "_preset_tickers" in st.session_state and st.session_state["_preset_tickers"]
     tickers, _ = validate_tickers(watchlist_text)  # Presets are pre-validated, ignore errors
     st.session_state["_preset_tickers"] = None
 
-# === MODEL CONFIGURATION ===
-st.sidebar.markdown('<p class="section-title">Model Configuration</p>', unsafe_allow_html=True)
+# ============================================================================
+# SIMPLIFIED SIDEBAR - Master Strategy Preset
+# ============================================================================
+st.sidebar.markdown('<p class="section-title">🎯 Trading Strategy</p>', unsafe_allow_html=True)
 
-param_cols = st.sidebar.columns(2)
-with param_cols[0]:
-    period = st.selectbox(
-        "Training Period",
-        ["2y", "5y", "10y"],
-        index=1,
-        key="param_period"
-    )
-with param_cols[1]:
+# Initialize session state for custom overrides if not exists
+if "custom_model_type" not in st.session_state:
+    st.session_state.custom_model_type = None
+if "custom_signal_thresh" not in st.session_state:
+    st.session_state.custom_signal_thresh = None
+if "custom_max_tickers" not in st.session_state:
+    st.session_state.custom_max_tickers = None
+
+# Master preset selector - this sets sensible defaults
+strategy_preset_name = st.sidebar.selectbox(
+    "Strategy Mode",
+    list(TRADING_STRATEGY_PRESETS.keys()),
+    index=0,  # Default (Balanced)
+    key="strategy_preset",
+    help="Choose a preset: Strict = fewer, higher-quality signals; Loose = more signals"
+)
+strategy_preset: TradingStrategyPreset = TRADING_STRATEGY_PRESETS[strategy_preset_name]
+
+# Show what the preset does
+st.sidebar.caption(f"📊 {strategy_preset.description}")
+
+# Quick overrides for common settings
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Quick Settings**")
+
+quick_cols = st.sidebar.columns(2)
+with quick_cols[0]:
     prediction_horizon = st.selectbox(
-        "Forecast Horizon",
-        [1, 2, 3, 4, 5],
-        index=4,
+        "Horizon",
+        [1, 2, 3, 5],
+        index=0,  # Default to 1D
         format_func=lambda x: f"{x}D",
         key="param_horizon"
+    )
+with quick_cols[1]:
+    period = st.selectbox(
+        "Period",
+        ["2y", "5y", "10y"],
+        index=1,  # Default to 5y
+        key="param_period"
     )
 
 horizon_label = f"{prediction_horizon}D"
 
-model_type = st.sidebar.selectbox(
-    "Algorithm",
-    ["rf", "gbrt", "xgb"],
-    index=0,
-    format_func=lambda x: {"rf": "Random Forest", "gbrt": "Gradient Boosting", "xgb": "XGBoost"}[x],
-    key="param_model"
+# Get friction and options presets from strategy preset
+friction_preset = strategy_preset.friction_preset
+fp = FRICTION_PRESETS.get(friction_preset, FRICTION_PRESETS["Default"])
+exec_model = ExecutionModel(
+    delay_days=int(fp.delay_days),
+    half_spread_bps=float(fp.half_spread_bps),
+    slippage_bps=float(fp.slippage_bps),
+    fee_bps=float(fp.fee_bps),
 )
 
-auto_optimize = st.sidebar.checkbox("Auto-optimize hyperparameters", value=True)
+options_preset = strategy_preset.options_preset
+op = OPTIONS_PRESETS.get(options_preset, OPTIONS_PRESETS["Default"])
+dte_min = op.dte_min
+dte_max = op.dte_max
+width_pct = op.width_pct
+prefer_spreads = op.prefer_spreads
+max_premium = 500.0
+max_strike = 500.0
+trade_mode = "Options if suggested"
+auto_run_trader = False
 
-# === SIGNAL FILTERS ===
-st.sidebar.markdown('<p class="section-title">Signal Filters</p>', unsafe_allow_html=True)
+# Defaults for other settings (will be overridden by Advanced Options if opened)
+ret_thresh = 3.0
+vol_spike_thresh = 1.5
+exclude_disagree = True
+pricing_model = PricingModel.BLACK_SCHOLES
+run_gaf = False
+fetch_live_price = False
+run_mc = False
+use_elasticnet_select = False
 
-signal_threshold_pct = st.sidebar.slider(
-    "Min signal threshold",
-    min_value=0.0,
-    max_value=2.0,
-    value=0.25,
-    step=0.05,
-    format="%.2f%%",
-    key="signal_thresh"
-) / 100.0
+# ============================================================================
+# SIGNAL FILTER SELECTION
+# Filters predictions to improve accuracy/Sharpe based on experiments
+# ============================================================================
+st.sidebar.markdown("---")
+st.sidebar.markdown('<p class="section-title">📊 Signal Filter</p>', unsafe_allow_html=True)
 
-with st.sidebar.expander("Advanced Filters", expanded=False):
-    max_tickers = st.slider("Max tickers", 1, 50, 10)
-    ret_thresh = st.slider("Min return %", 0.0, 10.0, 3.0, 0.5)
-    vol_spike_thresh = st.slider("Vol spike (x)", 0.5, 5.0, 1.5, 0.1)
-    min_move = st.slider("Min pred %", 0.0, 5.0, 1.0, 0.1)
-    min_iv, max_iv = st.slider("IV range", 0.0, 1.0, (0.2, 0.8), 0.05)
-    exclude_disagree = st.checkbox("Hide disagree", value=True)
+# Get display names for dropdown
+signal_filter_options = get_strategy_display_names()
+signal_filter_key = st.sidebar.selectbox(
+    "Filter Mode",
+    list(signal_filter_options.keys()),
+    index=0,  # Default to baseline
+    format_func=lambda x: signal_filter_options[x],
+    key="signal_filter_mode",
+    help="Filter signals to improve accuracy/Sharpe. Based on holdout testing."
+)
 
-# === EXECUTION SETTINGS ===
-st.sidebar.markdown('<p class="section-title">Execution</p>', unsafe_allow_html=True)
+# Show filter details
+selected_filter = TRADING_STRATEGIES[signal_filter_key]
+st.sidebar.caption(f"📈 {selected_filter['description']}")
 
-with st.sidebar.expander("Pricing & Features", expanded=False):
-    pricing_model_label = st.selectbox("Pricing Model", ["Black-Scholes", "Heston"], index=0)
+# Show expected metrics
+metrics = selected_filter.get("metrics", {})
+if metrics:
+    metrics_text = f"Sharpe: {metrics.get('sharpe', 'N/A')} | Accuracy: {metrics.get('accuracy', 0):.1%} | Active: {metrics.get('active_pct', 1.0):.0%}"
+    st.sidebar.caption(f"📊 {metrics_text}")
+
+# ============================================================================
+# ADVANCED OPTIONS (Collapsed by default)
+# These OVERRIDE the preset values when changed
+# ============================================================================
+with st.sidebar.expander("⚙️ Advanced Options", expanded=False):
+    st.markdown("**Model**")
+    
+    # Model selection - independent of preset
+    all_models = ["rf", "gbrt", "xgb", "ensemble"]
+    model_type = st.selectbox(
+        "Algorithm",
+        all_models,
+        index=0,  # Default to RF, user can change freely
+        format_func=lambda x: {"rf": "Random Forest", "gbrt": "Gradient Boosting", "xgb": "XGBoost", "ensemble": "Ensemble (RF+GB+XGB)"}[x],
+        key="param_model"
+    )
+    auto_optimize = st.checkbox("Auto-optimize", value=True, key="param_auto_opt")
+    
+    st.markdown("**Filters**")
+    signal_threshold_pct = st.slider(
+        "Min signal %", 0.0, 2.0, 0.25, 0.1,  # Fixed default, won't reset
+        key="signal_thresh"
+    ) / 100.0
+    max_tickers = st.slider("Max tickers", 1, 50, 10, key="max_tickers_slider")
+    min_move = st.slider("Min pred move %", 0.0, 5.0, 1.0, 0.25, key="min_move_slider")
+    min_iv, max_iv = st.slider("IV range", 0.0, 1.0, (0.20, 0.80), 0.05, key="iv_range_slider")
+    
+    st.markdown("**Execution**")
+    pricing_model_label = st.selectbox("Pricing", ["Black-Scholes", "Heston"], index=0, key="pricing_select")
     pricing_model = PricingModel.BLACK_SCHOLES if pricing_model_label == "Black-Scholes" else PricingModel.HESTON
+    
+    trade_mode = st.selectbox("Trade Mode", ["Stocks", "Options if suggested", "Options"], index=1, key="trade_mode_select")
+    auto_run_trader = st.checkbox("Auto-execute trades", value=False, key="auto_run_check")
 
-    st.markdown("**Feature Selection**")
-    use_elasticnet_select = st.checkbox("Elastic Net", value=False)
-    en_l1_ratio = st.slider("L1 ratio", 0.0, 1.0, 0.5, 0.05)
-    en_cv_folds = st.slider("CV folds", 3, 8, 5, 1)
-    en_min_features = st.slider("Min features", 6, 40, 12, 1)
-
+with st.sidebar.expander("🔬 Feature Engineering", expanded=False):
+    use_elasticnet_select = st.checkbox("Elastic Net Selection", value=False)
     if use_elasticnet_select:
+        en_l1_ratio = st.slider("L1 ratio", 0.0, 1.0, 0.5, 0.05)
+        en_cv_folds = st.slider("CV folds", 3, 8, 5, 1)
+        en_min_features = st.slider("Min features", 6, 40, 12, 1)
         os.environ["USE_ELASTICNET_SELECT"] = "1"
         os.environ["ELASTICNET_L1_RATIO"] = str(en_l1_ratio)
         os.environ["ELASTICNET_CV_FOLDS"] = str(en_cv_folds)
         os.environ["ELASTICNET_MINFEATURES"] = str(en_min_features)
     else:
         os.environ["USE_ELASTICNET_SELECT"] = "0"
+    
+    run_gaf = st.checkbox("GAF-CNN (image-based)", value=False)
+    run_mc = st.checkbox("Monte Carlo simulation", value=False)
 
-    run_gaf = st.checkbox("GAF-CNN", value=False)
-    fetch_live_price = st.checkbox("Live price", value=False)
-    run_mc = st.checkbox("Monte Carlo", value=False)
-
-with st.sidebar.expander("Trading Costs", expanded=False):
-    friction_preset = st.selectbox("Friction Preset", list(FRICTION_PRESETS.keys()), index=0)
-    fp = FRICTION_PRESETS[friction_preset]
-    exec_model = ExecutionModel(
-        delay_days=int(fp.delay_days),
-        half_spread_bps=float(fp.half_spread_bps),
-        slippage_bps=float(fp.slippage_bps),
-        fee_bps=float(fp.fee_bps),
-    )
-
-    with st.expander("Override Costs", expanded=False):
-        exec_model = ExecutionModel(
-            delay_days=_parse_int(st.text_input("Delay days", value=str(exec_model.delay_days)), exec_model.delay_days),
-            half_spread_bps=_parse_float(st.text_input("Spread (bps)", value=str(exec_model.half_spread_bps)), exec_model.half_spread_bps),
-            slippage_bps=_parse_float(st.text_input("Slippage (bps)", value=str(exec_model.slippage_bps)), exec_model.slippage_bps),
-            fee_bps=_parse_float(st.text_input("Fee (bps)", value=str(exec_model.fee_bps)), exec_model.fee_bps),
-        )
-
-with st.sidebar.expander("Options Trading", expanded=False):
-    trade_mode = st.selectbox("Mode", ["Stocks", "Options if suggested", "Options"], index=1)
-    options_preset = st.selectbox("Options Preset", list(OPTIONS_PRESETS.keys()), index=0)
-    op = OPTIONS_PRESETS[options_preset]
-
-    budget_per_contract = _parse_float(st.text_input("Max premium ($)", value="500"), 500.0)
-    max_premium = float(budget_per_contract)
-    max_strike = _parse_float(st.text_input("Max strike", value="500"), 500.0)
-    dte_min = _parse_int(st.text_input("DTE min", value=str(op.dte_min)), int(op.dte_min))
-    dte_max = _parse_int(st.text_input("DTE max", value=str(op.dte_max)), int(op.dte_max))
-    width_pct_in = _parse_float(st.text_input("Width %", value=str(op.width_pct * 100.0)), op.width_pct * 100.0)
-    width_pct = float(width_pct_in) / 100.0
-    prefer_spreads = st.checkbox("Prefer spreads", value=bool(op.prefer_spreads))
-    auto_run_trader = st.checkbox("Auto-execute trades", value=False)
+with st.sidebar.expander("💰 Options Settings", expanded=False):
+    options_preset_override = st.selectbox("Options Preset", list(OPTIONS_PRESETS.keys()), 
+                                           index=list(OPTIONS_PRESETS.keys()).index(options_preset) if options_preset in OPTIONS_PRESETS else 0)
+    op = OPTIONS_PRESETS[options_preset_override]
+    dte_min = st.number_input("DTE min", value=op.dte_min, min_value=1, max_value=90)
+    dte_max = st.number_input("DTE max", value=op.dte_max, min_value=7, max_value=365)
+    max_premium = st.number_input("Max premium ($)", value=500.0, min_value=50.0, max_value=5000.0)
+    prefer_spreads = st.checkbox("Prefer spreads", value=op.prefer_spreads)
+    width_pct = op.width_pct
 
 # === CACHE MANAGEMENT ===
 st.sidebar.markdown('<p class="section-title">Cache Management</p>', unsafe_allow_html=True)
@@ -2011,7 +2144,7 @@ st.sidebar.caption(f"📊 {len(tickers)} ticker(s) • {period} • {horizon_lab
 # MAIN PANEL - Tabbed Layout
 # ============================================================================
 
-tab_dash, tab_backtests, tab_port = st.tabs(["📈 DASHBOARD", "🔬 BACKTEST", "📊 PORTFOLIO"])
+tab_dash, tab_backtests, tab_port, tab_monitor = st.tabs(["📈 DASHBOARD", "🔬 BACKTEST", "📊 PORTFOLIO", "🔔 MONITORING"])
 
 # ============================================================================
 # TAB: Dashboard - Professional Trading View
@@ -2443,17 +2576,37 @@ with tab_dash:
         cand_df = pred_df.copy()
 
         # === Add new columns for z-score, volatility scaling, ensemble ===
-        # Z-score: rolling mean/std of pred_next_ret per ticker (window=60, min 20)
+        # Z-score: Priority order: 1) last_signals 2) pred_zscore column 3) fallback 0.0
+        last_signals = st.session_state.get("last_signals", {})
+        
+        def get_zscore_for_ticker(ticker, row_pred_zscore=None):
+            """Get z-score from signals dict, falling back to pred_zscore from prediction."""
+            # Try last_signals first
+            sig = last_signals.get(ticker, {})
+            if isinstance(sig, dict):
+                z = sig.get("z_score")
+                if z is not None and not pd.isna(z) and abs(float(z)) > 1e-9:
+                    return float(z)
+            # Fall back to row's pred_zscore if provided
+            if row_pred_zscore is not None and not pd.isna(row_pred_zscore) and abs(float(row_pred_zscore)) > 1e-9:
+                return float(row_pred_zscore)
+            return 0.0
+        
+        # Build prediction_zscore column with proper fallback chain
+        if "ticker" in cand_df.columns and "pred_zscore" in cand_df.columns:
+            # Use both: last_signals first, then pred_zscore as fallback
+            cand_df["prediction_zscore"] = cand_df.apply(
+                lambda row: get_zscore_for_ticker(row["ticker"], row.get("pred_zscore")), 
+                axis=1
+            )
+        elif "ticker" in cand_df.columns:
+            cand_df["prediction_zscore"] = cand_df["ticker"].apply(lambda t: get_zscore_for_ticker(t))
+        elif "pred_zscore" in cand_df.columns:
+            cand_df["prediction_zscore"] = cand_df["pred_zscore"].fillna(0.0)
+        else:
+            cand_df["prediction_zscore"] = 0.0
+        
         if "pred_next_ret" in cand_df.columns:
-            window = 60
-            min_periods = 20
-            # If multi-ticker, group by ticker; else, just rolling
-            if "ticker" in cand_df.columns:
-                cand_df["prediction_zscore"] = cand_df.groupby("ticker")["pred_next_ret"].transform(
-                    lambda x: (x - x.rolling(window, min_periods=min_periods).mean()) / x.rolling(window, min_periods=min_periods).std()
-                )
-            else:
-                cand_df["prediction_zscore"] = (cand_df["pred_next_ret"] - cand_df["pred_next_ret"].rolling(window, min_periods=min_periods).mean()) / cand_df["pred_next_ret"].rolling(window, min_periods=min_periods).std()
             cand_df["pred_next_ret_pct"] = cand_df["pred_next_ret"] * 100
             cand_df["abs_pred_pct"] = cand_df["pred_next_ret_pct"].abs()
         else:
@@ -2473,11 +2626,8 @@ with tab_dash:
                 cand_df["vol_scale_factor"] = np.nan
                 cand_df["vol_scaled_quantity"] = np.nan
 
-        # Ensemble output (if present)
-        if "ensemble_prediction" not in cand_df.columns:
-            cand_df["ensemble_prediction"] = cand_df.get("ensemble_prediction", np.nan)
-        if "ensemble_confidence" not in cand_df.columns and "ensemble_confidence" in pred_df.columns:
-            cand_df["ensemble_confidence"] = pred_df["ensemble_confidence"]
+        # NOTE: Ensemble columns removed - not implemented in core logic
+        # Re-add when ensemble model is implemented
 
         # Apply filters
         mask = pd.Series(True, index=cand_df.index)
@@ -2499,7 +2649,6 @@ with tab_dash:
         cols = [
             "ticker", "pred_next_ret_pct", "prediction_zscore", "prob_up", "vol_20d",
             "base_quantity", "vol_scale_factor", "vol_scaled_quantity",
-            "ensemble_prediction", "ensemble_confidence",
             "atm_iv", "pred_next_price", "num_features", "prob_up_gaf",
         ]
         # Always include Z-SCORE if possible
@@ -2518,8 +2667,6 @@ with tab_dash:
             "base_quantity": "BASE QTY",
             "vol_scale_factor": "VOL SCALE",
             "vol_scaled_quantity": "VOL QTY",
-            "ensemble_prediction": "ENSEMBLE",
-            "ensemble_confidence": "ENS CONF",
             "atm_iv": "IV",
             "pred_next_price": "TARGET",
             "num_features": "FEAT",
@@ -2642,10 +2789,6 @@ with tab_dash:
                         html += f'<td>{val:.2f}' + ('' if pd.isna(val) else 'x') + '</td>' if not pd.isna(val) else '<td>—</td>'
                     elif col == "VOL QTY":
                         html += f'<td>{int(val) if not pd.isna(val) else "—"}</td>'
-                    elif col == "ENSEMBLE":
-                        html += f'<td>{val:+.2f}' + ('%' if not pd.isna(val) else '') + '</td>' if not pd.isna(val) else '<td>—</td>'
-                    elif col == "ENS CONF":
-                        html += f'<td>{val:.0%}</td>' if not pd.isna(val) else '<td>—</td>'
                     elif col == "IV":
                         if isinstance(val, (int, float)) and not pd.isna(val):
                             html += f'<td>{val*100:.1f}%</td>'
@@ -2673,102 +2816,137 @@ with tab_dash:
         st.markdown(render_signals_table(styled_df), unsafe_allow_html=True)
         # detail_universe already set above to include ALL tickers
 
-        # === P&L and Risk Summary Table (theme-aware, styled) ===
+        # === P&L and Risk Summary Table (from backtest data) ===
         st.markdown('<p class="section-title">P&L and Risk Summary</p>', unsafe_allow_html=True)
-        pnl_cols = [
-            "ticker", "realized_pnl", "simulated_pnl", "max_drawdown", "sharpe_ratio", "win_rate", "position_size"
-        ]
-        pnl_cols = [c for c in pnl_cols if c in pred_df.columns]
-        if pnl_cols:
-            pnl_df = pred_df[pnl_cols].copy()
-            pnl_df = pnl_df.rename(columns={
-                "ticker": "SYMBOL",
-                "realized_pnl": "REALIZED P&L",
-                "simulated_pnl": "SIM P&L",
-                "max_drawdown": "MAX DD",
-                "sharpe_ratio": "SHARPE",
-                "win_rate": "WIN %",
-                "position_size": "POS SIZE"
-            })
-            def render_pnl_table(df):
-                tc = get_card_theme()
-                is_dark = st.session_state.get("theme", "dark") == "dark"
-                html = f"""
-                <style>
-                    .pnl-table {{
-                        width: 100%;
-                        border-collapse: collapse;
-                        font-family: 'JetBrains Mono', 'SF Mono', monospace;
-                        font-size: 0.85rem;
-                        margin: 1rem 0;
-                    }}
-                    .pnl-table th {{
-                        background: {tc['bg']};
-                        border-bottom: 2px solid {tc['blue']};
-                        color: {tc['blue']};
-                        font-weight: 600;
-                        letter-spacing: 0.5px;
-                        padding: 12px 16px;
-                        text-align: left;
-                        text-transform: uppercase;
-                        font-size: 0.7rem;
-                    }}
-                    .pnl-table td {{
-                        background: {tc['bg']};
-                        border-bottom: 1px solid {tc['border']};
-                        color: {tc['text']};
-                        padding: 10px 16px;
-                    }}
-                    .pnl-table tr:nth-child(even) td {{
-                        background: {tc['bar_bg']};
-                    }}
-                    .pnl-table tr:hover td {{
-                        background: {tc['muted']}22;
-                    }}
-                    .pnl-table .positive {{ color: {tc['green']}; }}
-                    .pnl-table .negative {{ color: {tc['red']}; }}
-                </style>
-                <div style="overflow-x: auto; border: 1px solid {tc['border']}; border-radius: 8px;">
-                <table class="pnl-table">
-                    <thead><tr>
-                """
-                for col in df.columns:
-                    html += f"<th>{col}</th>"
-                html += "</tr></thead><tbody>"
-                for _, row in df.iterrows():
-                    html += "<tr>"
-                    for col in df.columns:
-                        val = row[col]
-                        cell_class = ""
-                        if isinstance(val, (int, float)) and not pd.isna(val):
-                            if col in ["REALIZED P&L", "SIM P&L", "SHARPE"]:
-                                cell_class = "positive" if val > 0 else "negative" if val < 0 else ""
-                                val = f"{val:.2f}"
-                            elif col == "MAX DD":
-                                cell_class = "negative" if val < 0 else ""
-                                val = f"{val:.2f}"
-                            elif col == "WIN %":
-                                val = f"{val:.1f}%"
-                            elif col == "POS SIZE":
-                                val = f"{val:.0f}"
-                        elif pd.isna(val):
-                            val = "—"
-                        html += f'<td class="{cell_class}">{val}</td>'
-                    html += "</tr>"
-                html += "</tbody></table></div>"
-                return html
-            st.markdown(render_pnl_table(pnl_df), unsafe_allow_html=True)
-        else:
-            st.info("No P&L or risk summary data available in current predictions.")
+        
+        # Fetch backtest metrics for each ticker
+        def fetch_pnl_metrics(tickers, period, model_type, horizon):
+            """Fetch backtest metrics for P&L display."""
+            pnl_data = []
+            for tk in tickers:
+                try:
+                    # Use cached backtest
+                    result = _cached_backtest_one_ticker(tk, period, model_type, horizon)
+                    if result and "error" not in result:
+                        pnl_data.append({
+                            "ticker": tk,
+                            "sharpe_ratio": result.get("sharpe", 0.0),
+                            "max_drawdown": result.get("max_drawdown", 0.0),
+                            "win_rate": result.get("accuracy", 0.0) * 100,  # Convert to %
+                            "total_return": result.get("total_return", 0.0),
+                            "num_trades": result.get("num_trades", 0),
+                            "test_period": f"{result.get('test_start', '')} to {result.get('test_end', '')}",
+                        })
+                except Exception as e:
+                    # Skip tickers that fail backtest
+                    pass
+            return pd.DataFrame(pnl_data) if pnl_data else pd.DataFrame()
+        
+        # Get current settings
+        current_period = st.session_state.get("period", "5y")
+        current_model = st.session_state.get("model_type", "rf")
+        current_horizon = st.session_state.get("prediction_horizon", 1)
+        ticker_list = pred_df["ticker"].tolist() if "ticker" in pred_df.columns else []
+        
+        with st.expander("P&L and Risk Summary (Backtest Metrics)", expanded=False):
+            if ticker_list:
+                with st.spinner("Loading backtest metrics..."):
+                    pnl_df = fetch_pnl_metrics(ticker_list[:10], current_period, current_model, current_horizon)  # Limit to 10 for speed
+                
+                if not pnl_df.empty:
+                    # Rename columns for display
+                    display_df = pnl_df.rename(columns={
+                        "ticker": "SYMBOL",
+                        "sharpe_ratio": "SHARPE",
+                        "max_drawdown": "MAX DD",
+                        "win_rate": "WIN %",
+                        "total_return": "TOTAL RET",
+                        "num_trades": "TRADES",
+                        "test_period": "TEST PERIOD"
+                    })
+                    
+                    def render_pnl_table(df):
+                        tc = get_card_theme()
+                        html = f"""
+                        <style>
+                            .pnl-table {{
+                                width: 100%;
+                                border-collapse: collapse;
+                                font-family: 'JetBrains Mono', 'SF Mono', monospace;
+                                font-size: 0.85rem;
+                                margin: 1rem 0;
+                            }}
+                            .pnl-table th {{
+                                background: {tc['bg']};
+                                border-bottom: 2px solid {tc['blue']};
+                                color: {tc['blue']};
+                                font-weight: 600;
+                                letter-spacing: 0.5px;
+                                padding: 12px 16px;
+                                text-align: left;
+                                text-transform: uppercase;
+                                font-size: 0.7rem;
+                            }}
+                            .pnl-table td {{
+                                background: {tc['bg']};
+                                border-bottom: 1px solid {tc['border']};
+                                color: {tc['text']};
+                                padding: 10px 16px;
+                            }}
+                            .pnl-table tr:nth-child(even) td {{
+                                background: {tc['bar_bg']};
+                            }}
+                            .pnl-table tr:hover td {{
+                                background: {tc['muted']}22;
+                            }}
+                            .pnl-table .positive {{ color: {tc['green']}; font-weight: 600; }}
+                            .pnl-table .negative {{ color: {tc['red']}; font-weight: 600; }}
+                        </style>
+                        <div style="overflow-x: auto; border: 1px solid {tc['border']}; border-radius: 8px;">
+                        <table class="pnl-table">
+                            <thead><tr>
+                        """
+                        for col in df.columns:
+                            html += f"<th>{col}</th>"
+                        html += "</tr></thead><tbody>"
+                        for _, row in df.iterrows():
+                            html += "<tr>"
+                            for col in df.columns:
+                                val = row[col]
+                                cell_class = ""
+                                if isinstance(val, (int, float)) and not pd.isna(val):
+                                    if col == "SHARPE":
+                                        cell_class = "positive" if val > 0.5 else "negative" if val < 0 else ""
+                                        val = f"{val:.2f}"
+                                    elif col == "MAX DD":
+                                        cell_class = "negative" if val < -0.05 else ""
+                                        val = f"{val*100:.1f}%"
+                                    elif col == "WIN %":
+                                        cell_class = "positive" if val > 55 else "negative" if val < 45 else ""
+                                        val = f"{val:.1f}%"
+                                    elif col == "TOTAL RET":
+                                        cell_class = "positive" if val > 0 else "negative" if val < 0 else ""
+                                        val = f"{val*100:.2f}%"
+                                    elif col == "TRADES":
+                                        val = f"{int(val)}"
+                                elif pd.isna(val):
+                                    val = "—"
+                                html += f'<td class="{cell_class}">{val}</td>'
+                            html += "</tr>"
+                        html += "</tbody></table></div>"
+                        return html
+                    
+                    st.markdown(render_pnl_table(display_df), unsafe_allow_html=True)
+                    st.caption(f"📊 Backtest using {current_model.upper()} model, {current_period} period, {current_horizon}d horizon")
+                else:
+                    st.info("No backtest data available for selected tickers.")
+            else:
+                st.info("Run predictions first to see P&L and risk metrics.")
 
-        # === Ensemble as selectable model type ===
-        # Add 'Ensemble' to model_type selectbox if not present
-        if 'Ensemble' not in st.session_state.get('model_type_options', []):
-            # Patch model_type selectbox to include Ensemble
-            # (Assumes model_type selectbox is defined above as model_type = st.sidebar.selectbox(...))
-            model_type_options = ["rf", "gbrt", "xgb", "ensemble"]
-            st.session_state['model_type_options'] = model_type_options
-        # If user selects 'ensemble', core logic should already handle weighted/voting output
+        # === Model type options ===
+        # Ensemble now supported via ModelEnsemble from model_improvements.py
+        model_type_options = ["rf", "gbrt", "xgb", "ensemble"]
+        st.session_state['model_type_options'] = model_type_options
         
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         
@@ -4031,12 +4209,17 @@ with tab_dash:
                                 elif not trade_allowed:
                                     status = "⏭️ Limit"
                                 
+                                # Get RSI for display
+                                rsi_val = s.get("rsi14")
+                                rsi_display = f"{rsi_val:.1f}" if rsi_val is not None else "—"
+                                
                                 sig_rows.append({
                                     "Symbol": tk,
                                     "Type": s.get("asset", "stock").upper(),
                                     "Action": s.get("action", s.get("strategy", "—")),
                                     "Pred %": round(float(s.get("pred_next_ret", 0.0)) * 100, 2),
                                     "Z-Score": round(z_score, 2),
+                                    "RSI": rsi_display,
                                     "Rank": trade_rank if trade_rank > 0 else "—",
                                     "Status": status,
                                 })
@@ -4138,7 +4321,44 @@ with tab_dash:
                 
                 # === FULL DATA ===
                 with st.expander("📋 Full Predictions Data", expanded=False):
-                    pred_table = render_styled_table(pred_df)
+                    # Prepare display dataframe with z-score prominently shown
+                    display_pred_df = pred_df.copy()
+                    
+                    # Rename columns for display
+                    rename_map = {
+                        "ticker": "Symbol",
+                        "pred_next_ret": "Pred Return",
+                        "pred_next_ret_pct": "Pred %",
+                        "pred_zscore": "Z-Score",
+                        "rsi14": "RSI",
+                        "prob_up": "P(Up)",
+                        "vol_20d": "Vol 20D",
+                        "atm_iv": "ATM IV",
+                        "options_valuation": "Options",
+                        "heston_fair_vol": "Heston Vol",
+                        "last_close": "Last Close",
+                        "pred_next_price": "Target Price",
+                        "num_features": "Features",
+                        "prob_up_gaf": "GAF P(Up)",
+                        "confidence_score": "Confidence",
+                    }
+                    display_pred_df = display_pred_df.rename(columns=rename_map)
+                    
+                    # Reorder to show key columns first
+                    key_cols = ["Symbol", "Pred %", "Z-Score", "RSI", "P(Up)", "Vol 20D", "ATM IV", "Options", "Target Price", "Confidence"]
+                    other_cols = [c for c in display_pred_df.columns if c not in key_cols]
+                    ordered_cols = [c for c in key_cols if c in display_pred_df.columns] + other_cols
+                    display_pred_df = display_pred_df[ordered_cols]
+                    
+                    pred_table = render_styled_table(
+                        display_pred_df,
+                        highlight_cols={
+                            "Symbol": {"type": "ticker"},
+                            "Pred %": {"type": "pct_direction"},
+                            "Z-Score": {"type": "pct_direction"},
+                            "P(Up)": {"type": "prob"},
+                        }
+                    )
                     st.markdown(pred_table, unsafe_allow_html=True)
     
     else:
@@ -4229,7 +4449,7 @@ with tab_dash:
                 
                 if not history_df.empty:
                     # Format for display
-                    display_cols = ["timestamp", "ticker", "model_type", "horizon", "pred_next_ret", "prob_up", "confidence_score", "was_correct"]
+                    display_cols = ["timestamp", "ticker", "model_type", "horizon", "pred_next_ret", "prob_up", "confidence_score", "vol_zscore", "was_correct"]
                     display_df = history_df[[c for c in display_cols if c in history_df.columns]].copy()
                     
                     if "pred_next_ret" in display_df.columns:
@@ -4699,6 +4919,261 @@ with tab_port:
             <p style='font-size: 0.85rem; color: {tc["label"]};'>Configure your portfolio universe and click RUN ANALYSIS to evaluate model robustness</p>
         </div>
         """, unsafe_allow_html=True)
+
+# ============================================================================
+# TAB: MONITORING - Performance Tracking & Alerts
+# ============================================================================
+with tab_monitor:
+    tc = get_card_theme()
+    
+    st.markdown(f"""
+    <h2 style='color: {tc["text"]}; margin-bottom: 0.5rem;'>🔔 Performance Monitoring</h2>
+    <p style='color: {tc["label"]}; font-size: 0.9rem;'>Real-time performance tracking, alerts, and trade history</p>
+    """, unsafe_allow_html=True)
+    
+    if not HAS_MONITORING:
+        st.warning("⚠️ Performance monitoring module not available. Install with: `from src.monitoring import PerformanceMonitor`")
+    else:
+        # Initialize or get the performance monitor
+        @st.cache_resource
+        def get_performance_monitor():
+            return PerformanceMonitor(starting_capital=50000.0)
+        
+        monitor = get_performance_monitor()
+        
+        # Refresh button
+        col_refresh, col_status = st.columns([1, 4])
+        with col_refresh:
+            if st.button("🔄 Refresh Data", key="refresh_monitor"):
+                # Clear cache to reload data
+                st.cache_resource.clear()
+                st.rerun()
+        
+        with col_status:
+            alerts = monitor.check_alerts()
+            if alerts:
+                critical_count = sum(1 for a in alerts if a.level == AlertLevel.CRITICAL)
+                warning_count = sum(1 for a in alerts if a.level == AlertLevel.WARNING)
+                if critical_count > 0:
+                    st.markdown(f"<span style='color: #f85149; font-weight: bold;'>🚨 {critical_count} CRITICAL</span> | <span style='color: #d29922;'>⚠️ {warning_count} WARNING</span>", unsafe_allow_html=True)
+                elif warning_count > 0:
+                    st.markdown(f"<span style='color: #d29922; font-weight: bold;'>⚠️ {warning_count} WARNING(S)</span>", unsafe_allow_html=True)
+            else:
+                st.markdown("<span style='color: #3fb950;'>✅ No active alerts</span>", unsafe_allow_html=True)
+        
+        st.markdown("<hr style='margin: 1rem 0; border-color: #30363d;'>", unsafe_allow_html=True)
+        
+        # === KEY METRICS ===
+        metrics = monitor.metrics
+        
+        st.markdown("### 📊 Key Metrics")
+        
+        metric_cols = st.columns(5)
+        with metric_cols[0]:
+            st.metric(
+                "Current Equity",
+                f"${metrics.current_equity:,.0f}",
+                f"${metrics.pnl_total:+,.0f}" if metrics.pnl_total != 0 else None
+            )
+        with metric_cols[1]:
+            st.metric(
+                "21d Sharpe",
+                f"{metrics.sharpe_21d:.2f}",
+                delta_color="normal" if metrics.sharpe_21d >= 0 else "inverse"
+            )
+        with metric_cols[2]:
+            st.metric(
+                "Win Rate (20)",
+                f"{metrics.win_rate_20:.0%}",
+                delta_color="normal" if metrics.win_rate_20 >= 0.5 else "inverse"
+            )
+        with metric_cols[3]:
+            dd_pct = metrics.current_drawdown_pct * 100
+            st.metric(
+                "Drawdown",
+                f"{dd_pct:.1f}%",
+                delta_color="inverse" if dd_pct > 5 else "normal"
+            )
+        with metric_cols[4]:
+            st.metric(
+                "Total Trades",
+                f"{metrics.trades_total}",
+                f"+{metrics.trades_today} today" if metrics.trades_today > 0 else None
+            )
+        
+        # === P&L BREAKDOWN ===
+        st.markdown("### 💰 P&L Summary")
+        
+        pnl_cols = st.columns(4)
+        with pnl_cols[0]:
+            color = "#3fb950" if metrics.pnl_today >= 0 else "#f85149"
+            st.markdown(f"""
+            <div style='background: {tc["bg"]}; padding: 1rem; border-radius: 8px; border: 1px solid {tc["border"]};'>
+                <p style='color: {tc["label"]}; margin: 0; font-size: 0.8rem;'>TODAY</p>
+                <p style='color: {color}; margin: 0; font-size: 1.5rem; font-weight: bold;'>${metrics.pnl_today:+,.2f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with pnl_cols[1]:
+            color = "#3fb950" if metrics.pnl_week >= 0 else "#f85149"
+            st.markdown(f"""
+            <div style='background: {tc["bg"]}; padding: 1rem; border-radius: 8px; border: 1px solid {tc["border"]};'>
+                <p style='color: {tc["label"]}; margin: 0; font-size: 0.8rem;'>THIS WEEK</p>
+                <p style='color: {color}; margin: 0; font-size: 1.5rem; font-weight: bold;'>${metrics.pnl_week:+,.2f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with pnl_cols[2]:
+            color = "#3fb950" if metrics.pnl_month >= 0 else "#f85149"
+            st.markdown(f"""
+            <div style='background: {tc["bg"]}; padding: 1rem; border-radius: 8px; border: 1px solid {tc["border"]};'>
+                <p style='color: {tc["label"]}; margin: 0; font-size: 0.8rem;'>THIS MONTH</p>
+                <p style='color: {color}; margin: 0; font-size: 1.5rem; font-weight: bold;'>${metrics.pnl_month:+,.2f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with pnl_cols[3]:
+            color = "#3fb950" if metrics.pnl_total >= 0 else "#f85149"
+            st.markdown(f"""
+            <div style='background: {tc["bg"]}; padding: 1rem; border-radius: 8px; border: 1px solid {tc["border"]};'>
+                <p style='color: {tc["label"]}; margin: 0; font-size: 0.8rem;'>ALL TIME</p>
+                <p style='color: {color}; margin: 0; font-size: 1.5rem; font-weight: bold;'>${metrics.pnl_total:+,.2f}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # === ALERTS ===
+        st.markdown("### 🚨 Active Alerts")
+        
+        if alerts:
+            for alert in alerts:
+                if alert.level == AlertLevel.CRITICAL:
+                    st.error(f"🚨 **{alert.category.upper()}**: {alert.message}")
+                elif alert.level == AlertLevel.WARNING:
+                    st.warning(f"⚠️ **{alert.category.upper()}**: {alert.message}")
+                else:
+                    st.info(f"ℹ️ **{alert.category.upper()}**: {alert.message}")
+        else:
+            st.success("✅ No active alerts - all metrics within normal ranges")
+        
+        # === PER-TICKER BREAKDOWN ===
+        st.markdown("### 📈 Per-Ticker Performance")
+        
+        ticker_breakdown = monitor.get_ticker_breakdown()
+        if ticker_breakdown:
+            ticker_data = []
+            for symbol, perf in ticker_breakdown.items():
+                ticker_data.append({
+                    "Symbol": symbol,
+                    "Trades": perf.trades,
+                    "Wins": perf.wins,
+                    "Losses": perf.losses,
+                    "Win Rate": f"{perf.win_rate:.0%}",
+                    "Total P&L": f"${perf.pnl_total:+,.2f}",
+                    "Avg P&L": f"${perf.pnl_avg:+,.2f}",
+                    "Best Trade": f"${perf.best_trade:+,.2f}",
+                    "Worst Trade": f"${perf.worst_trade:+,.2f}",
+                })
+            
+            ticker_df = pd.DataFrame(ticker_data)
+            st.dataframe(
+                ticker_df,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No trades recorded yet. Trades will appear here after your first closed position.")
+        
+        # === RECENT TRADES ===
+        st.markdown("### 📋 Recent Trades")
+        
+        if monitor.trades:
+            # Show last 20 trades
+            recent_trades = monitor.trades[-20:][::-1]  # Reverse to show newest first
+            trade_data = []
+            for t in recent_trades:
+                trade_data.append({
+                    "Time": t.exit_time[:19] if t.exit_time else "—",
+                    "Symbol": t.symbol,
+                    "Side": t.side,
+                    "Qty": t.qty,
+                    "Entry": f"${t.entry_price:.2f}",
+                    "Exit": f"${t.exit_price:.2f}",
+                    "P&L": f"${t.pnl:+,.2f}",
+                    "P&L %": f"{t.pnl_pct:+.2f}%",
+                    "Strategy": t.strategy or "—",
+                })
+            
+            trades_df = pd.DataFrame(trade_data)
+            st.dataframe(
+                trades_df,
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No trades recorded yet.")
+        
+        # === DAILY SUMMARIES ===
+        st.markdown("### 📄 Daily Summaries")
+        
+        summaries_path = BASE_DIR / ".monitoring" / "daily_summaries"
+        if summaries_path.exists():
+            summary_files = sorted(summaries_path.glob("summary_*.json"), reverse=True)[:10]
+            if summary_files:
+                selected_summary = st.selectbox(
+                    "Select date",
+                    options=summary_files,
+                    format_func=lambda x: x.stem.replace("summary_", ""),
+                    key="summary_selector"
+                )
+                
+                if selected_summary:
+                    with st.expander("📋 View Summary Details", expanded=False):
+                        summary_data = json.loads(selected_summary.read_text())
+                        st.json(summary_data)
+            else:
+                st.info("No daily summaries available yet.")
+        else:
+            st.info("No daily summaries available yet. Summaries are generated at the end of each trading session.")
+        
+        # === CIRCUIT BREAKER STATUS ===
+        st.markdown("### 🔌 Circuit Breaker Status")
+        
+        try:
+            from src.risk import CircuitBreaker
+            cb = CircuitBreaker()
+            cb_status = cb.get_status()
+            
+            cb_cols = st.columns(4)
+            with cb_cols[0]:
+                if cb_status["is_tripped"]:
+                    st.error(f"🛑 **TRIPPED**: {cb_status['trip_reason']}")
+                else:
+                    st.success("✅ **ACTIVE** - Trading enabled")
+            with cb_cols[1]:
+                st.metric("Daily P&L", cb_status["daily_pnl"])
+            with cb_cols[2]:
+                st.metric("Weekly P&L", cb_status["weekly_pnl"])
+            with cb_cols[3]:
+                st.metric("Consec. Losses", cb_status["consecutive_losses"])
+            
+            # Show limits
+            with st.expander("⚙️ Circuit Breaker Limits"):
+                limits = cb_status.get("limits", {})
+                limit_cols = st.columns(5)
+                with limit_cols[0]:
+                    st.caption(f"Daily Loss Limit: {limits.get('daily_loss_limit', 'N/A')}")
+                with limit_cols[1]:
+                    st.caption(f"Weekly Loss Limit: {limits.get('weekly_loss_limit', 'N/A')}")
+                with limit_cols[2]:
+                    st.caption(f"Max Drawdown: {limits.get('max_drawdown', 'N/A')}")
+                with limit_cols[3]:
+                    st.caption(f"Consec. Loss Limit: {limits.get('consecutive_loss_limit', 'N/A')}")
+                with limit_cols[4]:
+                    st.caption(f"Max Daily Trades: {limits.get('max_daily_trades', 'N/A')}")
+                
+                if st.button("⚠️ Force Reset Circuit Breaker", key="force_reset_cb"):
+                    cb.force_reset()
+                    st.success("Circuit breaker reset!")
+                    st.rerun()
+        except Exception as e:
+            st.warning(f"Circuit breaker status unavailable: {e}")
 
 # ============================================================================
 # FOOTER

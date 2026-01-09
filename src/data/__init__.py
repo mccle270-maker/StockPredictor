@@ -11,7 +11,29 @@ from .options import (
     get_expirations,
 )
 
+# New multi-source data pipeline
+from .cache_manager import CacheManager, get_cache, cache_get, cache_set
+from .aggregator import (
+    DataAggregator,
+    get_aggregator,
+    fetch_prices,
+    fetch_fundamentals,
+    fetch_sentiment,
+)
+
+# Provider classes
+from .providers import (
+    BaseProvider,
+    ProviderResponse,
+    YFinanceProvider,
+    TiingoProvider,
+    FinnhubProvider,
+    SECEdgarProvider,
+    AlphaVantageProvider,
+)
+
 __all__ = [
+    # Legacy functions
     "get_price_history",
     "get_intraday_history",
     "get_macro_df",
@@ -25,4 +47,22 @@ __all__ = [
     "get_option_snapshot_features",
     "get_atm_greeks",
     "get_expirations",
+    # New multi-source pipeline
+    "CacheManager",
+    "get_cache",
+    "cache_get",
+    "cache_set",
+    "DataAggregator",
+    "get_aggregator",
+    "fetch_prices",
+    "fetch_fundamentals",
+    "fetch_sentiment",
+    # Provider classes
+    "BaseProvider",
+    "ProviderResponse",
+    "YFinanceProvider",
+    "TiingoProvider",
+    "FinnhubProvider",
+    "SECEdgarProvider",
+    "AlphaVantageProvider",
 ]

@@ -2,206 +2,513 @@
 
 ## Architecture Overview
 
-This is a **stock prediction system** with three integrated layers:
+This is a **stock prediction system** with four integrated layers:
 
-1. **Core Prediction Engine** (`prediction_model.py`): ML models (Random Forest, XGBoost, Gradient Boosting) predicting next-day/multi-day returns with extensive feature engineering (100+ features)
-2. **Data Pipeline** (`data_fetch.py`, `stock_screener.py`): Historical data (yfinance), fundamentals (FMP API), macro data (FRED API), news sentiment (Marketaux)
+1. **Core Prediction Engine** (`prediction_model.py`, `src/core/`): ML models (Random Forest, XGBoost) predicting next-day/multi-day returns with extensive feature engineering (100+ features)
+2. **Data Pipeline** (`src/data/`): Multi-source data with automatic fallbacks - yfinance, Tiingo, Finnhub, SEC EDGAR, Alpha Vantage, FRED, FMP, Marketaux
 3. **UI + Trading Integration** (`app.py` = Streamlit): Interactive dashboard + automated trading via Alpaca (`auto_paper_trade.py`)
 4. **Experiment Orchestration** (`experiment_runner.py`, `grid_search.py`): Reproducible walk-forward backtesting across model types, hyperparameters, and feature configurations
 
-**Key data flows:**
-- `app.py` → `predict_next_for_ticker()` → returns predictions + option pricing → signals JSON → `auto_paper_trade.py` executes trades
-- `experiment_runner.py` → `walk_forward_backtest()` → evaluates model performance with proper date-based train/test splits
-- SPX is cached globally (`_SPX_CACHE`) to compute relative strength/beta across all tickers without repeated downloads
+---
 
-## Critical Components & Patterns
+## ⚠️ CURRENT KNOWN ISSUES
 
-### Feature Engineering (100+ features in `FEATURE_COLUMNS` list)
-- **Technical indicators** (RSI, MACD, Bollinger Bands, ATR, ADX): Lines ~440-650 in `prediction_model.py`
-- **GBM-derived probabilities** (`gbm_prob_up_1d`, `gbm_exp_ret_1d`, percentiles): Built from log-return distribution via geometric Brownian motion
-- **Macro data** (FRED API): T10Y, VIX, term spread, unemployment, CPI, OAS, Fed Funds Rate
-- **Relative strength vs SPX**: `rel_strength_1d`, `rel_momentum_5d` (computed from SPX cache)
-- **Fundamentals**: P/E trailing, P/B, market cap (from FMP API)
-- **Enhanced features** (`model_improvements.py`): Volatility-adjusted returns, regime detection, momentum confirmation, mean reversion signals
-- **Critical Rule**: All features are **lagged by 1 day** via `.shift(1)` to prevent look-ahead bias. This is enforced everywhere.
-- **NaN handling**: Heavy `.fillna()` / `.ffill()` / `.bfill()` usage with fallback to 0. When modifying features, preserve this pattern.
+**Update this section as issues are resolved:**
 
-### Model Training Architecture
-- **make_model()** (~line 1170): Unified factory for XGBoost/RandomForest/GradientBoosting (regressor or classifier)
-- **train_model()** (~line 1594): Standard 80/20 train/test split with option for cross-validation
-- **Feature selection** (optional via env vars):
-  - `USE_ELASTICNET_SELECT=1` + `ELASTICNET_L1_RATIO/CV_FOLDS`: Elastic Net p-value pruning (lines 1062–1134)
-  - `USE_OLSSIGSELECT=1` + `OLSSIG_ALPHA/TOPK/MINFEATURES`: OLS significance filter (lines 1135–1160)
-- **Walk-forward backtesting**: `walk_forward_backtest()` splits by DATE, not row index, to prevent data leakage
-  - Key: Uses unique date boundaries, retrains model on each fold, evaluates on test fold
-  - Returns: Dictionary with metrics (Sharpe, accuracy, drawdown, win rate, etc.)
+| Issue | Severity | Location | Status |
+|-------|----------|----------|--------|
+| 12 features with >5% NaN rate | 🟡 MEDIUM | Feature warmup period | Expected (warmup-related) |
+| GBRT model severe overfitting | ✅ RESOLVED | `model_improvements.py` | **Removed from ensemble** |
+| RF model poor performance | ✅ RESOLVED | `experiments/optimize_rf.py` | **Optimized via Optuna - Sharpe 11.32** |
+| Yahoo Finance 429 rate limits | ✅ RESOLVED | `src/data/aggregator.py` | Multi-source fallback implemented |
+| Finnhub sentiment 403 errors | ✅ RESOLVED | `src/data/providers/finnhub_provider.py` | Using free endpoints |
+| META/SPY poor performance | 🟡 MEDIUM | Ticker selection | Excluded in BASELINE_005 |
 
-### Prediction Entrypoint
-**`predict_next_for_ticker(tk, period="5y", model_type="rf", horizon=1, ...)`** (~line 1359):
-- Builds features + target from raw history via `build_features_and_target()`
-- Optionally auto-selects best `model_type` via grid search (`grid_search.py`)
-- Returns dict with: `pred_next_ret`, `pred_next_price`, `prob_up`, `prob_down`, `prob_up_gaf`, plus confidence score and all metadata
-- **GAF-CNN layer** (optional): Gramian Angular Field images → Conv2D model (`gaf_cnn_updown.keras`) for up/down classification
-- **Option pricing overlay**: Theo ATM call price (Black-Scholes or Heston), Monte Carlo expected value, IV vs realized vol
-- **Robustness**: Gracefully handles missing data, falls back to shorter periods if insufficient history
-
-### Data Dependencies & Fallbacks
-- **Cache layers** (avoid re-fetching):
-  - `_SPX_CACHE` (global module dict): tz-aware index matching caller's timezone
-  - `get_history_cached()` → streamlit cache (30s TTL for intraday, 10m for daily)
-  - `macro_cache` (module-level dict): FRED data cached per symbol/period
-- **API keys** (env / streamlit secrets): `FMP_API_KEY`, `FRED_API_KEY`, `MARKETAUX_API_KEY`, `ALPHAVANTAGE_API_KEY`
-- **Fallback chain**: yfinance (primary) → Stooq CSV → raw Yahoo download → error with clear message
-- **Graceful degradation**: Missing macro data → uses just `mkt_ret_1d`; missing fundamentals → sets to 0; missing sentiment → skipped
-
-### Trading Signals System
-- **build_signals_from_pred_df()** (~line 465): Converts model predictions → JSON signals (stock/option strategies)
-  - US-only filtering: Non-US stocks filtered out before Alpaca submission (see `auto_paper_trade.py`)
-- **suggest_options_strategy()** (~line 384): Heuristic rules (return threshold × horizon multiplier, IV rank, put/call OI ratio)
-- **Execution costs** (`ExecutionModel` dataclass): Delay (1d default), spread (2bps), slippage (3bps), fees
-- **Alpaca integration** (`auto_paper_trade.py`): Market/limit orders, option contract filtering (DTE min/max, strike, premium caps), bid/ask handling
-
-## Experiment Framework (`experiment_runner.py`)
-
-### Configuration Classes
-- **ModelConfig**: Model type + hyperparameters (n_estimators, max_depth, learning_rate, etc.)
-- **BacktestConfig**: period, horizon, train_years, test_years, step_days, threshold
-- **FeatureConfig**: Which feature categories to include (price, volume, technical, macro, sentiment, fundamentals)
-- **ExperimentConfig**: Combines above + defines experiment_id, ticker, optimization objective
-
-### Running Experiments
-```bash
-# Run single experiment (interactive)
-python -c "from experiment_runner import ExperimentRunner, ExperimentConfig, ModelConfig; runner = ExperimentRunner(); runner.add_experiment(ExperimentConfig(experiment_id='test1', ticker='AAPL', model=ModelConfig(model_type='rf'))); runner.run_all_experiments()"
-
-# Run batch from JSON config
-python run_experiments.py --config experiments_phase2b.json
-
-# Validate config
-python validate_framework.py
-```
-
-### Key Methods
-- `add_experiment()`: Queue experiment with config
-- `run_all_experiments()`: Execute all queued experiments, track metrics
-- `get_leaderboard()`: Rank experiments by Sharpe/accuracy
-- Results exported to CSV/JSON for dashboard integration
-
-## Developer Workflows
-
-### Prediction & Backtest (CLI)
-```bash
-# Single prediction
-python -c "from prediction_model import predict_next_for_ticker; import json; print(json.dumps(predict_next_for_ticker('AAPL'), default=str))"
-
-# Backtest one ticker
-python -c "from prediction_model import backtest_one_ticker; print(backtest_one_ticker('AAPL', period='10y', model_type='xgb'))"
-
-# Walk-forward cross-sectional (multiple tickers)
-python -c "from prediction_model import walkforward_cross_sectional; print(walkforward_cross_sectional(['AAPL','MSFT','NVDA'], model_type='rf', train_years=1))"
-```
-
-### Running UI
-```bash
-streamlit run app.py
-```
-
-### Running Auto-Trader (Scheduled)
-```bash
-python runner.py  # Runs trades every Monday 08:35 ET via schedule.schedule
-# or direct:
-python auto_paper_trade.py  # One execution
-```
-
-### Testing & Diagnostics
-- **Check feature availability**: `build_features_and_target('AAPL')` will raise if data incomplete
-- **Verify GBM features**: Check for `gbm_prob_up_1d`, `gbm_exp_ret_1d` in output DataFrame
-- **Debug feature selection**: Set `USE_ELASTICNET_SELECT=1` in shell, run any model → console prints selected features
-- **Macro data**: Set `FRED_API_KEY` env var or macro pipeline silently degrades to just `mkt_ret_1d`
-- **Syntax validation**: `python3 -m py_compile prediction_model.py data_fetch.py`
-
-## Project-Specific Conventions
-
-### Environment Variables (in `prediction_model.py`)
-- `USE_ELASTICNET_SELECT`, `ELASTICNET_L1_RATIO`, `ELASTICNET_CV_FOLDS`
-- `USE_OLSSIGSELECT`, `OLSSIG_ALPHA`, `OLSSIG_TOPK`, `OLSSIG_MINFEATURES`
-- `FRED_API_KEY`, `TRADING_DAYS=252`
-- Accessed via `env_bool()`, `float(os.environ.get(..., default))`
-
-### Column Naming Conventions
-- **Returns**: `ret_Xd` (1d, 5d, 20d), `cumret_Xd`
-- **Volatility**: `vol_Xd` (10d, 20d, 60d)
-- **Technical**: `rsi14`, `macd`, `macdsignal`, `macdhist`, `mfi14`, `atr_14`, `adx_14`
-- **GBM**: `gbm_*` (mu, sig, prob_up, exp_ret, p05/p95)
-- **Target**: Always `ftarget_ret_horizon_ahead` in training DataFrames
-- **Relative strength**: `rel_strength_1d`, `rel_momentum_5d` (vs SPX)
-- **Fundamentals**: `fund_*` (pe_trailing, pb, marketcap)
-- **Macro**: `mkt_ret_1d`, `vix`, `t10y`, `term_spread`, `unrate`, `cpi`, `oas`, `fed_funds`
-- **Regime**: `regime_*` (bull, bear, vix_low/medium/high, covid, high/low_corr, bull_streak, bear_streak)
-
-### Model Type Constants
-- `"rf"` = RandomForestRegressor (default, most stable)
-- `"xgb"` = XGBRegressor (best Sharpe, sensitive to hyperparams)
-- `"gbrt"` = GradientBoostingRegressor (middle ground)
-- `"linreg"` = LinearRegression (rarely used baseline)
-- For classification: append `_clf` or use task="clf" (e.g., RandomForestClassifier)
-
-### Data Quality Guardrails
-- **Minimum rows**: 60 after NaN drop (lines ~1308–1310)
-- **Fallback periods**: ['5y', '3y', '2y', '1y', '6mo', '3mo'] (auto-retry if current period insufficient)
-- **Shift operations**: All features shifted 1 day back; target shifted forward `horizon` days
-- **NaN handling**: Strict `.dropna()` after feature build; macro data uses `.ffill().bfill()` for forward-fill before reindex
-
-### Known Gotchas & Common Errors
-1. **SPX index mismatch**: `_get_spx()` normalizes timezone; use `.reindex(..., method="ffill")` on aligned dates
-2. **Walk-forward by dates**: `walkforward_cross_sectional()` uses unique dates, NOT row indices, to prevent leakage
-3. **GAF-CNN requires 30-day window**: `predict_up_gafcnn_from_rets()` needs at least 30 return values; will fail otherwise
-4. **Heston pricing**: Only AAPL, NVDA hardcoded; others fall back to Black-Scholes
-5. **Streamlit caching**: `@st.cache_data(ttl=...)` invalidates with new arguments → pass immutable types (tuples, strings)
-6. **Feature lagging**: Missing `.shift(1)` on ANY feature → look-ahead bias → inflated backtest results
-7. **Macro fill order**: Fill NaN BEFORE reindex to prevent forward-fill at fold boundaries (Phase 1 fix)
-8. **Non-US stock trading**: Alpaca paper trading rejects non-US symbols; filter in `build_signals_from_pred_df()`
-
-## Integration Points & Extensions
-
-### Adding a New Data Source
-1. Add fetch function in `data_fetch.py` (e.g., `get_crypto_prices()`)
-2. Join to historical DataFrame in `build_features_and_target()` → `hist.join(new_source, how="left")`
-3. Add column to `FEATURE_COLUMNS` or `MACRO_COLUMNS` list (~line 593 & 453)
-4. Handle NaN fill: Use `.ffill().bfill()` or scalar default (e.g., 0)
-
-### Adding a Feature
-1. Implement calculation in `add_price_features()` (~line 700) or new helper function
-2. **Critical**: `df["new_feature"] = calculation.shift(1)` (lag by 1 day)
-3. Add to `FEATURE_COLUMNS` list (~line 593)
-4. Test: `build_features_and_target('TEST_TICKER')` should include your column without NaNs
-
-### Modifying Prediction Output
-- Return dict keys in `predict_next_for_ticker()` (lines 1359–1550) flow directly to `app.py` cache + signals
-- Ensure JSON-serializable: use `float()`, `str()`, avoid numpy types (`np.float64` → `float()`)
-- Update `_build_display_df()` rename_map if new columns should appear in UI
-
-### Extending Options Strategies
-- Edit `suggest_options_strategy()` logic (lines 384–410)
-- Add new strategy names to `normalize_model_option_strategy()` (lines 412–422)
-- Mapping flows into `build_signals_from_pred_df()` → Alpaca execution in `auto_paper_trade.py`
-
-### Running Grid Search
-```bash
-python grid_search.py --ticker AAPL --period 5y --models rf xgb gbrt --max_depth 5 7 10
-```
-- Returns best hyperparameters ranked by Sharpe ratio
-- Results saved to `grid_search_results.json`
-
-## Critical Look-Ahead Bias Safeguards
-
-All of these are implemented; maintain them:
-1. Features computed from past data only (via `.shift(1)`)
-2. Macro data forward-filled BEFORE reindex (not after)
-3. Walk-forward uses unique date boundaries (not row indices)
-4. Each fold retrains model (not reused across folds)
-5. Target shifted forward by `horizon` days (not overlapping with features)
+**When modifying features or models, always:**
+1. Check NaN rates after changes
+2. Run diagnostic: `python run_diagnostic_baseline.py`
+3. Validate all 10 tickers pass data quality checks
 
 ---
 
-**Last Updated**: 2025-12-29 | **Scope**: Stock prediction, backtesting, options pricing, automated paper trading, experiment orchestration
+## Module Structure
+
+```
+src/
+├── config.py                  # All configuration constants, API keys
+├── core/
+│   ├── models.py             # Model factory (make_model) - RF + XGB only
+│   ├── regime_filter.py      # Market regime detection
+│   └── zscore_filter.py      # Signal strength filtering
+├── data/
+│   ├── __init__.py           # Unified data access layer
+│   ├── market.py             # Price data (get_price_history)
+│   ├── macro.py              # FRED data (get_macro_df)
+│   ├── fundamentals.py       # FMP data (get_fundamental_features)
+│   ├── news.py               # News & sentiment (Marketaux, Alpha Vantage)
+│   ├── options.py            # Options chain data
+│   ├── cache_manager.py      # Aggressive file-based caching
+│   ├── aggregator.py         # Multi-source with automatic fallback
+│   └── providers/            # Individual data providers
+│       ├── base.py           # BaseProvider abstract class
+│       ├── yfinance_provider.py   # Primary - free, fast
+│       ├── tiingo_provider.py     # Backup - good quality
+│       ├── finnhub_provider.py    # Sentiment, earnings, analyst recs
+│       ├── sec_edgar_provider.py  # Official SEC filings (free)
+│       └── alphavantage_provider.py # Last resort
+├── monitoring/
+│   ├── __init__.py           # Performance monitoring exports
+│   └── performance_monitor.py # PerformanceMonitor, alerts, daily summaries
+├── risk/
+│   ├── __init__.py           # Risk management exports
+│   └── circuit_breaker.py    # CircuitBreaker, CircuitBreakerConfig, CircuitBreakerState
+├── services/
+│   └── backtest.py           # Backtesting logic
+└── ui/
+    └── components.py         # Streamlit UI components
+
+# Root-level key files
+prediction_model.py           # Main prediction engine
+model_improvements.py         # ModelEnsemble (RF + XGB), enhanced features
+app.py                        # Streamlit dashboard
+auto_paper_trade.py           # Alpaca paper trading execution
+```
+
+---
+
+## Production Configuration (BASELINE_005)
+
+**Current recommended production settings:**
+
+```python
+PRODUCTION_CONFIG = {
+    # Signal Generation
+    "z_score_threshold": 2.0,
+    "regime_filter_enabled": True,
+    "regime_bear_scale": 0.5,
+    "regime_neutral_scale": 0.75,
+    
+    # Risk Management
+    "max_position_size": 0.5,
+    "daily_loss_limit": -0.03,
+    "weekly_loss_limit": -0.05,
+    "consecutive_loss_limit": 3,
+    
+    # Ticker Selection
+    "allowed_tickers": ["AAPL", "MSFT", "AMZN"],
+    "excluded_tickers": ["SPY", "META"],
+    
+    # Ensemble (GBRT removed due to overfitting)
+    "ensemble_mode": "majority",
+    "active_models": ["rf", "xgb"],
+}
+```
+
+---
+
+## Data Sources & API Keys
+
+### Multi-Source Data Pipeline (Implemented 2026-01-07)
+
+| Source | API Key | Best For | Rate Limit | Status |
+|--------|---------|----------|------------|--------|
+| yfinance | No | Prices, fundamentals, options | Generous | ✅ Primary |
+| Tiingo | Yes | Prices, fundamentals backup | 500/hr | ✅ Fallback |
+| Finnhub | Yes | News sentiment, insider trades, analyst recs | 60/min | ✅ Free endpoints |
+| SEC EDGAR | No | Official filings, fundamentals | 10/sec | ✅ Free |
+| Alpha Vantage | Yes | Last resort backup | 5/min | ✅ Fallback |
+| FRED | Yes | Macro/economic data | 120/min | ✅ Working |
+| FMP | Yes | Fundamentals | 250/day | ⚠️ Rate limited |
+| Marketaux | Yes | News articles with sentiment | 100/day | ✅ Working |
+
+### Environment Variables (in `.streamlit/secrets.toml`)
+```toml
+FRED_API_KEY = "your_key"
+TIINGO_API_KEY = "your_key"
+FINNHUB_API_KEY = "your_key"
+FINNHUB_SECRET = "your_key"
+ALPHAVANTAGE_API_KEY = "your_key"
+FMP_API_KEY = "your_key"
+MARKETAUX_API_KEY = "your_key"
+```
+
+### Data Fallback Chains (Automatic)
+```
+Prices:       yfinance → Tiingo → Alpha Vantage
+Fundamentals: yfinance → Tiingo → SEC EDGAR → Alpha Vantage
+Macro:        FRED → cached fallback → zeros
+Sentiment:    Finnhub (free endpoints) → Marketaux
+News:         Marketaux → Alpha Vantage
+```
+
+### Cache TTLs
+| Data Type | TTL | Location |
+|-----------|-----|----------|
+| Prices | 1 hour | `.cache/data/price/` |
+| Fundamentals | 24 hours | `.cache/data/fundamentals/` |
+| Macro | 6 hours | `.cache/data/macro/` |
+| Sentiment | 2 hours | `.cache/data/sentiment/` |
+
+### Using the Data Pipeline
+```python
+# New multi-source approach (recommended)
+from src.data import fetch_prices, fetch_fundamentals, fetch_sentiment
+
+df = fetch_prices("AAPL", period="2y")        # Auto-fallback
+funds = fetch_fundamentals("AAPL")            # Merged from multiple sources
+sentiment = fetch_sentiment("AAPL")           # Finnhub free endpoints
+
+# Check provider health
+from src.data.aggregator import get_aggregator
+health = get_aggregator().get_provider_health()
+```
+
+---
+
+## Feature Engineering
+
+### Required Pattern for New Features
+```python
+def add_new_feature(df: pd.DataFrame) -> pd.DataFrame:
+    """Always follow this pattern."""
+    # 1. Calculate feature
+    df["new_feature"] = some_calculation(df)
+    
+    # 2. CRITICAL: Lag by 1 day to prevent look-ahead bias
+    df["new_feature"] = df["new_feature"].shift(1)
+    
+    # 3. Handle NaNs
+    df["new_feature"] = df["new_feature"].ffill().fillna(0)
+    
+    # 4. Validate NaN rate
+    nan_rate = df["new_feature"].isna().mean()
+    if nan_rate > 0.05:
+        warnings.warn(f"new_feature has {nan_rate:.1%} NaN rate")
+    
+    return df
+```
+
+### Problem Features (High NaN Risk)
+- **Warmup-related** (expected): `ma_200`, `vol_60d`, `rsi14` - need lookback period
+- **Macro**: `vix`, `t10y`, `term_spread` - require FRED API
+- **Fundamentals**: `fund_pe`, `fund_pb` - require FMP API (rate limited)
+- **Relative**: `rel_strength_1d` - depends on SPX cache
+
+### Column Naming Conventions
+
+| Category | Pattern | Examples |
+|----------|---------|----------|
+| Returns | `ret_Xd` | `ret_1d`, `ret_5d`, `ret_20d` |
+| Volatility | `vol_Xd` | `vol_10d`, `vol_20d`, `vol_60d` |
+| Technical | lowercase | `rsi14`, `macd`, `atr_14`, `adx_14` |
+| GBM | `gbm_*` | `gbm_prob_up`, `gbm_exp_ret` |
+| Fundamentals | `fund_*` | `fund_pe`, `fund_pb`, `fund_marketcap` |
+| Macro | lowercase | `vix`, `t10y`, `term_spread` |
+| Regime | `regime_*` | `regime_bull`, `regime_bear` |
+| Temporal | descriptive | `momentum_consistency_20d`, `trend_strength_60d` |
+| Target | `ftarget_*` | `ftarget_ret_horizon_ahead` |
+
+---
+
+## Model Reference
+
+### Model Types
+| Type | Class | Status | Avg Sharpe | Notes |
+|------|-------|--------|------------|-------|
+| `rf` | RandomForestRegressor | ✅ Active | +11.32 | **Optimized 2026-01-08** via Optuna |
+| `xgb` | XGBRegressor | ✅ Primary | +2.12 | Best performance |
+| `gbrt` | GradientBoostingRegressor | ❌ **Removed** | -0.540 | Severe overfitting (Train R²=0.98, Test R²=-0.20) |
+| `linreg` | LinearRegression | ⚪ Baseline | N/A | Testing only |
+
+### Optimized RF Config (2026-01-08)
+Via Optuna (50 trials). See `experiments/RF_OPTIMIZATION_REPORT.md`:
+```python
+OPTIMIZED_RF_CONFIG = {
+    "n_estimators": 100,
+    "max_depth": None,          # No limit is optimal
+    "min_samples_split": 2,
+    "min_samples_leaf": 4,
+    "max_features": 0.7,        # 70% of features
+    "bootstrap": True,
+    "random_state": 42,
+}
+```
+
+### Why GBRT Was Removed (2026-01-07)
+Investigation found severe overfitting:
+- Train R² = 0.976 vs Test R² = -0.204 (gap of 1.18!)
+- GBRT lacks XGBoost's regularization (subsample, colsample_bytree)
+- 2-model ensemble (RF + XGB) now achieves Sharpe +0.70
+
+### Ensemble Configuration (Optimized 2026-01-08)
+Experiment 4 found: `xgb_rf_equal` (50/50 weights) is best by Sharpe.
+`rf_only` is most stable (best worst-3-month Sharpe: 7.26).
+```python
+# In model_improvements.py - uses optimized configs
+class ModelEnsemble:
+    """Combine Random Forest and XGBoost predictions."""
+    # Uses get_optimized_rf_config() and get_optimized_config() from src/config.py
+    # Default: equal weights (50/50)
+    # Alternative: xgb_heavy (70/30)
+```
+
+---
+
+## Finnhub Free Endpoints (Implemented 2026-01-07)
+
+The premium `social-sentiment` endpoint returns 403. We now use these **free** endpoints:
+
+| Endpoint | Data | Use Case |
+|----------|------|----------|
+| `company-news` | Article count, headlines | News buzz score |
+| `insider-sentiment` | MSPR (Monthly Share Purchase Ratio) | Insider buying/selling |
+| `stock/recommendation` | Analyst buy/hold/sell counts | Analyst sentiment |
+| `stock/earnings` | Historical EPS, surprise % | Earnings data |
+
+### Example Output
+```python
+{
+    "buzz": {"articlesInLastWeek": 140, "buzz": 1.0},
+    "sentiment": {"bullishPercent": 32.9, "bearishPercent": 67.1},
+    "insiderSentiment": {"mspr": -34.25, "change": -492344},
+    "analystRecommendations": {"buy": 21, "hold": 16, "sell": 2}
+}
+```
+
+---
+
+## Stability Thresholds
+
+| Metric | Target | Warning | Hard Fail |
+|--------|--------|---------|-----------|
+| Mean Sharpe | > +0.3 | < +0.1 | < 0 |
+| Worst 3-month Sharpe | > -0.5 | < -1.0 | < -2.0 |
+| Max Drawdown | > -15% | < -20% | < -25% |
+| Win Rate | > 50% | < 48% | < 45% |
+| Data Quality Pass | 10/10 | < 9/10 | < 8/10 |
+
+---
+
+## Circuit Breakers
+
+**Required for all production trading:**
+
+```python
+CIRCUIT_BREAKER_CONFIG = {
+    "daily_loss_limit": -0.03,       # -3% daily
+    "weekly_loss_limit": -0.05,      # -5% weekly
+    "consecutive_loss_limit": 3,     # 3 losses in a row
+}
+```
+```
+
+### Integration
+```python
+from src.risk.circuit_breaker import CircuitBreaker
+
+cb = CircuitBreaker()
+
+def execute_trade(signal):
+    if not cb.can_trade():
+        return {"status": "rejected", "reason": cb.halt_reason}
+    
+    result = submit_order(signal)
+    cb.update(result["pnl"])
+    return result
+```
+
+---
+
+## Testing Requirements
+
+### Before Any PR/Merge
+1. **Syntax**: `python3 -m py_compile <files>`
+2. **Data quality**: `python run_diagnostic_baseline.py` → 10/10 pass
+3. **Backtest**: Run on AAPL, MSFT, AMZN with 6-month window
+4. **Sharpe check**: Must not decrease by >0.1
+
+### Quick Commands
+```bash
+# Full diagnostic
+python run_diagnostic_baseline.py
+
+# Test data pipeline
+python test_data_pipeline.py
+
+# Test news/sentiment features
+python test_news_features.py
+
+# Feature NaN check
+python -c "
+from prediction_model import build_features_and_target
+result = build_features_and_target('AAPL', period='1y')
+print('Features built successfully')
+"
+
+# Single ticker backtest
+python -c "
+from prediction_model import backtest_one_ticker
+print(backtest_one_ticker('AAPL', model_type='xgb'))
+"
+
+# Test sentiment providers
+python -c "
+from src.data.aggregator import fetch_sentiment
+print(fetch_sentiment('AAPL'))
+"
+
+# Start UI
+streamlit run app.py
+
+# Paper trading
+python auto_paper_trade.py
+```
+
+---
+
+## Look-Ahead Bias Safeguards
+
+**Critical rules - never violate:**
+
+1. ✅ All features lagged via `.shift(1)`
+2. ✅ Macro data forward-filled BEFORE reindex
+3. ✅ Walk-forward uses DATE boundaries, not row indices
+4. ✅ Each fold retrains model from scratch
+5. ✅ Target shifted forward by `horizon` days
+6. ✅ Validate NaN rates after feature engineering
+
+---
+
+## Known Gotchas
+
+| Issue | Solution |
+|-------|----------|
+| SPX index timezone mismatch | Use `.reindex(..., method="ffill")` |
+| Walk-forward data leakage | Use unique dates, not row indices |
+| GAF-CNN fails | Requires minimum 30 return values |
+| Heston pricing fails | Falls back to Black-Scholes (only AAPL, NVDA supported) |
+| Streamlit cache issues | Pass immutable types (tuples, strings) |
+| Inflated backtest results | Check for missing `.shift(1)` on features |
+| Forward-fill at fold boundaries | Fill NaN BEFORE reindex, not after |
+| Alpaca rejects orders | Filter non-US symbols before submission |
+| High feature NaN rates | Check API rate limits, use multi-source fallbacks |
+| Yahoo Finance 429 errors | Auto-fallback to Tiingo/Alpha Vantage |
+| Finnhub 403 errors | Use free endpoints (news, insider, recommendations) |
+| GBRT hurts ensemble | **Removed** - use RF + XGB only |
+
+---
+
+## Experiment Results Reference
+
+### BASELINE Evolution
+
+| Version | Sharpe | Max DD | Key Change |
+|---------|--------|--------|------------|
+| BASELINE_001 | -0.094 | -23.66% | Original |
+| BASELINE_002 | +0.128 | -12.85% | z-score=1.6 |
+| BASELINE_003 | +0.178 | -11.28% | +regime filter |
+| BASELINE_004 | +0.129 | -8.40% | +vol×conf sizing |
+| BASELINE_005 | +0.55 | -13.14% | Ticker filter (AAPL, MSFT, AMZN only) |
+
+### Key Findings
+- ✅ Z-score filtering (1.6-2.0) dramatically improves Sharpe
+- ✅ Regime filter reduces drawdown without hurting returns
+- ✅ Vol × confidence sizing smooths equity curve
+- ✅ Multi-source data pipeline eliminates 429 errors
+- ✅ 2-model ensemble (RF + XGB) achieves Sharpe +0.70
+- ❌ SPY and META are systematically unprofitable - exclude
+- ❌ Trade frequency limits hurt performance - don't use
+- ❌ GBRT has severe overfitting - removed from ensemble
+
+---
+
+## Implementation Status
+
+### ✅ Completed (2026-01-07)
+- [x] Multi-source data pipeline with fallback chains
+- [x] Aggressive file-based caching (1hr prices, 24hr fundamentals)
+- [x] Finnhub free endpoints (news, insider, analyst)
+- [x] GBRT removed from ensemble
+- [x] News/sentiment integration working
+- [x] SEC EDGAR provider for free fundamentals
+- [x] Circuit breaker implementation (`src/risk/circuit_breaker.py`)
+- [x] Trade history tracking (`trade_log.json`)
+- [x] Stop loss / take profit auto-exits
+- [x] Alpaca API verified working (paper mode)
+- [x] Performance monitoring (`src/monitoring/performance_monitor.py`)
+
+### 🔄 In Progress
+- [ ] BASELINE_005 deployment to paper trading
+
+### 📋 Planned
+- [ ] Ensemble voting (majority mode)
+- [ ] Enhanced regime detection
+- [ ] Ticker health scoring
+- [ ] Walk-forward optimization
+
+---
+
+## Performance Monitoring
+
+The `src/monitoring/` module provides real-time performance tracking:
+
+### Metrics Tracked
+- **Rolling Sharpe Ratios**: 21-day and 63-day
+- **Drawdown**: Current drawdown from peak equity
+- **Win Rate**: Over last 20 trades and all-time
+- **P&L**: Daily, weekly, monthly, total
+
+### Alert Thresholds
+| Metric | WARNING | CRITICAL |
+|--------|---------|----------|
+| Rolling Sharpe (21d) | < 0.0 | < -0.5 |
+| Drawdown | > 5% | > 8% |
+| Win Rate (20 trades) | < 45% | < 35% |
+| Consecutive Losses | ≥ 3 | ≥ 5 |
+
+### Daily Summary Reports
+Saved to `.monitoring/daily_summaries/summary_YYYY-MM-DD.json` with:
+- All metrics snapshot
+- Per-ticker performance breakdown
+- Active alerts
+- Today's trades
+
+### Slack Notifications
+Set `SLACK_WEBHOOK_URL` environment variable to receive critical alerts.
+
+### Usage
+```python
+from src.monitoring import PerformanceMonitor
+
+monitor = PerformanceMonitor(starting_capital=50000.0)
+monitor.record_trade("AAPL", "BUY", 10, 150.0, 155.0, pnl=50.0)
+alerts = monitor.check_alerts()
+summary = monitor.generate_daily_summary()
+```
+
+---
+
+## Key Files Reference
+
+| File | Purpose |
+|------|---------|
+| `run_diagnostic_baseline.py` | System health check |
+| `test_data_pipeline.py` | Data provider tests |
+| `test_news_features.py` | News/sentiment tests |
+| `test_alpaca_api.py` | Alpaca API connectivity test |
+| `src/config.py` | All configuration constants |
+| `src/data/aggregator.py` | Multi-source data with fallbacks |
+| `src/data/cache_manager.py` | File-based caching |
+| `src/data/providers/` | Individual data providers |
+| `src/monitoring/performance_monitor.py` | Performance tracking and alerts |
+| `src/risk/circuit_breaker.py` | Risk management circuit breaker |
+| `prediction_model.py` | Main prediction engine |
+| `model_improvements.py` | ModelEnsemble (RF + XGB) |
+| `auto_paper_trade.py` | Live paper trading |
+| `app.py` | Streamlit UI |
+
+---
+
+**Last Updated**: 2026-01-07
+**Maintainer**: @mccle270-maker
+**Scope**: Stock prediction, backtesting, options pricing, automated paper trading

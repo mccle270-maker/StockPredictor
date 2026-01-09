@@ -38,6 +38,11 @@ ALPHAVANTAGE_API_KEY = get_api_key("ALPHAVANTAGE_API_KEY")
 APCA_API_KEY_ID = get_api_key("APCA_API_KEY_ID")
 APCA_API_SECRET_KEY = get_api_key("APCA_API_SECRET_KEY")
 
+# New Data Providers (Added 2026-01-07)
+TIINGO_API_KEY = get_api_key("TIINGO_API_KEY")
+FINNHUB_API_KEY = get_api_key("FINNHUB_API_KEY")
+FINNHUB_SECRET = get_api_key("FINNHUB_SECRET")
+
 # ============================================================================
 # TRADING CONSTANTS
 # ============================================================================
@@ -48,20 +53,177 @@ DEFAULT_PERIOD = "5y"
 DEFAULT_MODEL_TYPE = "rf"
 
 # ============================================================================
+# TRADING STRATEGIES (Signal Filters)
+# ============================================================================
+# Tested on 512 holdout days (2026-01-08)
+# Higher filters = Higher accuracy but fewer trades
+# 
+# Strategy comparison (5 tickers, 3 years data):
+#   - Baseline:           Sharpe +1.55, Accuracy 54.5%, 512 days active
+#   - Z>1.5 OR RSI:       Sharpe +1.94, Accuracy 58.0%, 205 days active  <- BEST SHARPE
+#   - RSI Extreme:        Sharpe +1.84, Accuracy 59.3%, 140 days active
+#   - Z>1.5 AND RSI:      Sharpe +1.30, Accuracy 64.7%, 34 days active   <- BEST ACCURACY
+
+TRADING_STRATEGIES = {
+    # Baseline - No filtering, trade on all model predictions
+    # Sharpe: +1.55 | Accuracy: 54.5% | Active: 100%
+    "baseline": {
+        "name": "Baseline (No Filter)",
+        "description": "Trade on all model predictions. Simple and robust.",
+        "filters": {},
+        "metrics": {"sharpe": 1.55, "accuracy": 0.545, "active_pct": 1.0},
+    },
+    
+    # RSI Extreme - Mean reversion on oversold/overbought
+    # Sharpe: +1.84 | Accuracy: 59.3% | Active: 27%
+    "rsi_extreme": {
+        "name": "RSI Extreme",
+        "description": "Trade only when RSI < 30 (oversold) or RSI > 70 (overbought).",
+        "filters": {"rsi_low": 30, "rsi_high": 70},
+        "metrics": {"sharpe": 1.84, "accuracy": 0.593, "active_pct": 0.27},
+    },
+    
+    # Z-Score High Conviction - Momentum extremes
+    # Sharpe: +1.44 | Accuracy: 58.6% | Active: 19%
+    "zscore_high": {
+        "name": "Z-Score > 1.5",
+        "description": "Trade only when momentum z-score exceeds 1.5.",
+        "filters": {"zscore_threshold": 1.5},
+        "metrics": {"sharpe": 1.44, "accuracy": 0.586, "active_pct": 0.19},
+    },
+    
+    # Combined OR - Best Sharpe (Z>1.5 OR RSI Extreme)
+    # Sharpe: +1.94 | Accuracy: 58.0% | Active: 40%
+    "combined_or": {
+        "name": "Z>1.5 OR RSI Extreme",
+        "description": "Trade when z-score > 1.5 OR RSI is extreme. Best Sharpe ratio.",
+        "filters": {"zscore_threshold": 1.5, "rsi_low": 30, "rsi_high": 70, "mode": "OR"},
+        "metrics": {"sharpe": 1.94, "accuracy": 0.580, "active_pct": 0.40},
+    },
+    
+    # Combined AND - Highest Accuracy (Z>1.5 AND RSI Extreme)
+    # Sharpe: +1.30 | Accuracy: 64.7% | Active: 7%
+    "combined_and": {
+        "name": "Z>1.5 AND RSI Extreme",
+        "description": "Trade only when BOTH z-score > 1.5 AND RSI is extreme. Highest accuracy but few trades.",
+        "filters": {"zscore_threshold": 1.5, "rsi_low": 30, "rsi_high": 70, "mode": "AND"},
+        "metrics": {"sharpe": 1.30, "accuracy": 0.647, "active_pct": 0.07},
+    },
+}
+
+# Default strategy for production
+DEFAULT_TRADING_STRATEGY = "baseline"
+
+def get_trading_strategy(name: str = None) -> dict:
+    """Get trading strategy configuration."""
+    if name is None:
+        name = DEFAULT_TRADING_STRATEGY
+    return TRADING_STRATEGIES.get(name, TRADING_STRATEGIES["baseline"])
+
+def get_strategy_names() -> list:
+    """Get list of available strategy names for UI dropdown."""
+    return list(TRADING_STRATEGIES.keys())
+
+def get_strategy_display_names() -> dict:
+    """Get mapping of strategy keys to display names for UI."""
+    return {k: v["name"] for k, v in TRADING_STRATEGIES.items()}
+
+# ============================================================================
 # MODEL VERSIONS - LOCKED CONFIGURATIONS
 # ============================================================================
 # These are tested, validated configurations. DO NOT MODIFY without versioning.
 # To add a new version, create a new entry (e.g., "xgb_regularized_v2")
 
 MODEL_VERSIONS = {
-    # XGBoost Regularized V1 - Baseline (Locked 2026-01-05)
+    # XGBoost Regularized V4 - PRODUCTION (2026-01-08)
+    # Balanced regularization - prevents overfitting while maintaining prediction variance
+    # Test Acc: 51.6%, Gap: 8.8%, Has prediction variance for z-score calculation
+    # See session notes from 2026-01-08
+    "xgb_regularized_v4": {
+        "model_type": "xgb",
+        "version": "v4",
+        "created": "2026-01-08",
+        "status": "production",  # Active
+        "params": {
+            "n_estimators": 150,
+            "max_depth": 4,
+            "learning_rate": 0.02,
+            "subsample": 0.7,
+            "min_child_weight": 30,
+            "reg_alpha": 0.5,
+            "reg_lambda": 5.0,
+            "colsample_bytree": 0.6,
+            "random_state": 42,
+        },
+        "metrics": {
+            "avg_accuracy": 0.516,
+            "train_test_gap": 0.088,
+            "has_variance": True,  # Important for z-score
+        },
+    },
+    
+    # XGBoost Regularized V3 - DEPRECATED (too regularized, constant predictions)
+    # Test Sharpe: 0.84, Accuracy: 53.2%, but predictions are constant (std=0)
+    # Z-score calculation fails due to zero variance
+    "xgb_regularized_v3": {
+        "model_type": "xgb",
+        "version": "v3",
+        "created": "2026-01-08",
+        "status": "deprecated",  # Constant predictions - z-score broken
+        "params": {
+            "n_estimators": 100,
+            "max_depth": 3,
+            "learning_rate": 0.01,
+            "subsample": 0.6,
+            "min_child_weight": 50,
+            "reg_alpha": 1.0,
+            "reg_lambda": 10.0,
+            "colsample_bytree": 0.5,
+            "random_state": 42,
+        },
+        "metrics": {
+            "avg_sharpe": 0.84,
+            "avg_accuracy": 0.532,
+            "train_test_gap": -0.03,  # Nearly zero overfitting!
+        },
+    },
+    
+    # XGBoost Optimized V2 - From Model Improvement Pipeline (2026-01-07)
+    # 50 Optuna trials: Sharpe +2.77, Accuracy 56.1%
+    # WARNING: SEVERELY OVERFIT - train/test gap of 16+
+    # See experiments/hyperparameter_optimization_report.json
+    "xgb_optimized_v2": {
+        "model_type": "xgb",
+        "version": "v2",
+        "created": "2026-01-07",
+        "status": "deprecated",  # OVERFIT - train/test gap 16.22
+        "params": {
+            "n_estimators": 450,
+            "max_depth": 7,
+            "learning_rate": 0.048,
+            "subsample": 0.998,
+            "min_child_weight": 19,
+            "reg_alpha": 0.012,
+            "reg_lambda": 9.3,
+            "colsample_bytree": 0.67,
+            "random_state": 42,
+        },
+        "metrics": {
+            "avg_sharpe": 2.77,
+            "avg_accuracy": 0.561,
+            "improvement_pct": 127.0,
+            "train_test_gap": 16.22,  # SEVERE OVERFITTING
+        },
+    },
+    
+    # XGBoost Regularized V1 - Previous Baseline (Locked 2026-01-05)
     # Backtest results: Sharpe 0.75, Win Rate 55%, Return +22.7%
     # Reduces overfitting: train/test accuracy gap from 50% to 3%
     "xgb_regularized_v1": {
         "model_type": "xgb",
         "version": "v1",
         "created": "2026-01-05",
-        "status": "stable",  # stable | experimental | deprecated
+        "status": "deprecated",  # Replaced by xgb_optimized_v2
         "params": {
             "n_estimators": 300,
             "max_depth": 3,
@@ -111,25 +273,165 @@ MODEL_VERSIONS = {
         },
         "metrics": {},
     },
+    
+    # XGBoost Heavy Regularized V5 - TESTING (2026-01-08)
+    # Dramatically outperformed all others on out-of-sample holdout:
+    # Test Sharpe: 1.00 (vs -0.82 for Prod v4)
+    # Test Accuracy: 54.4%
+    # Sharpe Gap: 0.13 (virtually zero overfitting!)
+    # Test Total Return: +591.7%
+    # Uses only 10 core features for robustness
+    # 
+    # CRITICAL: gamma MUST be 0.0 (or omitted) for z-score to work!
+    # Any gamma > 0 causes predictions to collapse to constant values.
+    # 
+    # reg_lambda/reg_alpha MUST stay below 7.0/0.7 threshold for z-score
+    # Heavy reg (8.0/0.8) causes std < 0.0001 which breaks z-score
+    # See experiments/final_model_comparison.py
+    "xgb_heavy_reg_v5": {
+        "model_type": "xgb",
+        "version": "v5",
+        "created": "2026-01-08",
+        "status": "testing",  # Maximum regularization that still allows z-score
+        "params": {
+            "n_estimators": 75,
+            "max_depth": 4,
+            "learning_rate": 0.02,
+            "subsample": 0.6,
+            "colsample_bytree": 0.6,
+            "min_child_weight": 30,
+            "reg_alpha": 0.7,            # Max safe value (0.8 breaks z-score)
+            "reg_lambda": 7.0,           # Max safe value (8.0 breaks z-score)
+            # gamma MUST BE 0 - omitted uses default 0
+            "random_state": 42,
+        },
+        "features": [
+            # 10 core robust features
+            "ret_5d", "vol_20d", "rsi14", "macd", "atr_14",
+            "momentum", "ret_1d", "vol_10d", "bb_width", "adx_14"
+        ],
+        "metrics": {
+            "pred_std": 0.00022,  # Just above threshold
+            "zscore_works": True,
+            "notes": "Maximum regularization that still allows z-score calculation",
+        },
+    },
+    
+    # RandomForest Regularized V1 - TESTED (2026-01-08)
+    # Tested but performed poorly on holdout:
+    # Test Sharpe: -0.16
+    # NOT RECOMMENDED - XGBoost heavy reg is much better
+    "rf_regularized_v1": {
+        "model_type": "rf",
+        "version": "v1",
+        "created": "2026-01-08",
+        "status": "deprecated",  # Poor test performance
+        "params": {
+            "n_estimators": 50,
+            "max_depth": 5,
+            "min_samples_split": 50,
+            "min_samples_leaf": 25,
+            "max_features": 0.3,
+            "random_state": 42,
+        },
+        "metrics": {
+            "test_sharpe": -0.16,
+            "test_accuracy": 0.514,
+            "train_test_gap": 10.64,
+        },
+    },
+    
+    # XGBoost Balanced V6 - PRODUCTION (2026-01-08)
+    # Fixed the "all predictions UP" issue from V4/V5
+    # Root cause: min_child_weight and reg_lambda too high → predictions collapse to mean
+    # V6 uses lighter regularization for prediction variance while still preventing overfit
+    # 
+    # Key changes from V5:
+    # - min_child_weight: 30 → 5 (allows more splits)
+    # - reg_lambda: 7.0 → 1.0 (lighter regularization)
+    # - reg_alpha: 0.7 → 0.1 (lighter L1)
+    # 
+    # Result: Predictions have variance (std > 0.002) → both UP and DOWN signals
+    "xgb_balanced_v6": {
+        "model_type": "xgb",
+        "version": "v6",
+        "created": "2026-01-08",
+        "status": "production",  # Fixed all-UP issue
+        "params": {
+            "n_estimators": 150,
+            "max_depth": 4,
+            "learning_rate": 0.02,
+            "subsample": 0.7,
+            "colsample_bytree": 0.7,
+            "min_child_weight": 5,      # Was 30 in V5 - too restrictive
+            "reg_alpha": 0.1,            # Was 0.7 in V5 - too high
+            "reg_lambda": 1.0,           # Was 7.0 in V5 - caused constant preds
+            "random_state": 42,
+        },
+        "metrics": {
+            "pred_std": 0.002340,        # Good variance for z-score
+            "zscore_works": True,
+            "up_down_split": "55/45",    # No longer 100% UP
+            "notes": "Balanced regularization - enough variance for both signals",
+        },
+    },
 }
 
 # Current active model versions (change these to switch versions)
 ACTIVE_MODEL_VERSIONS = {
-    "xgb": "xgb_regularized_v1",
-    "rf": "rf_default_v1",
-    "gbrt": "gbrt_default_v1",
+    "xgb": "xgb_balanced_v6",     # Updated 2026-01-08 - V6 fixes all-UP issue (pred std 0.002 vs 0.00003)
+    "rf": "rf_default_v1",         # RF deprecated - negative test Sharpe
+    "gbrt": "gbrt_default_v1",     # GBRT deprecated - severe overfitting
+    # Previous versions (kept for reference):
+    # "xgb": "xgb_heavy_reg_v5",   # V5 - too regularized, all predictions UP
+    # "xgb": "xgb_regularized_v4", # V4 - also too regularized
 }
 
-def get_model_config(model_type: str) -> dict:
+def get_model_config(model_type: str, version_override: str = None) -> dict:
     """
     Get the LOCKED configuration for a model type.
     Returns params from the active versioned config.
+    
+    Args:
+        model_type: 'xgb', 'rf', or 'gbrt'
+        version_override: Optional version key to use instead of active version
+                         e.g., 'xgb_heavy_reg_v5' for testing
     """
+    if version_override and version_override in MODEL_VERSIONS:
+        return MODEL_VERSIONS[version_override]["params"].copy()
+    
     version_key = ACTIVE_MODEL_VERSIONS.get(model_type)
     if version_key and version_key in MODEL_VERSIONS:
         return MODEL_VERSIONS[version_key]["params"].copy()
     # Fallback to MODEL_DEFAULTS
     return MODEL_DEFAULTS.get(model_type, {}).copy()
+
+
+def get_heavy_reg_config() -> dict:
+    """
+    Get the Heavy Regularized XGB config (v5) for testing.
+    
+    This config dramatically outperformed production v4 on holdout data:
+    - Test Sharpe: 1.00 (vs -0.82 for v4)
+    - Test Accuracy: 54.4%
+    - Sharpe Gap: 0.13 (virtually zero overfitting)
+    
+    Usage:
+        from src.config import get_heavy_reg_config
+        params = get_heavy_reg_config()
+        model = XGBRegressor(**params)
+    """
+    return MODEL_VERSIONS["xgb_heavy_reg_v5"]["params"].copy()
+
+
+def get_heavy_reg_features() -> list:
+    """
+    Get the 10 core features for Heavy Regularized XGB.
+    
+    These features were selected for robustness:
+    ret_5d, vol_20d, rsi14, macd, atr_14, momentum, ret_1d, vol_10d, bb_width, adx_14
+    """
+    return MODEL_VERSIONS["xgb_heavy_reg_v5"]["features"].copy()
 
 def get_model_version_info(model_type: str) -> dict:
     """Get full version info including metrics for logging."""
@@ -223,6 +525,116 @@ def log_ticker_eligibility(ticker: str) -> str:
     eligible, reason = is_ticker_eligible(ticker)
     status = "✅ ELIGIBLE" if eligible else "❌ DISABLED"
     return f"[{ticker}] {status}: {reason}"
+
+# ============================================================================
+# OPTIMIZED MODEL CONFIGURATION (From Model Improvement Report)
+# ============================================================================
+# Results from 6-experiment pipeline (2026-01-07):
+# - Experiment 3: Hyperparameter optimization (50 Optuna trials) -> Sharpe +2.77
+# - Experiment 6: Temperature scaling calibration -> +7.2% Sharpe improvement
+# - Experiment 2: Feature selection -> 20 optimal features from 150
+#
+# UPDATED 2026-01-08 (v6): Balanced regularization with REAL prediction variance
+# V4/V5 were too regularized (constant predictions → all UP)
+# V6 uses lighter regularization so model can predict both UP and DOWN
+
+OPTIMIZED_MODEL_CONFIG = {
+    # XGBoost Balanced V6 Hyperparameters (2026-01-08)
+    # Fixed the "all predictions UP" issue
+    # Key: min_child_weight=5 and reg_lambda=1.0 allow prediction variance
+    "n_estimators": 150,
+    "max_depth": 4,
+    "learning_rate": 0.02,
+    "subsample": 0.7,
+    "colsample_bytree": 0.7,      # Was 0.6 (use more features)
+    "min_child_weight": 5,        # Was 30 (CRITICAL: lower = more splits = more variance)
+    "reg_alpha": 0.1,             # Was 0.5 (lighter L1 reg)
+    "reg_lambda": 1.0,            # Was 5.0 (CRITICAL: lower = more variance in predictions)
+    "random_state": 42,
+    
+    # Calibration disabled for regularized model
+    "use_temperature_scaling": False,
+    "temperature": 1.0,
+}
+
+# ============================================================================
+# OPTIMIZED RANDOM FOREST CONFIGURATION
+# ============================================================================
+# Random Forest improvements to reduce overfitting and improve stability:
+# 1. Deeper trees with more regularization (min_samples_leaf, min_samples_split)
+# 2. More trees for ensemble stability (n_estimators=500)
+# 3. Bootstrap aggregation with max_features tuning
+# 4. Out-of-bag scoring for validation
+#
+# Key RF parameters for financial data:
+# - max_depth: Controls tree complexity (deeper = more overfitting risk)
+# - min_samples_leaf: Minimum samples per leaf (higher = more regularization)
+# - max_features: Features per split ("sqrt" or 0.3-0.5 works well)
+# - n_estimators: More trees = more stable predictions (diminishing returns after 300)
+
+# OPTIMIZED 2026-01-08: Via Optuna (50 trials) - Best Sharpe 11.32
+# See experiments/RF_OPTIMIZATION_REPORT.md and experiments/optimized_rf_config.json
+OPTIMIZED_RF_CONFIG = {
+    "n_estimators": 100,        # Optuna optimal (was 500)
+    "max_depth": None,          # No limit optimal (was 10)
+    "min_samples_split": 2,     # Default optimal (was 20)
+    "min_samples_leaf": 4,      # Light regularization (was 10)
+    "max_features": 0.7,        # Use 70% of features per split (was 0.5)
+    "bootstrap": True,          # Use bootstrap samples
+    "oob_score": False,         # Disable for speed (not needed)
+    "random_state": 42,
+    "n_jobs": -1,               # Use all cores
+}
+
+# RF Optimization Results (2026-01-08):
+# - Best Sharpe: 11.32 (via Optuna 50 trials)
+# - Best Ensemble: xgb_rf_equal (Sharpe 11.14)
+# - Most Stable: rf_only (Worst 3M Sharpe: 7.26)
+# - Temperature Scaling: 1.0 (no scaling needed)
+# 
+# Key findings from optimization:
+# 1. max_depth=None performs better than constrained depth
+# 2. max_features=0.7 (70%) better than 0.5 (50%)
+# 3. Fewer trees (100) with less regularization works better
+# 4. Equal-weight ensemble (XGB+RF 50/50) is best overall
+
+def get_optimized_rf_config() -> dict:
+    """Get the optimized Random Forest configuration."""
+    return OPTIMIZED_RF_CONFIG.copy()
+
+# Top 20 features from Experiment 2 (Recursive Feature Elimination)
+# These achieved Sharpe 2.119 vs 1.847 baseline
+OPTIMIZED_FEATURES = [
+    "gbm_exp_ret_5d", "gbm_prob_up_5d", "ret_5d", "gbm_exp_ret_1d",
+    "vol_20d", "rsi14", "gbm_prob_up_1d", "macd", "atr_14", "adx_14",
+    "ret_1d", "ret_10d", "vol_10d", "obv", "momentum", "williams_r",
+    "cci", "stoch_k", "bb_width", "mfi",
+]
+
+# A/B Testing Configuration
+AB_TEST_CONFIG = {
+    "enabled": True,
+    "default_variant": "optimized",  # "optimized" or "legacy"
+    "log_predictions": True,
+    "comparison_window_days": 14,
+}
+
+def get_optimized_config() -> dict:
+    """Get the optimized model configuration."""
+    return OPTIMIZED_MODEL_CONFIG.copy()
+
+def get_optimized_features() -> list:
+    """Get the list of optimized features."""
+    return OPTIMIZED_FEATURES.copy()
+
+def is_optimized_mode() -> bool:
+    """Check if we should use optimized configuration."""
+    import os
+    # Can be overridden via environment variable
+    override = os.environ.get("USE_LEGACY_MODEL", "").lower()
+    if override in ("1", "true", "yes"):
+        return False
+    return AB_TEST_CONFIG.get("default_variant", "optimized") == "optimized"
 
 # ============================================================================
 # Z-SCORE GATING CONFIGURATION
@@ -451,6 +863,114 @@ OPTIONS_PRESETS = {
 }
 
 # ============================================================================
+# TRADING STRATEGY PRESETS (Master Presets - Simplify UI)
+# ============================================================================
+@dataclass
+class TradingStrategyPreset:
+    """
+    Master preset combining all trading parameters.
+    Simplifies UI by providing Strict/Default/Loose options.
+    """
+    # Z-Score filtering
+    min_zscore: float = 1.0
+    
+    # Signal filters
+    min_signal_pct: float = 0.25  # Minimum prediction % to show
+    min_predicted_move_pct: float = 1.0
+    
+    # Candidate filters
+    max_tickers: int = 10
+    min_iv: float = 0.20
+    max_iv: float = 0.80
+    
+    # Position sizing
+    use_vol_scaling: bool = True
+    use_regime_filter: bool = True
+    
+    # Model settings
+    model_type: str = "rf"
+    period: str = "5y"
+    horizon: int = 1
+    auto_optimize: bool = True
+    
+    # Execution
+    friction_preset: str = "Default"
+    options_preset: str = "Default"
+    
+    @property
+    def description(self) -> str:
+        return f"z≥{self.min_zscore}, {self.model_type.upper()}, {self.period}"
+
+
+# Based on experiment results: BASELINE_004 (Sharpe +0.129) used z=1.6, regime ON
+TRADING_STRATEGY_PRESETS = {
+    "Default (Balanced)": TradingStrategyPreset(
+        min_zscore=1.0,
+        min_signal_pct=0.25,
+        min_predicted_move_pct=1.0,
+        max_tickers=10,
+        min_iv=0.20,
+        max_iv=0.80,
+        use_vol_scaling=True,
+        use_regime_filter=True,
+        model_type="rf",
+        period="5y",
+        horizon=1,
+        auto_optimize=True,
+        friction_preset="Default",
+        options_preset="Default",
+    ),
+    "Strict (Fewer, Stronger Signals)": TradingStrategyPreset(
+        min_zscore=1.6,  # From experiments: best z-score threshold
+        min_signal_pct=0.5,
+        min_predicted_move_pct=1.5,
+        max_tickers=5,
+        min_iv=0.25,
+        max_iv=0.70,
+        use_vol_scaling=True,
+        use_regime_filter=True,  # From experiments: ON improved drawdown
+        model_type="rf",
+        period="5y",
+        horizon=1,
+        auto_optimize=True,
+        friction_preset="Strict (pessimistic)",
+        options_preset="Strict",
+    ),
+    "Loose (More Signals)": TradingStrategyPreset(
+        min_zscore=0.5,
+        min_signal_pct=0.1,
+        min_predicted_move_pct=0.5,
+        max_tickers=20,
+        min_iv=0.15,
+        max_iv=0.90,
+        use_vol_scaling=True,
+        use_regime_filter=False,
+        model_type="rf",
+        period="5y",
+        horizon=1,
+        auto_optimize=True,
+        friction_preset="Loose (optimistic)",
+        options_preset="Loose",
+    ),
+    "Aggressive (XGBoost, More Trades)": TradingStrategyPreset(
+        min_zscore=0.8,
+        min_signal_pct=0.2,
+        min_predicted_move_pct=0.75,
+        max_tickers=15,
+        min_iv=0.15,
+        max_iv=0.85,
+        use_vol_scaling=True,
+        use_regime_filter=True,
+        model_type="xgb",
+        period="5y",
+        horizon=1,
+        auto_optimize=True,
+        friction_preset="Default",
+        options_preset="Default",
+    ),
+}
+
+# ============================================================================
 # WALK-FORWARD PRESETS
 # ============================================================================
 @dataclass
@@ -547,10 +1067,20 @@ def env_int(name: str, default: int) -> int:
         return default
 
 # Feature selection settings (from env)
-USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", True)  # Default enabled per original
+# IMPORTANT: Default to False - only enable when explicitly requested via env or UI
+USE_ELASTICNET_SELECT = env_bool("USE_ELASTICNET_SELECT", False)  # Changed default to False
 ELASTICNET_L1_RATIO = env_float("ELASTICNET_L1_RATIO", 0.5)
 ELASTICNET_CV_FOLDS = env_int("ELASTICNET_CV_FOLDS", 5)
 ELASTICNET_MIN_FEATURES = env_int("ELASTICNET_MINFEATURES", 12)
+
+
+def is_elasticnet_enabled() -> bool:
+    """Check if ElasticNet feature selection is enabled at RUNTIME.
+    
+    This function reads the environment variable each time it's called,
+    allowing UI toggles to take effect without restarting the app.
+    """
+    return env_bool("USE_ELASTICNET_SELECT", False)
 
 # OLS significance selection
 USE_OLSSIGSELECT = env_bool("USE_OLSSIGSELECT", False)

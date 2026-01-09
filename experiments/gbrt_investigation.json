@@ -1,0 +1,369 @@
+{
+  "timestamp": "2026-01-07T16:13:02.718841",
+  "ticker": "AAPL",
+  "period": "2y",
+  "config": {
+    "hyperparameters": {
+      "rf": {
+        "n_estimators": 100,
+        "max_depth": 10,
+        "min_samples_leaf": 5,
+        "random_state": 42
+      },
+      "xgb": {
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.1,
+        "subsample": 0.8,
+        "colsample_bytree": 0.8,
+        "random_state": 42
+      },
+      "gbrt": {
+        "n_estimators": 100,
+        "max_depth": 3,
+        "learning_rate": 0.1,
+        "min_samples_leaf": 5,
+        "random_state": 42
+      }
+    },
+    "differences": [
+      "max_depth: XGB=5 vs GBRT=3",
+      "XGB uses subsample (0.8), GBRT does not (uses 100%)",
+      "XGB uses colsample_bytree (0.8), GBRT does not"
+    ]
+  },
+  "comparison": {
+    "models": {
+      "rf": {
+        "train_mse": 0.0003415,
+        "test_mse": 0.0001791,
+        "train_r2": 0.0786,
+        "test_r2": -0.0574,
+        "train_dir_accuracy": 0.6239,
+        "test_dir_accuracy": 0.4659,
+        "test_sharpe": -2.5839,
+        "prediction_stats": {
+          "mean": -0.000256,
+          "std": 0.00139,
+          "min": -0.002532,
+          "max": 0.003835
+        },
+        "overfitting_gap": 0.136
+      },
+      "xgb": {
+        "train_mse": 0.00037062,
+        "test_mse": 0.00016955,
+        "train_r2": 0.0,
+        "test_r2": -0.0011,
+        "train_dir_accuracy": 0.5698,
+        "test_dir_accuracy": 0.5341,
+        "test_sharpe": 1.0849,
+        "prediction_stats": {
+          "mean": "0.001081",
+          "std": "0.0",
+          "min": "0.001081",
+          "max": "0.001081"
+        },
+        "overfitting_gap": 0.0011
+      },
+      "gbrt": {
+        "train_mse": 8.82e-06,
+        "test_mse": 0.00020391,
+        "train_r2": 0.9762,
+        "test_r2": -0.2039,
+        "train_dir_accuracy": 0.9316,
+        "test_dir_accuracy": 0.5114,
+        "test_sharpe": -0.5899,
+        "prediction_stats": {
+          "mean": -0.002419,
+          "std": 0.004628,
+          "min": -0.0171,
+          "max": 0.0138
+        },
+        "overfitting_gap": 1.1801
+      }
+    },
+    "comparison": {
+      "xgb_gbrt_correlation": NaN,
+      "sign_disagreement_rate": 0.75,
+      "mean_abs_difference": 0.004553
+    },
+    "feature_importances": {
+      "rf": [
+        [
+          "rsi14",
+          0.1724
+        ],
+        [
+          "vix",
+          0.1183
+        ],
+        [
+          "adx_14",
+          0.0607
+        ],
+        [
+          "mfi14",
+          0.0599
+        ],
+        [
+          "close_position",
+          0.0594
+        ],
+        [
+          "macdhist",
+          0.0444
+        ],
+        [
+          "atr_14",
+          0.0436
+        ],
+        [
+          "bb_width",
+          0.0399
+        ],
+        [
+          "ret_1d",
+          0.0345
+        ],
+        [
+          "t10y",
+          0.0329
+        ]
+      ],
+      "xgb": [
+        [
+          "ret_1d",
+          "0.0"
+        ],
+        [
+          "ret_3d",
+          "0.0"
+        ],
+        [
+          "ret_5d",
+          "0.0"
+        ],
+        [
+          "ret_10d",
+          "0.0"
+        ],
+        [
+          "ret_20d",
+          "0.0"
+        ],
+        [
+          "cumret_3d",
+          "0.0"
+        ],
+        [
+          "cumret_5d",
+          "0.0"
+        ],
+        [
+          "cumret_10d",
+          "0.0"
+        ],
+        [
+          "vol_10d",
+          "0.0"
+        ],
+        [
+          "vol_20d",
+          "0.0"
+        ]
+      ],
+      "gbrt": [
+        [
+          "vix",
+          0.1335
+        ],
+        [
+          "ret_1d",
+          0.0672
+        ],
+        [
+          "oas",
+          0.0612
+        ],
+        [
+          "rsi14",
+          0.0601
+        ],
+        [
+          "close_position",
+          0.0494
+        ],
+        [
+          "atr_14",
+          0.0405
+        ],
+        [
+          "macdhist",
+          0.0391
+        ],
+        [
+          "cumret_3d",
+          0.0335
+        ],
+        [
+          "vol_20d",
+          0.0318
+        ],
+        [
+          "mfi14",
+          0.0314
+        ]
+      ]
+    }
+  },
+  "diagnosis": {
+    "issues_found": [
+      "OVERFITTING: Train-Test R\u00b2 gap = 1.1801 (>0.1)",
+      "UNDERPERFORMANCE: XGB Sharpe 1.0849 >> GBRT Sharpe -0.5899 (diff: 1.6748)",
+      "MARGINAL DIRECTION: Test accuracy 0.5114 barely above random"
+    ],
+    "severity": "HIGH",
+    "recommended_action": ""
+  },
+  "tuning": {
+    "configs_tested": [
+      {
+        "name": "default",
+        "params": {
+          "name": "default",
+          "n_estimators": 100,
+          "max_depth": 3,
+          "learning_rate": 0.1,
+          "subsample": 1.0
+        },
+        "test_r2": -0.0923,
+        "test_dir_accuracy": 0.4773,
+        "test_sharpe": -0.9509
+      },
+      {
+        "name": "deeper",
+        "params": {
+          "name": "deeper",
+          "n_estimators": 100,
+          "max_depth": 5,
+          "learning_rate": 0.1,
+          "subsample": 1.0
+        },
+        "test_r2": -0.2724,
+        "test_dir_accuracy": 0.5114,
+        "test_sharpe": -0.372
+      },
+      {
+        "name": "more_trees",
+        "params": {
+          "name": "more_trees",
+          "n_estimators": 200,
+          "max_depth": 3,
+          "learning_rate": 0.05,
+          "subsample": 1.0
+        },
+        "test_r2": -0.1758,
+        "test_dir_accuracy": 0.4659,
+        "test_sharpe": -1.0443
+      },
+      {
+        "name": "regularized",
+        "params": {
+          "name": "regularized",
+          "n_estimators": 100,
+          "max_depth": 5,
+          "learning_rate": 0.05,
+          "subsample": 0.8
+        },
+        "test_r2": -0.176,
+        "test_dir_accuracy": 0.4886,
+        "test_sharpe": -1.0823
+      },
+      {
+        "name": "xgb_like",
+        "params": {
+          "name": "xgb_like",
+          "n_estimators": 100,
+          "max_depth": 5,
+          "learning_rate": 0.1,
+          "subsample": 0.8
+        },
+        "test_r2": -0.2739,
+        "test_dir_accuracy": 0.4205,
+        "test_sharpe": -2.0788
+      }
+    ],
+    "best_config": {
+      "name": "deeper",
+      "params": {
+        "name": "deeper",
+        "n_estimators": 100,
+        "max_depth": 5,
+        "learning_rate": 0.1,
+        "subsample": 1.0
+      },
+      "test_r2": -0.2724,
+      "test_dir_accuracy": 0.5114,
+      "test_sharpe": -0.372
+    }
+  },
+  "ensemble": {
+    "ensembles": {
+      "3-model (RF+XGB+GBRT)": {
+        "models": [
+          "rf",
+          "xgb",
+          "gbrt"
+        ],
+        "test_r2": -0.0486,
+        "test_dir_accuracy": 0.5,
+        "test_sharpe": -0.9747,
+        "prediction_std": 0.001813
+      },
+      "2-model (RF+XGB)": {
+        "models": [
+          "rf",
+          "xgb"
+        ],
+        "test_r2": -0.0238,
+        "test_dir_accuracy": 0.4773,
+        "test_sharpe": -1.5136,
+        "prediction_std": 0.000695
+      },
+      "2-model (XGB+GBRT)": {
+        "models": [
+          "xgb",
+          "gbrt"
+        ],
+        "test_r2": -0.0528,
+        "test_dir_accuracy": 0.4886,
+        "test_sharpe": -0.3963,
+        "prediction_std": 0.002314
+      },
+      "XGB only": {
+        "models": [
+          "xgb"
+        ],
+        "test_r2": -0.0011,
+        "test_dir_accuracy": 0.5341,
+        "test_sharpe": 1.0849,
+        "prediction_std": "0.0"
+      }
+    },
+    "recommendation": "KEEP GBRT: Removing hurts Sharpe by 0.5389",
+    "best_ensemble": "XGB only"
+  },
+  "recommendation": {
+    "action": "REMOVE_GBRT",
+    "reasoning": [
+      "Tuning provides minimal improvement",
+      "GBRT adds complexity without benefit",
+      "Simpler 2-model ensemble preferred"
+    ],
+    "implementation": [
+      "Remove GBRT from ensemble",
+      "Use RF + XGB only"
+    ]
+  }
+}

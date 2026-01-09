@@ -1,0 +1,24 @@
+{
+  "run_id": "8e6f1dd0-7796-4546-9ef0-8ff55eb093c2",
+  "timestamp": "2026-01-09T15:33:32.639577",
+  "model_version": "v6",
+  "feature_set_hash": "7a21826adb",
+  "zscore_threshold": 1.0,
+  "volatility_sizing": {
+    "target_daily_vol": 0.01,
+    "vol_lookback_days": 20,
+    "max_leverage": 2.0,
+    "min_position_pct": 0.25
+  },
+  "trade_limits": {
+    "max_trades_per_ticker": 1,
+    "period": "day"
+  },
+  "regime_filter": {
+    "enabled": true,
+    "spy_dma_period": 200,
+    "vix_high_threshold": 25.0,
+    "vix_extreme_threshold": 35.0,
+    "min_conviction_override": 2.0
+  }
+}

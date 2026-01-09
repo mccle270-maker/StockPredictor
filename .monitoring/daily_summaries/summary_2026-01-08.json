@@ -1,0 +1,109 @@
+{
+  "date": "2026-01-08",
+  "metrics": {
+    "current_equity": 47832.18,
+    "peak_equity": 50000.0,
+    "current_drawdown_pct": 0.043356399999999996,
+    "sharpe_21d": 0.0,
+    "sharpe_63d": 0.0,
+    "win_rate_20": 0.0,
+    "win_rate_all": 0.0,
+    "pnl_today": -12.259999999999996,
+    "pnl_week": -12.259999999999996,
+    "pnl_month": -12.259999999999996,
+    "pnl_total": -12.259999999999996,
+    "trades_today": 3,
+    "trades_week": 3,
+    "trades_total": 3,
+    "last_updated": "2026-01-08T23:40:48.123746+00:00"
+  },
+  "ticker_breakdown": {
+    "GOLD260116P00040000": {
+      "symbol": "GOLD260116P00040000",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -11.599999999999998,
+      "pnl_avg": -11.599999999999998,
+      "best_trade": 0.0,
+      "worst_trade": -11.599999999999998
+    },
+    "PLUG260116P00002500": {
+      "symbol": "PLUG260116P00002500",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.12,
+      "pnl_avg": -0.12,
+      "best_trade": 0.0,
+      "worst_trade": -0.12
+    },
+    "NEM260116C00106000": {
+      "symbol": "NEM260116C00106000",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.5399999999999991,
+      "pnl_avg": -0.5399999999999991,
+      "best_trade": 0.0,
+      "worst_trade": -0.5399999999999991
+    }
+  },
+  "active_alerts": [
+    {
+      "level": "WARNING",
+      "category": "consecutive_losses",
+      "message": "Building consecutive losses: 3",
+      "value": 3,
+      "threshold": 3,
+      "timestamp": "2026-01-08T23:40:56.925668+00:00"
+    }
+  ],
+  "trades_today": [
+    {
+      "trade_id": "2c774b4a-e566-4a5e-be74-88bc8e9b8914",
+      "symbol": "GOLD260116P00040000",
+      "side": "BUY",
+      "qty": 8.0,
+      "entry_price": 3.8,
+      "exit_price": 2.35,
+      "entry_time": "2026-01-08T16:23:33.919273+00:00",
+      "exit_time": "2026-01-08T16:23:33.919273+00:00",
+      "pnl": -11.599999999999998,
+      "pnl_pct": -38.1578947368421,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "75696b7f-b7ce-41cb-a428-47f87b8a6bce",
+      "symbol": "PLUG260116P00002500",
+      "side": "BUY",
+      "qty": 4.0,
+      "entry_price": 0.25,
+      "exit_price": 0.22,
+      "entry_time": "2026-01-08T17:12:43.813145+00:00",
+      "exit_time": "2026-01-08T17:12:43.813145+00:00",
+      "pnl": -0.12,
+      "pnl_pct": -12.0,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "d7c22025-ad10-42bd-95fc-e90edc775ec3",
+      "symbol": "NEM260116C00106000",
+      "side": "BUY",
+      "qty": 3.0,
+      "entry_price": 2.92,
+      "exit_price": 2.74,
+      "entry_time": "2026-01-08T18:10:36.781705+00:00",
+      "exit_time": "2026-01-08T18:10:36.781705+00:00",
+      "pnl": -0.5399999999999991,
+      "pnl_pct": -6.1643835616438265,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    }
+  ]
+}

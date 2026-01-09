@@ -22,29 +22,95 @@ except ImportError:
 # MODEL FACTORY
 # ============================================================================
 
+# Try to import ModelEnsemble from model_improvements
+try:
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from model_improvements import ModelEnsemble
+    HAS_ENSEMBLE = True
+except ImportError:
+    HAS_ENSEMBLE = False
+
 def make_model(
     model_type: str = "rf",
     task: str = "reg",
     random_state: int = 42,
+    use_optimized: bool = True,
     **kwargs
 ) -> Any:
     """
     Create a model instance.
     
     Args:
-        model_type: One of 'rf', 'xgb', 'gbrt', 'linreg'
+        model_type: One of 'rf', 'xgb', 'gbrt', 'linreg', 'ensemble'
         task: 'reg' for regression, 'clf' for classification
         random_state: Random seed
+        use_optimized: If True, use OPTIMIZED_MODEL_CONFIG for XGB (default True)
         **kwargs: Override default hyperparameters
     
     Returns:
         Model instance (unfitted)
     """
-    from ..config import MODEL_DEFAULTS
+    from ..config import MODEL_DEFAULTS, OPTIMIZED_MODEL_CONFIG, is_optimized_mode
+    import logging
+    logger = logging.getLogger("model_factory")
+    
+    # Handle ensemble model type
+    if model_type == "ensemble":
+        if HAS_ENSEMBLE:
+            print("🔧 Creating ModelEnsemble (RF + XGB)")
+            return ModelEnsemble(include_xgb=HAS_XGB)
+        else:
+            print("⚠️ ModelEnsemble not available, falling back to RF")
+            model_type = "rf"
+    
+    # Determine if we should use optimized config
+    use_opt = use_optimized and is_optimized_mode()
     
     # Get defaults for this model type
-    defaults = MODEL_DEFAULTS.get(model_type, {}).copy()
-    defaults["random_state"] = random_state
+    if model_type == "xgb" and use_opt:
+        # Use optimized hyperparameters from Model Improvement Report
+        defaults = {
+            "n_estimators": OPTIMIZED_MODEL_CONFIG["n_estimators"],
+            "max_depth": OPTIMIZED_MODEL_CONFIG["max_depth"],
+            "learning_rate": OPTIMIZED_MODEL_CONFIG["learning_rate"],
+            "subsample": OPTIMIZED_MODEL_CONFIG["subsample"],
+            "colsample_bytree": OPTIMIZED_MODEL_CONFIG["colsample_bytree"],
+            "min_child_weight": OPTIMIZED_MODEL_CONFIG["min_child_weight"],
+            "reg_alpha": OPTIMIZED_MODEL_CONFIG["reg_alpha"],
+            "reg_lambda": OPTIMIZED_MODEL_CONFIG["reg_lambda"],
+            "random_state": random_state,
+        }
+        logger.info("🚀 Using OPTIMIZED XGBoost config (Sharpe +2.77)")
+        print("🚀 Using OPTIMIZED XGBoost config")
+    elif model_type == "rf" and use_opt:
+        # Use optimized RF hyperparameters from Optuna optimization (2026-01-08)
+        from ..config import get_optimized_rf_config
+        rf_config = get_optimized_rf_config()
+        defaults = {
+            "n_estimators": rf_config.get("n_estimators", 100),
+            "max_depth": rf_config.get("max_depth", None),
+            "min_samples_split": rf_config.get("min_samples_split", 2),
+            "min_samples_leaf": rf_config.get("min_samples_leaf", 4),
+            "max_features": rf_config.get("max_features", 0.7),
+            "bootstrap": rf_config.get("bootstrap", True),
+            "random_state": random_state,
+            "n_jobs": -1,
+        }
+        logger.info("🚀 Using OPTIMIZED RF config (Optuna - Sharpe +11.32)")
+        print("🚀 Using OPTIMIZED RF config")
+    else:
+        defaults = MODEL_DEFAULTS.get(model_type, {}).copy()
+        defaults["random_state"] = random_state
+        if model_type == "xgb":
+            logger.info("📊 Using LEGACY XGBoost config")
+            print("📊 Using LEGACY XGBoost config")
+        elif model_type == "rf":
+            logger.info("📊 Using LEGACY RF config")
+            print("📊 Using LEGACY RF config")
+    
+    # Apply any overrides
     defaults.update(kwargs)
     
     if model_type == "rf":

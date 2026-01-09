@@ -1,0 +1,46 @@
+{
+  "experiment": "Probability Calibration",
+  "timestamp": "2026-01-07T20:00:35.277236",
+  "uncalibrated": {
+    "accuracy": 0.5343680709534369,
+    "sharpe": 1.9621300293844801,
+    "brier_score": 0.2594089469489093
+  },
+  "calibration_methods": [
+    {
+      "method": "Uncalibrated",
+      "accuracy": 0.5343680709534369,
+      "brier_score": 0.2594089469489093,
+      "sharpe": 1.9621300293844801
+    },
+    {
+      "method": "Platt Scaling",
+      "accuracy": 0.5254988913525499,
+      "brier_score": 0.4051952142839391,
+      "sharpe": 1.156255619091657
+    },
+    {
+      "method": "Isotonic Regression",
+      "accuracy": 0.5388026607538803,
+      "brier_score": 0.41514803762565267,
+      "sharpe": 1.247148914504226
+    },
+    {
+      "method": "Temperature Scaling (T=2.9)",
+      "accuracy": 0.5343680709534369,
+      "brier_score": 0.2450004966023561,
+      "sharpe": 2.1031189833096318,
+      "temperature": 2.8999999999999995
+    }
+  ],
+  "best_method": "Temperature Scaling (T=2.9)",
+  "improvement": {
+    "sharpe_change": 0.14098895392515165,
+    "brier_change": -0.01440845034655322
+  },
+  "recommendations": [
+    "Best by Sharpe: Temperature Scaling (T=2.9) (Sharpe 2.1031)",
+    "Best by Brier: Temperature Scaling (T=2.9) (Brier 0.2450)",
+    "USE CALIBRATION"
+  ]
+}

@@ -1,0 +1,1155 @@
+{
+  "timestamp": "2026-01-07T19:40:39.031613",
+  "tickers_analyzed": [
+    "AAPL",
+    "MSFT",
+    "AMZN"
+  ],
+  "total_features": 150,
+  "top_30_features": [
+    {
+      "feature": "gbm_exp_ret_5d",
+      "importance": 0.025712,
+      "importance_pct": 2.5712
+    },
+    {
+      "feature": "gbm_prob_up_5d",
+      "importance": 0.023849,
+      "importance_pct": 2.3849
+    },
+    {
+      "feature": "regime_vix_low",
+      "importance": 0.014478,
+      "importance_pct": 1.4478
+    },
+    {
+      "feature": "momentum_6m_zscore",
+      "importance": 0.014447,
+      "importance_pct": 1.4447
+    },
+    {
+      "feature": "oas",
+      "importance": 0.013726,
+      "importance_pct": 1.3726
+    },
+    {
+      "feature": "vol_20d_lag_5",
+      "importance": 0.012972,
+      "importance_pct": 1.2972
+    },
+    {
+      "feature": "momentum_ratio_10_20",
+      "importance": 0.011875,
+      "importance_pct": 1.1875
+    },
+    {
+      "feature": "gbm_p05_ret_5d",
+      "importance": 0.01171,
+      "importance_pct": 1.171
+    },
+    {
+      "feature": "high_low_ratio",
+      "importance": 0.011174,
+      "importance_pct": 1.1174
+    },
+    {
+      "feature": "volatility_cluster",
+      "importance": 0.011033,
+      "importance_pct": 1.1033
+    },
+    {
+      "feature": "ret_1d_lag_2",
+      "importance": 0.010821,
+      "importance_pct": 1.0821
+    },
+    {
+      "feature": "vix",
+      "importance": 0.010528,
+      "importance_pct": 1.0528
+    },
+    {
+      "feature": "rsi14_lag_2",
+      "importance": 0.010467,
+      "importance_pct": 1.0467
+    },
+    {
+      "feature": "price_action_strength",
+      "importance": 0.010312,
+      "importance_pct": 1.0312
+    },
+    {
+      "feature": "gbm_p95_ret_1d",
+      "importance": 0.010234,
+      "importance_pct": 1.0234
+    },
+    {
+      "feature": "t10y",
+      "importance": 0.01012,
+      "importance_pct": 1.012
+    },
+    {
+      "feature": "news_sentiment",
+      "importance": 0.010094,
+      "importance_pct": 1.0094
+    },
+    {
+      "feature": "cpi",
+      "importance": 0.010057,
+      "importance_pct": 1.0057
+    },
+    {
+      "feature": "ret_1d_lag_5",
+      "importance": 0.010041,
+      "importance_pct": 1.0041
+    },
+    {
+      "feature": "rsi_change_3d",
+      "importance": 0.00994,
+      "importance_pct": 0.994
+    },
+    {
+      "feature": "dxy_ret_5d",
+      "importance": 0.009745,
+      "importance_pct": 0.9745
+    },
+    {
+      "feature": "gbm_mu_60d",
+      "importance": 0.009586,
+      "importance_pct": 0.9586
+    },
+    {
+      "feature": "regime_low_corr",
+      "importance": 0.009454,
+      "importance_pct": 0.9454
+    },
+    {
+      "feature": "vol_mean_reversion_score",
+      "importance": 0.009453,
+      "importance_pct": 0.9453
+    },
+    {
+      "feature": "dist_from_low_20",
+      "importance": 0.009374,
+      "importance_pct": 0.9374
+    },
+    {
+      "feature": "range_atr_ratio",
+      "importance": 0.009326,
+      "importance_pct": 0.9326
+    },
+    {
+      "feature": "vol_20d_lag_4",
+      "importance": 0.009224,
+      "importance_pct": 0.9224
+    },
+    {
+      "feature": "term_spread",
+      "importance": 0.009017,
+      "importance_pct": 0.9017
+    },
+    {
+      "feature": "crude_corr_20d",
+      "importance": 0.008865,
+      "importance_pct": 0.8865
+    },
+    {
+      "feature": "gbm_exp_ret_1d",
+      "importance": 0.008858,
+      "importance_pct": 0.8858
+    }
+  ],
+  "low_importance_features": [
+    {
+      "feature": "rsi_change_3d",
+      "importance": 0.00994,
+      "importance_pct": 0.994
+    },
+    {
+      "feature": "dxy_ret_5d",
+      "importance": 0.009745,
+      "importance_pct": 0.9745
+    },
+    {
+      "feature": "gbm_mu_60d",
+      "importance": 0.009586,
+      "importance_pct": 0.9586
+    },
+    {
+      "feature": "regime_low_corr",
+      "importance": 0.009454,
+      "importance_pct": 0.9454
+    },
+    {
+      "feature": "vol_mean_reversion_score",
+      "importance": 0.009453,
+      "importance_pct": 0.9453
+    },
+    {
+      "feature": "dist_from_low_20",
+      "importance": 0.009374,
+      "importance_pct": 0.9374
+    },
+    {
+      "feature": "range_atr_ratio",
+      "importance": 0.009326,
+      "importance_pct": 0.9326
+    },
+    {
+      "feature": "vol_20d_lag_4",
+      "importance": 0.009224,
+      "importance_pct": 0.9224
+    },
+    {
+      "feature": "term_spread",
+      "importance": 0.009017,
+      "importance_pct": 0.9017
+    },
+    {
+      "feature": "crude_corr_20d",
+      "importance": 0.008865,
+      "importance_pct": 0.8865
+    },
+    {
+      "feature": "gbm_exp_ret_1d",
+      "importance": 0.008858,
+      "importance_pct": 0.8858
+    },
+    {
+      "feature": "regime_transition_score",
+      "importance": 0.008794,
+      "importance_pct": 0.8794
+    },
+    {
+      "feature": "bb_lower",
+      "importance": 0.008771,
+      "importance_pct": 0.8771
+    },
+    {
+      "feature": "crude_ret_1d",
+      "importance": 0.008759,
+      "importance_pct": 0.8759
+    },
+    {
+      "feature": "ret_vol_correlation",
+      "importance": 0.008759,
+      "importance_pct": 0.8759
+    },
+    {
+      "feature": "gap_ret_1d",
+      "importance": 0.00857,
+      "importance_pct": 0.857
+    },
+    {
+      "feature": "volume_zscore",
+      "importance": 0.008418,
+      "importance_pct": 0.8418
+    },
+    {
+      "feature": "momentum_confirmation",
+      "importance": 0.008352,
+      "importance_pct": 0.8352
+    },
+    {
+      "feature": "ret_3d",
+      "importance": 0.008301,
+      "importance_pct": 0.8301
+    },
+    {
+      "feature": "crude_beta_60d",
+      "importance": 0.008272,
+      "importance_pct": 0.8272
+    },
+    {
+      "feature": "price_minus_20dma",
+      "importance": 0.008212,
+      "importance_pct": 0.8212
+    },
+    {
+      "feature": "regime_bull",
+      "importance": 0.008199,
+      "importance_pct": 0.8199
+    },
+    {
+      "feature": "mkt_ret_1d",
+      "importance": 0.008197,
+      "importance_pct": 0.8197
+    },
+    {
+      "feature": "atr_14",
+      "importance": 0.007965,
+      "importance_pct": 0.7965
+    },
+    {
+      "feature": "dist_from_50d_high",
+      "importance": 0.007929,
+      "importance_pct": 0.7929
+    },
+    {
+      "feature": "bb_mid",
+      "importance": 0.007869,
+      "importance_pct": 0.7869
+    },
+    {
+      "feature": "rsi14_lag_4",
+      "importance": 0.007811,
+      "importance_pct": 0.7811
+    },
+    {
+      "feature": "rsi_oversold",
+      "importance": 0.007801,
+      "importance_pct": 0.7801
+    },
+    {
+      "feature": "ret_1d_rolling_std_10",
+      "importance": 0.007716,
+      "importance_pct": 0.7716
+    },
+    {
+      "feature": "macdhist",
+      "importance": 0.007709,
+      "importance_pct": 0.7709
+    },
+    {
+      "feature": "regime_vix_medium",
+      "importance": 0.007666,
+      "importance_pct": 0.7666
+    },
+    {
+      "feature": "dist_from_52w_high",
+      "importance": 0.007653,
+      "importance_pct": 0.7653
+    },
+    {
+      "feature": "unrate",
+      "importance": 0.007614,
+      "importance_pct": 0.7614
+    },
+    {
+      "feature": "vol_regime_high",
+      "importance": 0.007596,
+      "importance_pct": 0.7596
+    },
+    {
+      "feature": "crude_ret_5d",
+      "importance": 0.007571,
+      "importance_pct": 0.7571
+    },
+    {
+      "feature": "bear_streak",
+      "importance": 0.007527,
+      "importance_pct": 0.7527
+    },
+    {
+      "feature": "vol_10d",
+      "importance": 0.007443,
+      "importance_pct": 0.7443
+    },
+    {
+      "feature": "gbm_prob_up_1d",
+      "importance": 0.007322,
+      "importance_pct": 0.7322
+    },
+    {
+      "feature": "rsi14_lag_5",
+      "importance": 0.00732,
+      "importance_pct": 0.732
+    },
+    {
+      "feature": "rsi14",
+      "importance": 0.007306,
+      "importance_pct": 0.7306
+    },
+    {
+      "feature": "momentum_5d_vol_adj",
+      "importance": 0.00728,
+      "importance_pct": 0.728
+    },
+    {
+      "feature": "mean_reversion_signal",
+      "importance": 0.007178,
+      "importance_pct": 0.7178
+    },
+    {
+      "feature": "fund_pe_trailing",
+      "importance": 0.007169,
+      "importance_pct": 0.7169
+    },
+    {
+      "feature": "vol_20d_lag_2",
+      "importance": 0.007117,
+      "importance_pct": 0.7117
+    },
+    {
+      "feature": "rel_momentum_5d",
+      "importance": 0.007113,
+      "importance_pct": 0.7113
+    },
+    {
+      "feature": "vol_spike_20",
+      "importance": 0.007105,
+      "importance_pct": 0.7105
+    },
+    {
+      "feature": "vol_ma_20",
+      "importance": 0.007058,
+      "importance_pct": 0.7058
+    },
+    {
+      "feature": "vol_20d_rolling_mean_10",
+      "importance": 0.00699,
+      "importance_pct": 0.699
+    },
+    {
+      "feature": "ret_vol_interaction",
+      "importance": 0.006838,
+      "importance_pct": 0.6838
+    },
+    {
+      "feature": "vol_60d",
+      "importance": 0.006813,
+      "importance_pct": 0.6813
+    },
+    {
+      "feature": "momentum_accelerator",
+      "importance": 0.006785,
+      "importance_pct": 0.6785
+    },
+    {
+      "feature": "macdsignal",
+      "importance": 0.006749,
+      "importance_pct": 0.6749
+    },
+    {
+      "feature": "rsi14_lag_3",
+      "importance": 0.006694,
+      "importance_pct": 0.6694
+    },
+    {
+      "feature": "vol_20d_lag_3",
+      "importance": 0.006691,
+      "importance_pct": 0.6691
+    },
+    {
+      "feature": "rsi_change_1d",
+      "importance": 0.006666,
+      "importance_pct": 0.6666
+    },
+    {
+      "feature": "mfi14",
+      "importance": 0.006665,
+      "importance_pct": 0.6665
+    },
+    {
+      "feature": "vol_roll_mean_20",
+      "importance": 0.006654,
+      "importance_pct": 0.6654
+    },
+    {
+      "feature": "rsi_overbought",
+      "importance": 0.006616,
+      "importance_pct": 0.6616
+    },
+    {
+      "feature": "gbm_p05_ret_1d",
+      "importance": 0.006586,
+      "importance_pct": 0.6586
+    },
+    {
+      "feature": "macd_reversal_strength",
+      "importance": 0.006531,
+      "importance_pct": 0.6531
+    },
+    {
+      "feature": "gbm_p95_ret_5d",
+      "importance": 0.006489,
+      "importance_pct": 0.6489
+    },
+    {
+      "feature": "dist_from_high_20",
+      "importance": 0.00646,
+      "importance_pct": 0.646
+    },
+    {
+      "feature": "dist_from_50d_low",
+      "importance": 0.006437,
+      "importance_pct": 0.6437
+    },
+    {
+      "feature": "bb_pctb",
+      "importance": 0.006429,
+      "importance_pct": 0.6429
+    },
+    {
+      "feature": "dollar_volume_20d_avg",
+      "importance": 0.006402,
+      "importance_pct": 0.6402
+    },
+    {
+      "feature": "news_count",
+      "importance": 0.006321,
+      "importance_pct": 0.6321
+    },
+    {
+      "feature": "regime_vix_high",
+      "importance": 0.006315,
+      "importance_pct": 0.6315
+    },
+    {
+      "feature": "cumret_3d",
+      "importance": 0.006313,
+      "importance_pct": 0.6313
+    },
+    {
+      "feature": "momentum_20d_vol_adj",
+      "importance": 0.006286,
+      "importance_pct": 0.6286
+    },
+    {
+      "feature": "brent_wti_spread",
+      "importance": 0.006279,
+      "importance_pct": 0.6279
+    },
+    {
+      "feature": "bb_upper",
+      "importance": 0.006233,
+      "importance_pct": 0.6233
+    },
+    {
+      "feature": "ma_20_slope",
+      "importance": 0.006192,
+      "importance_pct": 0.6192
+    },
+    {
+      "feature": "ret_1d_rolling_mean_10",
+      "importance": 0.006143,
+      "importance_pct": 0.6143
+    },
+    {
+      "feature": "is_month_end",
+      "importance": 0.006102,
+      "importance_pct": 0.6102
+    },
+    {
+      "feature": "macd",
+      "importance": 0.006098,
+      "importance_pct": 0.6098
+    },
+    {
+      "feature": "ret_1d_lag_4",
+      "importance": 0.006093,
+      "importance_pct": 0.6093
+    },
+    {
+      "feature": "rsi_divergence_5d",
+      "importance": 0.005989,
+      "importance_pct": 0.5989
+    },
+    {
+      "feature": "cumret_5d",
+      "importance": 0.005832,
+      "importance_pct": 0.5832
+    },
+    {
+      "feature": "rsi_price_divergence",
+      "importance": 0.005796,
+      "importance_pct": 0.5796
+    },
+    {
+      "feature": "close_position",
+      "importance": 0.005776,
+      "importance_pct": 0.5776
+    },
+    {
+      "feature": "crude_rel_strength_20d",
+      "importance": 0.005773,
+      "importance_pct": 0.5773
+    },
+    {
+      "feature": "fund_marketcap",
+      "importance": 0.005759,
+      "importance_pct": 0.5759
+    },
+    {
+      "feature": "regime_bear",
+      "importance": 0.005565,
+      "importance_pct": 0.5565
+    },
+    {
+      "feature": "regime_covid",
+      "importance": 0.005558,
+      "importance_pct": 0.5558
+    },
+    {
+      "feature": "volatility_skew_ratio",
+      "importance": 0.005556,
+      "importance_pct": 0.5556
+    },
+    {
+      "feature": "bull_streak",
+      "importance": 0.005495,
+      "importance_pct": 0.5495
+    },
+    {
+      "feature": "rel_strength_3d",
+      "importance": 0.005471,
+      "importance_pct": 0.5471
+    },
+    {
+      "feature": "lower_wick_to_range",
+      "importance": 0.005464,
+      "importance_pct": 0.5464
+    },
+    {
+      "feature": "dollar_volume",
+      "importance": 0.005448,
+      "importance_pct": 0.5448
+    },
+    {
+      "feature": "up_days_5",
+      "importance": 0.005355,
+      "importance_pct": 0.5355
+    },
+    {
+      "feature": "ma_20",
+      "importance": 0.005304,
+      "importance_pct": 0.5304
+    },
+    {
+      "feature": "ret_vol_adjusted",
+      "importance": 0.005139,
+      "importance_pct": 0.5139
+    },
+    {
+      "feature": "macd_price_divergence",
+      "importance": 0.005097,
+      "importance_pct": 0.5097
+    },
+    {
+      "feature": "ret_1d_lag_3",
+      "importance": 0.005055,
+      "importance_pct": 0.5055
+    },
+    {
+      "feature": "hl_range",
+      "importance": 0.004857,
+      "importance_pct": 0.4857
+    },
+    {
+      "feature": "ret_zscore_20d",
+      "importance": 0.004856,
+      "importance_pct": 0.4856
+    },
+    {
+      "feature": "price_to_ma50",
+      "importance": 0.0048,
+      "importance_pct": 0.48
+    },
+    {
+      "feature": "momentum_3m_zscore",
+      "importance": 0.004786,
+      "importance_pct": 0.4786
+    },
+    {
+      "feature": "vol_roll_std_20",
+      "importance": 0.004767,
+      "importance_pct": 0.4767
+    },
+    {
+      "feature": "vol_20d_std",
+      "importance": 0.004684,
+      "importance_pct": 0.4684
+    },
+    {
+      "feature": "regime_high_corr",
+      "importance": 0.004638,
+      "importance_pct": 0.4638
+    },
+    {
+      "feature": "sma_ratio_10_50",
+      "importance": 0.004564,
+      "importance_pct": 0.4564
+    },
+    {
+      "feature": "day_of_week",
+      "importance": 0.004328,
+      "importance_pct": 0.4328
+    },
+    {
+      "feature": "vol_ratio_10_60",
+      "importance": 0.004299,
+      "importance_pct": 0.4299
+    },
+    {
+      "feature": "vol_20d",
+      "importance": 0.00397,
+      "importance_pct": 0.397
+    },
+    {
+      "feature": "month",
+      "importance": 0.003929,
+      "importance_pct": 0.3929
+    },
+    {
+      "feature": "down_days_5",
+      "importance": 0.003924,
+      "importance_pct": 0.3924
+    },
+    {
+      "feature": "daily_range",
+      "importance": 0.003667,
+      "importance_pct": 0.3667
+    },
+    {
+      "feature": "ret_20d",
+      "importance": 0.003354,
+      "importance_pct": 0.3354
+    },
+    {
+      "feature": "rel_strength_1d",
+      "importance": 0.003015,
+      "importance_pct": 0.3015
+    },
+    {
+      "feature": "fund_pb",
+      "importance": 0.00298,
+      "importance_pct": 0.298
+    },
+    {
+      "feature": "vol_percentile_rank",
+      "importance": 0.002928,
+      "importance_pct": 0.2928
+    },
+    {
+      "feature": "upper_wick_to_range",
+      "importance": 0.002779,
+      "importance_pct": 0.2779
+    },
+    {
+      "feature": "ret_5d",
+      "importance": 0.002681,
+      "importance_pct": 0.2681
+    },
+    {
+      "feature": "ret_1d",
+      "importance": 0.002589,
+      "importance_pct": 0.2589
+    },
+    {
+      "feature": "vol_regime_strength",
+      "importance": 0.002371,
+      "importance_pct": 0.2371
+    },
+    {
+      "feature": "spread_zscore",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "price_mean_reversion_score",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "corr_60_spx",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "gbm_sig_60d",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "tail_risk_20d",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "corr_20_spx",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "beta_60_spx",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "volume_trend",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "correlation_with_vol",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "volume_price_corr",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "bb_width_20",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "adx_14",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "body_to_range",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "intraday_ret_1d",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    },
+    {
+      "feature": "liquidity_ratio",
+      "importance": 0.0,
+      "importance_pct": 0.0
+    }
+  ],
+  "highly_correlated_pairs": [
+    {
+      "feature_1": "ret_5d",
+      "feature_2": "sma_ratio_10_50",
+      "correlation": 1.0,
+      "importance_1": 0.26809999346733093,
+      "importance_2": 0.4564000070095062,
+      "remove_candidate": "ret_5d"
+    },
+    {
+      "feature_1": "ret_20d",
+      "feature_2": "rsi14",
+      "correlation": 1.0,
+      "importance_1": 0.3353999853134155,
+      "importance_2": 0.7305999994277954,
+      "remove_candidate": "ret_20d"
+    },
+    {
+      "feature_1": "close_position",
+      "feature_2": "news_count",
+      "correlation": 1.0,
+      "importance_1": 0.5776000022888184,
+      "importance_2": 0.632099986076355,
+      "remove_candidate": "close_position"
+    },
+    {
+      "feature_1": "is_month_end",
+      "feature_2": "rel_strength_1d",
+      "correlation": 1.0,
+      "importance_1": 0.6101999878883362,
+      "importance_2": 0.30149999260902405,
+      "remove_candidate": "rel_strength_1d"
+    },
+    {
+      "feature_1": "cumret_3d",
+      "feature_2": "ret_zscore_20d",
+      "correlation": 1.0,
+      "importance_1": 0.6312999725341797,
+      "importance_2": 0.48559999465942383,
+      "remove_candidate": "ret_zscore_20d"
+    },
+    {
+      "feature_1": "dist_from_high_20",
+      "feature_2": "down_days_5",
+      "correlation": 1.0,
+      "importance_1": 0.6460000276565552,
+      "importance_2": 0.39239999651908875,
+      "remove_candidate": "down_days_5"
+    },
+    {
+      "feature_1": "dist_from_high_20",
+      "feature_2": "volatility_cluster",
+      "correlation": 1.0,
+      "importance_1": 0.6460000276565552,
+      "importance_2": 1.1032999753952026,
+      "remove_candidate": "dist_from_high_20"
+    },
+    {
+      "feature_1": "up_days_5",
+      "feature_2": "momentum_ratio_10_20",
+      "correlation": 1.0,
+      "importance_1": 0.5354999899864197,
+      "importance_2": 1.1875,
+      "remove_candidate": "up_days_5"
+    },
+    {
+      "feature_1": "down_days_5",
+      "feature_2": "volatility_cluster",
+      "correlation": 1.0,
+      "importance_1": 0.39239999651908875,
+      "importance_2": 1.1032999753952026,
+      "remove_candidate": "down_days_5"
+    },
+    {
+      "feature_1": "vol_mean_reversion_score",
+      "feature_2": "momentum_20d_vol_adj",
+      "correlation": 1.0,
+      "importance_1": 0.9452999830245972,
+      "importance_2": 0.628600001335144,
+      "remove_candidate": "momentum_20d_vol_adj"
+    },
+    {
+      "feature_1": "momentum_5d_vol_adj",
+      "feature_2": "vol_20d_lag_3",
+      "correlation": 1.0,
+      "importance_1": 0.7279999852180481,
+      "importance_2": 0.6690999865531921,
+      "remove_candidate": "vol_20d_lag_3"
+    },
+    {
+      "feature_1": "dist_from_low_20",
+      "feature_2": "momentum_3m_zscore",
+      "correlation": 0.9999,
+      "importance_1": 0.9373999834060669,
+      "importance_2": 0.47859999537467957,
+      "remove_candidate": "momentum_3m_zscore"
+    },
+    {
+      "feature_1": "dist_from_low_20",
+      "feature_2": "momentum_6m_zscore",
+      "correlation": 0.9999,
+      "importance_1": 0.9373999834060669,
+      "importance_2": 1.444700002670288,
+      "remove_candidate": "dist_from_low_20"
+    },
+    {
+      "feature_1": "momentum_3m_zscore",
+      "feature_2": "volatility_skew_ratio",
+      "correlation": 0.9999,
+      "importance_1": 0.47859999537467957,
+      "importance_2": 0.5555999875068665,
+      "remove_candidate": "momentum_3m_zscore"
+    },
+    {
+      "feature_1": "momentum_6m_zscore",
+      "feature_2": "regime_transition_score",
+      "correlation": 0.9998,
+      "importance_1": 1.444700002670288,
+      "importance_2": 0.8794000148773193,
+      "remove_candidate": "regime_transition_score"
+    },
+    {
+      "feature_1": "day_of_week",
+      "feature_2": "momentum_6m_zscore",
+      "correlation": 0.9996,
+      "importance_1": 0.4327999949455261,
+      "importance_2": 1.444700002670288,
+      "remove_candidate": "day_of_week"
+    },
+    {
+      "feature_1": "momentum_3m_zscore",
+      "feature_2": "momentum_6m_zscore",
+      "correlation": 0.9996,
+      "importance_1": 0.47859999537467957,
+      "importance_2": 1.444700002670288,
+      "remove_candidate": "momentum_3m_zscore"
+    },
+    {
+      "feature_1": "day_of_week",
+      "feature_2": "dist_from_low_20",
+      "correlation": 0.9995,
+      "importance_1": 0.4327999949455261,
+      "importance_2": 0.9373999834060669,
+      "remove_candidate": "day_of_week"
+    },
+    {
+      "feature_1": "day_of_week",
+      "feature_2": "regime_transition_score",
+      "correlation": 0.9995,
+      "importance_1": 0.4327999949455261,
+      "importance_2": 0.8794000148773193,
+      "remove_candidate": "day_of_week"
+    },
+    {
+      "feature_1": "dist_from_low_20",
+      "feature_2": "volatility_skew_ratio",
+      "correlation": 0.9995,
+      "importance_1": 0.9373999834060669,
+      "importance_2": 0.5555999875068665,
+      "remove_candidate": "volatility_skew_ratio"
+    }
+  ],
+  "features_to_keep": [
+    "gbm_exp_ret_5d",
+    "gbm_prob_up_5d",
+    "regime_vix_low",
+    "momentum_6m_zscore",
+    "oas",
+    "vol_20d_lag_5",
+    "momentum_ratio_10_20",
+    "gbm_p05_ret_5d",
+    "high_low_ratio",
+    "ret_1d_lag_2",
+    "vix",
+    "rsi14_lag_2",
+    "price_action_strength",
+    "gbm_p95_ret_1d",
+    "t10y",
+    "news_sentiment",
+    "cpi",
+    "ret_1d_lag_5",
+    "rsi_change_3d",
+    "dxy_ret_5d",
+    "gbm_mu_60d",
+    "regime_low_corr",
+    "range_atr_ratio",
+    "vol_20d_lag_4",
+    "term_spread",
+    "crude_corr_20d",
+    "gbm_exp_ret_1d"
+  ],
+  "features_to_remove": [
+    "volatility_skew_ratio",
+    "ma_20_slope",
+    "ret_1d_rolling_mean_10",
+    "ma_20",
+    "hl_range",
+    "vol_20d_std",
+    "regime_transition_score",
+    "ret_20d",
+    "ret_5d",
+    "regime_low_corr",
+    "regime_vix_high",
+    "bb_upper",
+    "regime_covid",
+    "gbm_exp_ret_1d",
+    "ret_vol_interaction",
+    "price_to_ma50",
+    "momentum_confirmation",
+    "gbm_p95_ret_5d",
+    "atr_14",
+    "sma_ratio_10_50",
+    "rsi_price_divergence",
+    "vol_roll_mean_20",
+    "dollar_volume_20d_avg",
+    "fund_marketcap",
+    "gbm_sig_60d",
+    "corr_60_spx",
+    "month",
+    "volume_price_corr",
+    "dist_from_low_20",
+    "price_mean_reversion_score",
+    "spread_zscore",
+    "term_spread",
+    "bb_mid",
+    "vol_spike_20",
+    "gbm_mu_60d",
+    "vol_10d",
+    "ret_1d_lag_4",
+    "regime_high_corr",
+    "correlation_with_vol",
+    "rsi_change_3d",
+    "rsi_divergence_5d",
+    "up_days_5",
+    "mean_reversion_signal",
+    "macd",
+    "bb_width_20",
+    "close_position",
+    "momentum_20d_vol_adj",
+    "range_atr_ratio",
+    "ret_zscore_20d",
+    "cumret_5d",
+    "ret_vol_adjusted",
+    "vol_regime_strength",
+    "gbm_prob_up_1d",
+    "crude_beta_60d",
+    "dxy_ret_5d",
+    "brent_wti_spread",
+    "rsi14_lag_5",
+    "gap_ret_1d",
+    "beta_60_spx",
+    "macd_price_divergence",
+    "mkt_ret_1d",
+    "dollar_volume",
+    "dist_from_50d_high",
+    "momentum_5d_vol_adj",
+    "vol_60d",
+    "rel_strength_3d",
+    "unrate",
+    "is_month_end",
+    "rsi14",
+    "macd_reversal_strength",
+    "vol_regime_high",
+    "intraday_ret_1d",
+    "crude_corr_20d",
+    "vol_20d_lag_3",
+    "vol_20d",
+    "body_to_range",
+    "crude_rel_strength_20d",
+    "dist_from_52w_high",
+    "ret_1d_rolling_std_10",
+    "upper_wick_to_range",
+    "volume_zscore",
+    "vol_ma_20",
+    "bb_lower",
+    "rsi14_lag_3",
+    "macdsignal",
+    "regime_bull",
+    "crude_ret_5d",
+    "vol_20d_rolling_mean_10",
+    "crude_ret_1d",
+    "ret_3d",
+    "volatility_cluster",
+    "volume_trend",
+    "bull_streak",
+    "liquidity_ratio",
+    "down_days_5",
+    "vol_mean_reversion_score",
+    "dist_from_high_20",
+    "ret_1d",
+    "day_of_week",
+    "bb_pctb",
+    "vol_percentile_rank",
+    "rsi_change_1d",
+    "macdhist",
+    "rsi14_lag_4",
+    "rsi_oversold",
+    "news_count",
+    "regime_bear",
+    "gbm_p05_ret_1d",
+    "rel_strength_1d",
+    "vol_roll_std_20",
+    "vol_ratio_10_60",
+    "ret_vol_correlation",
+    "fund_pe_trailing",
+    "mfi14",
+    "vol_20d_lag_4",
+    "lower_wick_to_range",
+    "tail_risk_20d",
+    "ret_1d_lag_3",
+    "corr_20_spx",
+    "adx_14",
+    "price_minus_20dma",
+    "vol_20d_lag_2",
+    "momentum_accelerator",
+    "rsi_overbought",
+    "daily_range",
+    "dist_from_50d_low",
+    "fund_pb",
+    "rel_momentum_5d",
+    "bear_streak",
+    "momentum_3m_zscore",
+    "regime_vix_medium",
+    "cumret_3d"
+  ],
+  "importance_stats": {
+    "mean": 0.666700005531311,
+    "std": 0.3756999969482422,
+    "max": 2.571199893951416,
+    "min": 0.0,
+    "median": 0.6658999919891357
+  },
+  "correlation_stats": {
+    "mean_abs_correlation": 0.1736,
+    "max_correlation": 1.0,
+    "highly_correlated_count": 100
+  }
+}

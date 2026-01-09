@@ -1,0 +1,76 @@
+{
+  "timestamp": "2026-01-07T19:47:19.960008",
+  "tickers_used": [
+    "AAPL",
+    "MSFT",
+    "AMZN"
+  ],
+  "period": "2y",
+  "n_trials": 50,
+  "best_params": {
+    "n_estimators": 450,
+    "max_depth": 7,
+    "learning_rate": 0.0479812222881329,
+    "subsample": 0.9982244179062996,
+    "colsample_bytree": 0.6734738332077449,
+    "min_child_weight": 19,
+    "reg_alpha": 0.011676790019586419,
+    "reg_lambda": 9.295554968924476
+  },
+  "best_sharpe": 2.776932822020415,
+  "best_accuracy": 0.5609756097560976,
+  "trials_summary": [
+    {
+      "trial": 28,
+      "sharpe": 2.776932822020415,
+      "accuracy": 0.5609756097560976
+    },
+    {
+      "trial": 44,
+      "sharpe": 2.087979572294302,
+      "accuracy": 0.5277161862527716
+    },
+    {
+      "trial": 26,
+      "sharpe": 2.08681309418257,
+      "accuracy": 0.541019955654102
+    },
+    {
+      "trial": 42,
+      "sharpe": 2.0832753071997745,
+      "accuracy": 0.541019955654102
+    },
+    {
+      "trial": 25,
+      "sharpe": 2.0097504293969566,
+      "accuracy": 0.532150776053215
+    },
+    {
+      "trial": 41,
+      "sharpe": 2.0067930510172487,
+      "accuracy": 0.5388026607538803
+    },
+    {
+      "trial": 31,
+      "sharpe": 2.000282278202582,
+      "accuracy": 0.5254988913525499
+    },
+    {
+      "trial": 32,
+      "sharpe": 1.9123899526729367,
+      "accuracy": 0.5254988913525499
+    },
+    {
+      "trial": 33,
+      "sharpe": 1.9115408340052937,
+      "accuracy": 0.5210643015521065
+    },
+    {
+      "trial": 48,
+      "sharpe": 1.763963105824861,
+      "accuracy": 0.5099778270509978
+    }
+  ],
+  "baseline_sharpe": 0.6937476042884395,
+  "improvement_pct": 300.27998725395946
+}

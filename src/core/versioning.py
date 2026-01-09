@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
-from .config import (
+from ..config import (
     TRADE_LIMIT_CONFIG,
     POSITION_SIZING_CONFIG,
     REGIME_FILTER_CONFIG,
