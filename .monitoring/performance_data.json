@@ -41,6 +41,90 @@
       "pnl_pct": -6.1643835616438265,
       "strategy": "STOP-LOSS",
       "notes": ""
+    },
+    {
+      "trade_id": "92ae99fd-92d1-441e-ac48-6677678e03b1",
+      "symbol": "NVDA",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 189.18,
+      "exit_price": 180.17,
+      "entry_time": "2026-01-20T16:40:00.333131+00:00",
+      "exit_time": "2026-01-20T16:40:00.333131+00:00",
+      "pnl": -9.01000000000002,
+      "pnl_pct": -4.762659900623754,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "eccc1167-b0a2-4cdb-977f-cf6ed8eaff31",
+      "symbol": "SQM",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 74.34,
+      "exit_price": 79.16,
+      "entry_time": "2026-01-20T16:40:00.391319+00:00",
+      "exit_time": "2026-01-20T16:40:00.391319+00:00",
+      "pnl": 4.819999999999993,
+      "pnl_pct": 6.483723432875966,
+      "strategy": "TAKE-PROFIT",
+      "notes": ""
+    },
+    {
+      "trade_id": "96551f6f-125d-4ecc-bc92-eeae1df411b3",
+      "symbol": "BBAI",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 6.23,
+      "exit_price": 6.04,
+      "entry_time": "2026-01-20T18:31:45.274167+00:00",
+      "exit_time": "2026-01-20T18:31:45.274167+00:00",
+      "pnl": -0.1900000000000004,
+      "pnl_pct": -3.0497592295345166,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "483216be-c913-485e-b993-93356fba177f",
+      "symbol": "TSLA",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 433.76,
+      "exit_price": 420.65,
+      "entry_time": "2026-01-20T20:03:54.996059+00:00",
+      "exit_time": "2026-01-20T20:03:54.996059+00:00",
+      "pnl": -13.110000000000014,
+      "pnl_pct": -3.0224087052748096,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "b7f08a7e-b9c4-49b9-ab21-7e27172085cf",
+      "symbol": "TLN",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 359.1199951171875,
+      "exit_price": 366.48,
+      "entry_time": "2026-01-21T17:19:31.468507+00:00",
+      "exit_time": "2026-01-21T17:19:31.468507+00:00",
+      "pnl": 7.360004882812518,
+      "pnl_pct": 2.049455608956224,
+      "strategy": "PRED_TARGET",
+      "notes": ""
+    },
+    {
+      "trade_id": "4f6d5080-ccbb-4f27-ab8c-9e6403097cf3",
+      "symbol": "MPC",
+      "side": "BUY",
+      "qty": 100.0,
+      "entry_price": 177.85,
+      "exit_price": 172.3,
+      "entry_time": "2026-01-28T22:27:12.675241+00:00",
+      "exit_time": "2026-01-28T22:27:12.675241+00:00",
+      "pnl": -554.9999999999983,
+      "pnl_pct": -3.1206072533033358,
+      "strategy": "STOP-LOSS",
+      "notes": ""
     }
   ],
   "daily_returns": [
@@ -48,24 +132,39 @@
       "date": "2026-01-08",
       "pnl": -12.259999999999996,
       "return_pct": -0.00024519999999999994
+    },
+    {
+      "date": "2026-01-20",
+      "pnl": -17.49000000000004,
+      "return_pct": -0.0003498857919961983
+    },
+    {
+      "date": "2026-01-21",
+      "pnl": 7.360004882812518,
+      "return_pct": 0.0001472877338578958
+    },
+    {
+      "date": "2026-01-28",
+      "pnl": -554.9999999999983,
+      "return_pct": -0.011104972805737905
     }
   ],
   "metrics": {
-    "current_equity": 47525.56,
+    "current_equity": 45819.02,
     "peak_equity": 50000.0,
-    "current_drawdown_pct": 0.04948880000000005,
+    "current_drawdown_pct": 0.08361960000000006,
     "sharpe_21d": 0.0,
     "sharpe_63d": 0.0,
-    "win_rate_20": 0.0,
-    "win_rate_all": 0.0,
-    "pnl_today": -12.259999999999996,
-    "pnl_week": -12.259999999999996,
-    "pnl_month": -12.259999999999996,
-    "pnl_total": -12.259999999999996,
-    "trades_today": 3,
-    "trades_week": 3,
-    "trades_total": 3,
-    "last_updated": "2026-01-09T20:29:07.861519+00:00"
+    "win_rate_20": 0.2222222222222222,
+    "win_rate_all": 0.2222222222222222,
+    "pnl_today": -554.9999999999983,
+    "pnl_week": -554.9999999999983,
+    "pnl_month": -577.3899951171858,
+    "pnl_total": -577.3899951171858,
+    "trades_today": 1,
+    "trades_week": 1,
+    "trades_total": 9,
+    "last_updated": "2026-01-28T22:56:10.886787+00:00"
   },
-  "last_saved": "2026-01-09T20:29:07.861593+00:00"
+  "last_saved": "2026-01-28T22:56:10.887089+00:00"
 }

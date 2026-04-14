@@ -59,7 +59,7 @@ class YFinanceProvider(BaseProvider):
         try:
             self._log_request()
             tk = self._yf.Ticker(ticker)
-            hist = tk.history(period=period, interval=interval)
+            hist = tk.history(period=period, interval=interval, timeout=15)
             
             if hist is None or hist.empty:
                 return ProviderResponse(

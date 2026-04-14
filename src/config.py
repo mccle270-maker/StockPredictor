@@ -750,6 +750,92 @@ POSITION_SIZING_CONFIG = {
     "atr_period": 14,               # ATR period if use_atr=True
 }
 
+# ============================================================================
+# TARGET PREPROCESSING
+# ============================================================================
+# Settings for how the target variable (forward returns) is processed
+# Tested 2026-01-09: Winsorization improves Sharpe by +0.44 across 5 tickers
+TARGET_PREPROCESSING_CONFIG = {
+    "winsorize_enabled": True,      # Clip extreme returns at percentiles
+    "winsorize_percentile": 0.01,   # Clips at 1st/99th percentile (~2% of days)
+    "use_log_returns": False,       # Use log returns instead of simple returns (not tested)
+}
+
+# ============================================================================
+# FAMA-FRENCH RESIDUAL TARGET CONFIG
+# ============================================================================
+# When enabled, the target becomes the stock-specific alpha (residual) from
+# regressing returns on Fama-French 3 factors (MKT-RF, SMB, HML).
+# This strips out systematic risk, letting the model focus on stock-specific signal.
+# Data source: Kenneth French's Data Library (free, no API key)
+# Added 2026-01-12
+FF_RESIDUAL_TARGET_CONFIG = {
+    "enabled": False,               # Set True to use FF alpha as target (start False for testing)
+    "ff_url": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip",
+    "regression_window": 252,       # Rolling window for factor regression (1 year)
+    "min_regression_obs": 60,       # Minimum observations for valid regression
+    "cache_ttl_hours": 168,         # Cache FF data for 1 week (data updates monthly)
+    "fallback_to_raw": True,        # If FF data unavailable, fall back to raw returns
+}
+
+
+def is_ff_residual_enabled() -> bool:
+    """Check if Fama-French residual target is enabled."""
+    return FF_RESIDUAL_TARGET_CONFIG.get("enabled", False)
+
+
+def get_ff_config() -> dict:
+    """Get Fama-French residual target configuration."""
+    return FF_RESIDUAL_TARGET_CONFIG.copy()
+
+
+def get_target_preprocessing_config() -> dict:
+    """Get target preprocessing configuration."""
+    return TARGET_PREPROCESSING_CONFIG.copy()
+
+
+def is_winsorization_enabled() -> bool:
+    """Check if target winsorization is enabled."""
+    return TARGET_PREPROCESSING_CONFIG.get("winsorize_enabled", True)
+
+
+def get_winsorize_percentile() -> float:
+    """Get the winsorization percentile (e.g., 0.01 = 1st/99th)."""
+    return TARGET_PREPROCESSING_CONFIG.get("winsorize_percentile", 0.01)
+
+
+# ============================================================================
+# REGIME-SPECIFIC MODELS CONFIG
+# ============================================================================
+# When enabled, trains separate models for BULL, BEAR, and NEUTRAL market regimes
+# Each model learns patterns specific to its regime (above/below 200DMA)
+# Added 2026-01-09
+REGIME_MODELS_CONFIG = {
+    "enabled": False,                # Off by default (experimental)
+    "min_samples_per_regime": 100,   # Minimum training samples per regime
+}
+
+
+def get_regime_models_config() -> dict:
+    """Get regime models configuration."""
+    return REGIME_MODELS_CONFIG.copy()
+
+
+def is_regime_models_enabled() -> bool:
+    """Check if regime-specific models are enabled."""
+    return REGIME_MODELS_CONFIG.get("enabled", False)
+
+
+def get_min_samples_per_regime() -> int:
+    """Get minimum samples required per regime for training."""
+    return REGIME_MODELS_CONFIG.get("min_samples_per_regime", 100)
+
+
+def set_regime_models_enabled(enabled: bool) -> None:
+    """Enable or disable regime-specific models at runtime."""
+    REGIME_MODELS_CONFIG["enabled"] = enabled
+
+
 # Heston model parameters for specific tickers
 HESTON_PARAMS = {
     "AAPL": {"v0": 0.04, "theta": 0.04, "kappa": 1.5, "sigma": 0.3, "rho": -0.6},
@@ -781,12 +867,25 @@ GBM_COLUMNS = [
 MACRO_COLUMNS = [
     "mkt_ret_1d", "vix", "t10y", "term_spread",
     "unrate", "cpi", "oas", "fed_funds",
+    # NOTE: Credit spreads, VIX term structure, and 2s10s are computed in macro.py
+    # but EXCLUDED from active features — walk-forward test (2026-03-24) showed
+    # they hurt accuracy (-0.8pp hit rate, -0.106 Sharpe) due to curse of dimensionality.
+    # Uncomment below to re-enable for experimentation:
+    # "credit_spread",       # BAA - AAA (widens in stress)
+    # "term_spread_2s10s",   # 10Y - 2Y (inversion = recession signal)
+    # "vix_term_structure",  # VIX / VIX3M ratio (<1 = contango/calm, >1 = backwardation/fear)
+    # "credit_spread_chg_5d", # 5-day change in credit spread (momentum of stress)
+    # "vix_ts_chg_5d",       # 5-day change in VIX term structure
 ]
 
 REGIME_COLUMNS = [
     "regime_bull", "regime_bear",
     "regime_vix_low", "regime_vix_medium", "regime_vix_high",
     "bull_streak", "bear_streak",
+    # NOTE: HMM regime indicators computed in regime_filter.py but EXCLUDED
+    # from active features — walk-forward test (2026-03-24) showed they hurt
+    # accuracy. Uncomment to re-enable:
+    # "hmm_regime_bull", "hmm_regime_bear", "hmm_regime_neutral",
 ]
 
 FUNDAMENTAL_COLUMNS = [
@@ -820,6 +919,11 @@ FRED_SERIES = {
     "cpi": "CPIAUCSL",
     "oas": "BAMLH0A0HYM2",
     "fed_funds": "FEDFUNDS",
+    # NEW: Credit spreads & VIX term structure
+    "baa_yield": "DBAA",           # Moody's Baa corporate bond yield
+    "aaa_yield": "DAAA",           # Moody's Aaa corporate bond yield
+    "t2y": "DGS2",                 # 2-year treasury (for 2s10s curve)
+    "vix3m": "VXVCLS",             # VIX 3-month (for term structure)
 }
 
 # ============================================================================

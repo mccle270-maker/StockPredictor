@@ -176,38 +176,51 @@ def generate_option_strategy(
     
     results = []
     
+    def safe_float(val, default=0.0):
+        """Safely convert a value to float, handling Series and None."""
+        if val is None:
+            return default
+        if isinstance(val, pd.Series):
+            val = val.iloc[0] if len(val) > 0 else default
+        try:
+            result = float(val)
+            return result if pd.notna(result) else default
+        except (ValueError, TypeError):
+            return default
+    
+    def safe_str(val, default="UNKNOWN"):
+        """Safely convert a value to string, handling Series."""
+        if val is None:
+            return default
+        if isinstance(val, pd.Series):
+            val = val.iloc[0] if len(val) > 0 else default
+        return str(val) if val is not None else default
+    
     for _, row in df.iterrows():
-        # Extract values with defaults
-        symbol = str(row.get("symbol", row.get("ticker", "UNKNOWN"))).upper()
-        pred_return = float(row.get("pred_return", 0.0) or 0.0)
-        confidence = float(row.get("confidence", 0.5) or 0.5)
+        # Extract values with defaults using safe conversions
+        symbol = safe_str(row.get("symbol", row.get("ticker", "UNKNOWN"))).upper()
+        pred_return = safe_float(row.get("pred_return", 0.0), 0.0)
+        confidence = safe_float(row.get("confidence", 0.5), 0.5)
         
         # Greeks
         delta = row.get("delta")
         if delta is not None:
             try:
-                delta = float(delta)
+                delta = safe_float(delta, None)
             except (ValueError, TypeError):
                 delta = None
         
         # IV metrics
-        iv = float(row.get("iv", 0.0) or 0.0)
-        iv_realized_diff = float(row.get("iv_realized_diff", 0.0) or 0.0)
+        iv = safe_float(row.get("iv", 0.0), 0.0)
+        iv_realized_diff = safe_float(row.get("iv_realized_diff", 0.0), 0.0)
         
         # If iv_realized_diff not provided, estimate from iv
         if iv_realized_diff == 0.0 and iv > 0:
             # Assume realized vol is roughly 80% of IV on average
             iv_realized_diff = iv - (iv * 0.8)
         
-        # Theo price / estimated cost
-        theo_price = row.get("theo_price")
-        if theo_price is not None:
-            try:
-                estimated_cost = float(theo_price)
-            except (ValueError, TypeError):
-                estimated_cost = None
-        else:
-            estimated_cost = None
+        # Theo price / estimated cost - use safe conversion
+        estimated_cost = safe_float(row.get("theo_price"), None)
         
         # Determine strategy
         action, bias, strike = determine_strategy(
@@ -223,8 +236,8 @@ def generate_option_strategy(
             "suggested_strike": strike,
             "directional_bias": bias,
             "estimated_cost": estimated_cost,
-            "confidence": round(confidence, 4),
-            "IV_richness": round(iv_realized_diff, 4),
+            "confidence": round(confidence, 4) if confidence is not None else 0.0,
+            "IV_richness": round(iv_realized_diff, 4) if iv_realized_diff is not None else 0.0,
         })
     
     return pd.DataFrame(results)

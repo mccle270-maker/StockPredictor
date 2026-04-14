@@ -1,0 +1,121 @@
+{
+  "Alpaca Prices": {
+    "status": "SKIP",
+    "reason": "Under maintenance"
+  },
+  "yfinance Prices": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "yfinance Fundamentals": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "yfinance Options": {
+    "status": "OK",
+    "info": {
+      "expirations": 24,
+      "calls": 27,
+      "puts": 30,
+      "first_expiry": "2026-04-01"
+    },
+    "time": "8.4s"
+  },
+  "FRED Macro (macro.py)": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "FRED VIX Direct": {
+    "status": "OK",
+    "info": {
+      "latest_vix": "25.25",
+      "date": "2026-03-31",
+      "count": 5
+    },
+    "time": "0.4s"
+  },
+  "FMP Fundamentals": {
+    "status": "OK",
+    "info": {
+      "PE": "N/A",
+      "PB": 51.79151546797228
+    },
+    "time": "0.3s"
+  },
+  "Tiingo Prices": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Finnhub News": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Finnhub Insider Sentiment": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Finnhub Analyst Recs": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Finnhub Earnings": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "SEC EDGAR Fundamentals": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Alpha Vantage Prices": {
+    "status": "ERROR",
+    "reason": "Rate limited: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ t",
+    "time": "0.4s"
+  },
+  "Alpha Vantage News": {
+    "status": "ERROR",
+    "reason": "Rate limited: Thank you for using Alpha Vantage! Please consider spreading out your free API requests more sparingly (1 request per second). You may subscribe to an",
+    "time": "0.2s"
+  },
+  "Marketaux News": {
+    "status": "OK",
+    "info": {
+      "articles": 3,
+      "sample_title": "Apple Inc. (AAPL) Expands U.S. Manufacturing Program with $400M Investment"
+    },
+    "time": "0.5s"
+  },
+  "Stooq Prices": {
+    "status": "ERROR",
+    "reason": "No columns to parse from file",
+    "time": "1.5s"
+  },
+  "Aggregator fetch_prices": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Aggregator fetch_sentiment": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Aggregator fetch_fundamentals": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  },
+  "Full Prediction Pipeline": {
+    "status": "TIMEOUT",
+    "reason": "Timed out after 60s",
+    "time": "60s"
+  }
+}

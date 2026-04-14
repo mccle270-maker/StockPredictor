@@ -19,6 +19,15 @@ from .aggregator import (
     fetch_prices,
     fetch_fundamentals,
     fetch_sentiment,
+    fetch_earnings_warning,
+    fetch_earnings_warnings_batch,
+)
+
+# Database functions for accuracy tracking
+from .database import (
+    validate_pending_predictions,
+    get_ticker_accuracy,
+    get_all_ticker_accuracy,
 )
 
 # Provider classes
@@ -57,6 +66,12 @@ __all__ = [
     "fetch_prices",
     "fetch_fundamentals",
     "fetch_sentiment",
+    "fetch_earnings_warning",
+    "fetch_earnings_warnings_batch",
+    # Database/accuracy tracking
+    "validate_pending_predictions",
+    "get_ticker_accuracy",
+    "get_all_ticker_accuracy",
     # Provider classes
     "BaseProvider",
     "ProviderResponse",

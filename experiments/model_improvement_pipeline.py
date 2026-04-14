@@ -1977,7 +1977,6 @@ def run_experiment_6_probability_calibration(
         objective='binary:logistic',
         random_state=RANDOM_STATE,
         verbosity=0,
-        use_label_encoder=False,
     )
     base_model.fit(X_train, y_train_class)
     

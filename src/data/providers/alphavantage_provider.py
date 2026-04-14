@@ -14,17 +14,13 @@ from ...config import ALPHAVANTAGE_API_KEY
 
 class AlphaVantageProvider(BaseProvider):
     """
-    Alpha Vantage provider as last resort backup.
+    Alpha Vantage provider — DISABLED as of 2026-04.
     
-    Pros:
-    - Reliable data quality
-    - Good fundamental coverage
-    - Free tier available
+    The free tier now returns "premium endpoint" errors for daily prices
+    and rate-limits news sentiment after 1 request. Not usable without
+    a paid subscription.
     
-    Cons:
-    - Very rate limited (5 calls/min free tier)
-    - Premium tier expensive
-    - Slower than other sources
+    Kept in code for future re-enablement if a premium key is added.
     """
     
     name = "alphavantage"
@@ -38,7 +34,9 @@ class AlphaVantageProvider(BaseProvider):
         self.api_key = ALPHAVANTAGE_API_KEY
     
     def is_available(self) -> bool:
-        return bool(self.api_key)
+        # Disabled — free tier is now premium-only for price data (2026-04)
+        # Re-enable if a premium key is added
+        return False
     
     def get_price_history(
         self,

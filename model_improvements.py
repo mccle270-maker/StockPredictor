@@ -747,7 +747,6 @@ class OptimizedPredictor:
         self.model = XGBClassifier(
             **self.OPTIMIZED_PARAMS,
             objective='binary:logistic',
-            use_label_encoder=False,
             verbosity=0,
         )
         self.model.fit(X_scaled, y_binary)

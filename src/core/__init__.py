@@ -17,6 +17,16 @@ from .models import (
     select_features_ols_pvalue,
     get_feature_importance,
 )
+
+# LSTM model (optional - requires TensorFlow)
+try:
+    from .lstm_model import LSTMPredictor, LSTMWrapper, create_lstm_model, HAS_TF
+except ImportError:
+    HAS_TF = False
+    LSTMPredictor = None
+    LSTMWrapper = None
+    create_lstm_model = None
+
 from .calibration import (
     temperature_scale,
     logit_temperature_scale,
@@ -90,6 +100,23 @@ from .ab_testing import (
     compare_variants,
     generate_ab_report,
     variant_context,
+)
+from .feature_monitor import (
+    FeatureImportanceTracker,
+    get_feature_tracker,
+    reset_feature_tracker,
+)
+from .regime_predictor import (
+    RegimeAwarePredictor,
+    REGIME_GROUPS,
+    MIN_SAMPLES_PER_REGIME,
+)
+from .production_predictor import (
+    ProductionPredictor,
+    PredictionResult,
+    TradingMode,
+    TRADING_MODES,
+    quick_predict,
 )
 
 __all__ = [
@@ -173,4 +200,18 @@ __all__ = [
     "calculate_momentum_zscore",
     "get_filter_stats",
     "should_trade",
+    # Feature Monitoring
+    "FeatureImportanceTracker",
+    "get_feature_tracker",
+    "reset_feature_tracker",
+    # Regime-Aware Prediction
+    "RegimeAwarePredictor",
+    "REGIME_GROUPS",
+    "MIN_SAMPLES_PER_REGIME",
+    # Production Predictor (Adaptive Model)
+    "ProductionPredictor",
+    "PredictionResult",
+    "TradingMode",
+    "TRADING_MODES",
+    "quick_predict",
 ]

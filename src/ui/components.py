@@ -48,7 +48,7 @@ def model_selector_widget(
     NOTE: GBRT removed from options (2026-01-07) due to severe overfitting.
     See GBRT_INVESTIGATION_REPORT.md for details.
     """
-    options = {"rf": "Random Forest", "xgb": "XGBoost"}
+    options = {"rf": "Random Forest", "xgb": "XGBoost", "xgb_binary": "XGBoost Binary"}
     return st.selectbox(
         "Model Type",
         options=list(options.keys()),

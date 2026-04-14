@@ -179,10 +179,18 @@ class FinnhubProvider(BaseProvider):
             
             metric_data = metrics.get("metric", {})
             
+            market_cap = profile.get("marketCapitalization")
+            if market_cap is not None:
+                try:
+                    # Finnhub returns marketCapitalization in millions of USD.
+                    market_cap = float(market_cap) * 1_000_000.0
+                except Exception:
+                    pass
+
             fundamentals = {
                 "fund_pe_trailing": metric_data.get("peBasicExclExtraTTM"),
                 "fund_pb": metric_data.get("pbQuarterly"),
-                "fund_marketcap": profile.get("marketCapitalization"),
+                "fund_marketcap": market_cap,
                 "fund_52w_high": metric_data.get("52WeekHigh"),
                 "fund_52w_low": metric_data.get("52WeekLow"),
                 "fund_beta": metric_data.get("beta"),
@@ -428,6 +436,122 @@ class FinnhubProvider(BaseProvider):
                 data=sentiment_data if has_data else None,
                 source=self.name,
                 error=None if has_data else "No sentiment data available",
+            )
+            
+        except Exception as e:
+            return ProviderResponse(
+                success=False,
+                data=None,
+                source=self.name,
+                error=str(e)[:200],
+            )
+
+    def get_estimated_next_earnings(self, ticker: str) -> ProviderResponse:
+        """
+        Estimate next earnings date based on historical earnings pattern.
+        
+        Uses last reported period to estimate when next earnings will be announced.
+        Typical pattern: ~30-45 days after quarter end for announcement.
+        
+        Returns:
+            ProviderResponse with data dict containing:
+                - last_period: Last reported quarter end date
+                - last_eps: Last reported EPS
+                - last_surprise_pct: Last earnings surprise %
+                - estimated_next_date: Estimated next announcement date
+                - days_until: Days until estimated announcement
+                - is_soon: True if earnings within 14 days
+                - warning_level: "none", "upcoming", "soon", "imminent"
+        """
+        earnings_resp = self.get_earnings(ticker)
+        
+        if not earnings_resp.success or not earnings_resp.data:
+            return ProviderResponse(
+                success=False,
+                data=None,
+                source=self.name,
+                error=earnings_resp.error or "No earnings data",
+            )
+        
+        try:
+            from datetime import datetime, timedelta
+            
+            earnings = earnings_resp.data
+            if not earnings:
+                return ProviderResponse(
+                    success=False,
+                    data=None,
+                    source=self.name,
+                    error="Empty earnings list",
+                )
+            
+            # Get most recent earnings
+            latest = earnings[0]
+            period = latest.get("period")  # e.g., "2025-12-31"
+            
+            if not period:
+                return ProviderResponse(
+                    success=False,
+                    data=None,
+                    source=self.name,
+                    error="No period in earnings data",
+                )
+            
+            period_date = datetime.strptime(period, "%Y-%m-%d")
+            today = datetime.now()
+            
+            # Estimate next earnings announcement date
+            # Typical: Q1 (Mar 31) -> announced late Apr/early May (~40 days)
+            # Q2 (Jun 30) -> announced late Jul/early Aug (~40 days)
+            # Q3 (Sep 30) -> announced late Oct/early Nov (~40 days)
+            # Q4 (Dec 31) -> announced late Jan/early Feb (~40 days)
+            
+            # Calculate days since last period end
+            days_since_period = (today - period_date).days
+            
+            # If we're >100 days past period, the next quarter is likely being reported soon
+            if days_since_period > 100:
+                # Estimate next quarter period end
+                next_period = period_date + timedelta(days=91)  # ~3 months
+                estimated_announce = next_period + timedelta(days=40)
+            else:
+                # Estimate announcement for current period (if not yet announced)
+                # or next period if current already announced
+                estimated_announce = period_date + timedelta(days=40)
+                
+                if estimated_announce < today:
+                    # Already passed, estimate next quarter
+                    next_period = period_date + timedelta(days=91)
+                    estimated_announce = next_period + timedelta(days=40)
+            
+            days_until = (estimated_announce - today).days
+            
+            # Determine warning level
+            if days_until <= 7:
+                warning_level = "imminent"
+            elif days_until <= 14:
+                warning_level = "soon"
+            elif days_until <= 30:
+                warning_level = "upcoming"
+            else:
+                warning_level = "none"
+            
+            result = {
+                "ticker": ticker,
+                "last_period": period,
+                "last_eps": latest.get("actual"),
+                "last_estimate": latest.get("estimate"),
+                "last_surprise_pct": latest.get("surprisePercent"),
+                "estimated_next_date": estimated_announce.strftime("%Y-%m-%d"),
+                "days_until": max(0, days_until),
+                "is_soon": days_until <= 14,
+                "warning_level": warning_level,
+            }
+            
+            return ProviderResponse(
+                success=True,
+                data=result,
+                source=self.name,
             )
             
         except Exception as e:

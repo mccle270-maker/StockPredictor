@@ -57,8 +57,10 @@ from src.services.signals import (
 from src.data.market import get_price_history
 from src.data.options import get_option_chain, get_option_snapshot_features, get_atm_greeks
 from src.data.news import get_news_for_ticker, detect_big_news
+from src.data.aggregator import fetch_earnings_warning, fetch_earnings_warnings_batch, fetch_sentiment
 from src.core.metrics import (
     compute_sharpe,
+    compute_calmar,
     compute_drawdown,
     summarize_risk,
     prepare_risk_timeseries,
@@ -125,6 +127,15 @@ except ImportError:
     HAS_MONITORING = False
     PerformanceMonitor = None
 
+# Production Predictor (new adaptive model with trading modes)
+try:
+    from src.core.production_predictor import ProductionPredictor, TRADING_MODES, quick_predict
+    HAS_PRODUCTION_PREDICTOR = True
+except ImportError:
+    HAS_PRODUCTION_PREDICTOR = False
+    ProductionPredictor = None
+    TRADING_MODES = {}
+
 # Paths
 TRADER_PATH = BASE_DIR / "auto_paper_trade.py"
 SIGNALS_OUT_PATH = SIGNALS_PATH
@@ -189,6 +200,7 @@ def get_card_theme():
             "text": "#f0f6fc",
             "muted": "#6e7681",
             "bar_bg": "#21262d",
+            "card_inner": "#21262d",  # Inner box background
             "green": "#3fb950",
             "red": "#f85149",
             "yellow": "#d29922",
@@ -203,6 +215,7 @@ def get_card_theme():
             "text": "#1f2328",
             "muted": "#6e7781",
             "bar_bg": "#e5e7eb",
+            "card_inner": "#e5e7eb",  # Inner box background
             "green": "#1a7f37",
             "red": "#cf222e",
             "yellow": "#9a6700",
@@ -225,7 +238,7 @@ TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(\.[A-Z]{1,2})?$')
 VALID_PERIODS = ["1mo", "3mo", "6mo", "1y", "2y", "3y", "5y", "10y", "max"]
 
 # Valid model types (ensemble added)
-VALID_MODELS = ["rf", "xgb", "gbrt", "linreg", "ensemble"]
+VALID_MODELS = ["rf", "xgb", "xgb_binary", "gbrt", "linreg", "ensemble"]
 
 
 class ValidationError(Exception):
@@ -600,36 +613,180 @@ def _cached_price_history(ticker: str, period: str):
     Cached version of get_price_history.
     TTL: 10 minutes - price data doesn't change frequently.
     """
-    return get_price_history(ticker, period=period)
+    try:
+        return get_price_history(ticker, period=period)
+    except Exception as e:
+        print(f"[_cached_price_history] Failed for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=900, show_spinner=False)
 def _cached_prediction(ticker: str, period: str, model_type: str, horizon: int, 
                        run_gaf: bool = False, auto_optimize: bool = True,
-                       use_elasticnet: bool = False):
+                       use_elasticnet: bool = False, use_arima: bool = True,
+                       use_vol_scaled_target: bool = False):
     """
     Cached version of predict_next_for_ticker.
     TTL: 15 minutes - predictions are expensive and don't need constant refresh.
     
-    Note: auto_optimize and use_elasticnet are included in cache key so different
-    settings produce different cached results.
+    Note: auto_optimize, use_elasticnet, and use_arima are included in cache key 
+    so different settings produce different cached results.
     """
     import os
-    # Set environment variable for Elastic Net feature selection
-    # MUST explicitly set to "1" or "0" (not just remove) for runtime check to work
-    if use_elasticnet:
-        os.environ["USE_ELASTICNET_SELECT"] = "1"
-    else:
-        os.environ["USE_ELASTICNET_SELECT"] = "0"  # Explicitly disable
+    import inspect
     
-    return predict_next_for_ticker(
-        ticker=ticker,
-        period=period,
-        model_type=model_type,  # Use selected model type
-        horizon=horizon,
-        run_gaf=run_gaf,
-        auto_optimize=auto_optimize  # Pass auto_optimize to the function
-    )
+    try:
+        # Set environment variable for Elastic Net feature selection
+        # MUST explicitly set to "1" or "0" (not just remove) for runtime check to work
+        if use_elasticnet:
+            os.environ["USE_ELASTICNET_SELECT"] = "1"
+        else:
+            os.environ["USE_ELASTICNET_SELECT"] = "0"  # Explicitly disable
+        
+        # Check if use_arima is supported by the function (for backwards compatibility)
+        sig = inspect.signature(predict_next_for_ticker)
+        supports_arima = 'use_arima' in sig.parameters
+        
+        if supports_arima:
+            return predict_next_for_ticker(
+                ticker=ticker,
+                period=period,
+                model_type=model_type,
+                horizon=horizon,
+                use_vol_scaled_target=use_vol_scaled_target,
+                run_gaf=run_gaf,
+                auto_optimize=auto_optimize,
+                use_arima=use_arima
+            )
+        else:
+            # Fallback for older versions without ARIMA support
+            return predict_next_for_ticker(
+                ticker=ticker,
+                period=period,
+                model_type=model_type,
+                horizon=horizon,
+                use_vol_scaled_target=use_vol_scaled_target,
+                run_gaf=run_gaf,
+                auto_optimize=auto_optimize
+            )
+    except Exception as e:
+        print(f"[_cached_prediction] Failed for {ticker}: {e}")
+        return None
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def _cached_adaptive_prediction(ticker: str, mode: str = "balanced"):
+    """
+    Cached version of ProductionPredictor prediction.
+    TTL: 15 minutes - same as regular predictions.
+    
+    Uses the new adaptive model with trading modes:
+    - conservative: Capital preservation (Sharpe 0.68, 83% positive)
+    - balanced: Best risk/reward (Sharpe 1.10, 83% positive)
+    - aggressive: Maximum returns (Sharpe 1.17)
+    """
+    if not HAS_PRODUCTION_PREDICTOR:
+        return None
+    
+    try:
+        predictor = ProductionPredictor(mode=mode)
+        result = predictor.predict(ticker)
+        
+        # Determine signal label for display
+        if result.signal == "BUY":
+            if result.confidence >= 0.55:
+                signal_label = "STRONG BUY"
+            else:
+                signal_label = "BUY"
+        elif result.signal == "SELL":
+            if result.confidence >= 0.65:
+                signal_label = "STRONG SELL"
+            else:
+                signal_label = "SELL"
+        else:
+            signal_label = "HOLD"
+        
+        # Get ARIMA signals separately for Summary tab display
+        arima_signals = {}
+        try:
+            from arima_integration import VolatilityForecaster, TrendStructureDetector
+            from src.data.market import get_price_history
+            
+            # Get price data for ARIMA analysis
+            df = get_price_history(ticker, period="1y")
+            if df is not None and len(df) >= 60:
+                price_series = df["Close"]
+                
+                # Volatility forecast
+                vol_forecaster = VolatilityForecaster(lookback=60, vol_window=20, verbose=False)
+                vol_result = vol_forecaster.fit_and_forecast(price_series, horizon=5)
+                if vol_result and vol_result.get("success"):
+                    arima_signals["vol_current"] = vol_result.get("vol_current")
+                    arima_signals["vol_forecast"] = vol_result.get("vol_forecast")
+                    arima_signals["vol_direction"] = vol_result.get("vol_direction")
+                    arima_signals["vol_regime"] = vol_result.get("vol_regime")
+                    
+                    # Derive options signal
+                    vol_regime = vol_result.get("vol_regime", "normal")
+                    vol_dir = vol_result.get("vol_direction", "neutral")
+                    if vol_regime == "high" and vol_dir == "down":
+                        arima_signals["options_signal"] = "sell_vol"
+                    elif vol_regime == "low" and vol_dir == "up":
+                        arima_signals["options_signal"] = "buy_vol"
+                    else:
+                        arima_signals["options_signal"] = "neutral"
+                
+                # Trend structure (momentum_window=60 for longer-term trend detection)
+                trend_detector = TrendStructureDetector(momentum_window=60)
+                trend_result = trend_detector.analyze_trend(price_series, horizon=5)
+                if trend_result and trend_result.get("trend_direction"):
+                    arima_signals["trend_direction"] = trend_result.get("trend_direction")
+                    arima_signals["trend_strength"] = trend_result.get("trend_strength")
+                    arima_signals["has_structure"] = trend_result.get("structure_detected", False)
+                    
+                    # Check if ML and ARIMA directions agree
+                    ml_bullish = result.signal == "BUY"
+                    arima_bullish = trend_result.get("trend_direction") == "up"
+                    arima_signals["direction_confirmed"] = ml_bullish == arima_bullish
+        except Exception as e:
+            # ARIMA analysis failed, continue without it
+            pass
+        
+        # Convert PredictionResult to dict format compatible with existing display
+        return {
+            "ticker": result.ticker,
+            "pred_next_ret": result.predicted_return,
+            "pred_next_price": result.predicted_price,
+            "last_close": result.last_close,
+            "prob_up": result.up_probability,
+            "prob_down": result.down_probability,
+            "prob_neutral": result.neutral_probability,
+            "confidence": result.confidence,
+            "confidence_score": result.confidence,  # Also store as confidence_score for display compatibility
+            "signal": result.signal,
+            "signal_label": signal_label,  # Added for summary display
+            "position_size": result.position_size,
+            "trading_mode": result.mode,
+            # For display compatibility
+            "direction": 1 if result.signal == "BUY" else (-1 if result.signal == "SELL" else 0),
+            "model_type": f"adaptive-{mode}",
+            # Estimate volatility-adjusted edge (confidence-based)
+            "vol_20d": arima_signals.get("vol_current", 0.02),  # Use ARIMA vol or default
+            "vol_adjusted_edge": result.confidence * (1 if result.signal == "BUY" else (-1 if result.signal == "SELL" else 0)),
+            # ARIMA signals for Summary tab
+            "direction_confirmed": arima_signals.get("direction_confirmed"),
+            "trend_direction": arima_signals.get("trend_direction"),
+            "trend_strength": arima_signals.get("trend_strength"),
+            "vol_regime": arima_signals.get("vol_regime"),
+            "vol_forecast": arima_signals.get("vol_forecast"),
+            "options_signal": arima_signals.get("options_signal"),
+            "has_structure": arima_signals.get("has_structure"),
+            "arima_signals": arima_signals,
+        }
+    except Exception as e:
+        # Return None on error - will be caught by caller
+        print(f"Adaptive prediction error for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -638,7 +795,11 @@ def _cached_option_chain(ticker: str):
     Cached version of get_option_chain.
     TTL: 5 minutes - options data is more volatile.
     """
-    return get_option_chain(ticker)
+    try:
+        return get_option_chain(ticker)
+    except Exception as e:
+        print(f"[_cached_option_chain] Failed for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -647,7 +808,11 @@ def _cached_option_snapshot(ticker: str):
     Cached version of get_option_snapshot_features.
     TTL: 5 minutes - options snapshot data.
     """
-    return get_option_snapshot_features(ticker)
+    try:
+        return get_option_snapshot_features(ticker)
+    except Exception as e:
+        print(f"[_cached_option_snapshot] Failed for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -656,16 +821,30 @@ def _cached_atm_greeks(ticker: str):
     Cached version of get_atm_greeks.
     TTL: 5 minutes - ATM greeks calculation.
     """
-    return get_atm_greeks(ticker)
+    try:
+        return get_atm_greeks(ticker)
+    except Exception as e:
+        print(f"[_cached_atm_greeks] Failed for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def _cached_track_predictions(ticker, period, model_type, horizon):
+def _cached_track_predictions(ticker, period, model_type, horizon, use_vol_scaled_target=False):
     """
     Cached version of track_predictions.
     TTL: 5 minutes - tracking data.
     """
-    return track_predictions(ticker, period=period, model_type=model_type, horizon=horizon)
+    try:
+        return track_predictions(
+            ticker,
+            period=period,
+            model_type=model_type,
+            horizon=horizon,
+            use_vol_scaled_target=use_vol_scaled_target,
+        )
+    except Exception as e:
+        print(f"[_cached_track_predictions] Failed for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -674,35 +853,59 @@ def _cached_long_horizon_prediction(ticker, period):
     Cached version of long horizon prediction.
     TTL: 15 minutes - same as regular predictions.
     """
-    return predict_long_horizon_for_ticker(ticker, period=period)
+    try:
+        return predict_long_horizon_for_ticker(ticker, period=period)
+    except Exception as e:
+        print(f"[_cached_long_horizon] Failed for {ticker}: {e}")
+        return {"error": f"Long horizon prediction failed: {str(e)[:100]}"}
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def _cached_walk_forward_backtest(ticker: str, period: str, horizon: int, model_type: str, 
-                                   train_years: float, test_years: float, step_days: int = 21):
+                                   train_years: float, test_years: float, step_days: int = 21,
+                                   purge_gap_days: int = 0, embargo_days: int = 0,
+                                   use_vol_scaled_target: bool = False):
     """
     Cached version of walk_forward_backtest.
     TTL: 30 minutes - backtests are very expensive and results don't change.
     """
-    return walk_forward_backtest(
-        ticker=ticker,
-        period=period,
-        horizon=horizon,
-        model_type=model_type,
-        train_years=train_years,
-        test_years=test_years,
-        step_days=step_days
-    )
+    try:
+        return walk_forward_backtest(
+            ticker=ticker,
+            period=period,
+            horizon=horizon,
+            model_type=model_type,
+            train_years=train_years,
+            test_years=test_years,
+            step_days=step_days,
+            purge_gap_days=purge_gap_days,
+            embargo_days=embargo_days,
+            use_vol_scaled_target=use_vol_scaled_target,
+        )
+    except Exception as e:
+        print(f"[_cached_walk_forward] Failed for {ticker}: {e}")
+        return None
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def _cached_backtest_one_ticker(ticker: str, period: str, model_type: str, horizon: int = 1):
+def _cached_backtest_one_ticker(ticker: str, period: str, model_type: str, horizon: int = 1,
+                                use_vol_scaled_target: bool = False):
     """
     Cached version of backtest_one_ticker.
     TTL: 30 minutes - backtests are expensive.
     """
-    from src.services.backtest import backtest_one_ticker
-    return backtest_one_ticker(ticker, period=period, model_type=model_type, horizon=horizon)
+    try:
+        from src.services.backtest import backtest_one_ticker
+        return backtest_one_ticker(
+            ticker,
+            period=period,
+            model_type=model_type,
+            horizon=horizon,
+            use_vol_scaled_target=use_vol_scaled_target,
+        )
+    except Exception as e:
+        print(f"[_cached_backtest] Failed for {ticker}: {e}")
+        return None
 
 
 def _cached_build_signals(pred_df_json: str, prediction_horizon: int, trade_mode: str, 
@@ -771,6 +974,191 @@ def clear_all_caches():
     clear_price_cache()
     clear_options_cache()
     clear_backtest_cache()
+
+
+def render_summary_card(pred_df: pd.DataFrame) -> None:
+    """
+    Render a visually styled summary card with key prediction metrics.
+    
+    Displays:
+    - Number of BUY/SELL/HOLD signals
+    - Top Pick (highest confidence or vol_adjusted_edge)
+    - Average confidence or predicted return
+    - Uses gradient background based on overall sentiment
+    
+    Args:
+        pred_df: DataFrame with prediction results
+    """
+    if pred_df is None or pred_df.empty:
+        st.info("No predictions to summarize. Run the model first.")
+        return
+    
+    # Check if this is adaptive model output
+    is_adaptive = "trading_mode" in pred_df.columns or "signal" in pred_df.columns
+    
+    # Count signals - handle both adaptive and legacy formats
+    if "signal" in pred_df.columns:
+        # Adaptive model format
+        n_buy = (pred_df["signal"] == "BUY").sum()
+        n_sell = (pred_df["signal"] == "SELL").sum()
+        n_neutral = (pred_df["signal"] == "HOLD").sum()
+    elif "signal_label" in pred_df.columns:
+        signals = pred_df["signal_label"].str.upper().fillna("NEUTRAL")
+        n_buy = signals.str.contains("BUY", na=False).sum()
+        n_sell = signals.str.contains("SELL", na=False).sum()
+        n_neutral = len(signals) - n_buy - n_sell
+    else:
+        # Fallback: use pred_next_ret sign
+        if "pred_next_ret" in pred_df.columns:
+            n_buy = (pred_df["pred_next_ret"] > 0.001).sum()
+            n_sell = (pred_df["pred_next_ret"] < -0.001).sum()
+            n_neutral = len(pred_df) - n_buy - n_sell
+        else:
+            n_buy, n_sell, n_neutral = 0, 0, len(pred_df)
+    
+    # Get top pick
+    top_pick = "N/A"
+    top_pick_value = 0.0
+    top_pick_label = "Edge Score"
+    
+    if is_adaptive and "confidence" in pred_df.columns:
+        # For adaptive model, use confidence for actionable signals
+        actionable = pred_df[pred_df["signal"].isin(["BUY", "SELL"])] if "signal" in pred_df.columns else pred_df
+        if not actionable.empty:
+            top_idx = actionable["confidence"].idxmax()
+            top_pick = actionable.loc[top_idx, "ticker"]
+            top_pick_value = actionable.loc[top_idx, "confidence"]
+            top_pick_label = "Confidence"
+    elif "vol_adjusted_edge" in pred_df.columns and "ticker" in pred_df.columns:
+        valid = pred_df.dropna(subset=["vol_adjusted_edge"])
+        if not valid.empty:
+            top_idx = valid["vol_adjusted_edge"].idxmax()
+            top_pick = valid.loc[top_idx, "ticker"]
+            top_pick_value = valid.loc[top_idx, "vol_adjusted_edge"]
+            top_pick_label = "Edge Score"
+    
+    # Average value - confidence for adaptive, return for legacy
+    if is_adaptive and "confidence" in pred_df.columns:
+        avg_value = pred_df["confidence"].mean() * 100  # Show as percentage
+        avg_label = "Avg Conf"
+    elif "pred_next_ret" in pred_df.columns:
+        avg_value = pred_df["pred_next_ret"].mean() * 100  # Convert to %
+        avg_label = "Avg Return"
+    else:
+        avg_value = 0.0
+        avg_label = "Avg Return"
+    
+    # Determine overall sentiment for gradient
+    total_signals = n_buy + n_sell + n_neutral
+    if total_signals > 0:
+        bullish_ratio = n_buy / total_signals
+        bearish_ratio = n_sell / total_signals
+    else:
+        bullish_ratio = bearish_ratio = 0.0
+    
+    # Choose gradient based on sentiment
+    if bullish_ratio > 0.5:
+        gradient = "linear-gradient(135deg, #1a472a 0%, #134e5e 50%, #1a237e 100%)"
+        sentiment_emoji = "🟢"
+        sentiment_text = "BULLISH"
+    elif bearish_ratio > 0.5:
+        gradient = "linear-gradient(135deg, #4a1a1a 0%, #6b2d2d 50%, #3d0a0a 100%)"
+        sentiment_emoji = "🔴"
+        sentiment_text = "BEARISH"
+    else:
+        gradient = "linear-gradient(135deg, #2d3748 0%, #374151 50%, #1f2937 100%)"
+        sentiment_emoji = "⚪"
+        sentiment_text = "NEUTRAL"
+    
+    # Determine top pick color
+    if top_pick_value > 0:
+        top_pick_color = "#2ecc71"
+    elif top_pick_value < 0:
+        top_pick_color = "#e74c3c"
+    else:
+        top_pick_color = "#95a5a6"
+    
+    # Format top pick value for display
+    if top_pick_label == "Confidence":
+        top_pick_display = f"{top_pick_value:.1%}"
+    else:
+        top_pick_display = f"{top_pick_value:+.3f}"
+    
+    # Build the HTML card - use components for complex HTML
+    import streamlit.components.v1 as components
+    
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }}
+        .card {{ background: {gradient}; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); }}
+        .header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }}
+        .title {{ margin: 0; color: #f0f0f0; font-size: 1.5em; }}
+        .badge {{ background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; color: #fff; font-weight: 600; font-size: 0.9em; }}
+        .grid {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }}
+        .stat-card {{ border-radius: 12px; padding: 16px; text-align: center; }}
+        .stat-icon {{ font-size: 2em; margin-bottom: 4px; }}
+        .stat-value {{ font-size: 2em; font-weight: 700; }}
+        .stat-label {{ color: rgba(255,255,255,0.7); font-size: 0.85em; }}
+        .buy {{ background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); }}
+        .buy .stat-value {{ color: #2ecc71; }}
+        .sell {{ background: rgba(231, 76, 60, 0.15); border: 1px solid rgba(231, 76, 60, 0.3); }}
+        .sell .stat-value {{ color: #e74c3c; }}
+        .hold {{ background: rgba(149, 165, 166, 0.15); border: 1px solid rgba(149, 165, 166, 0.3); }}
+        .hold .stat-value {{ color: #95a5a6; }}
+        .avg {{ background: rgba(52, 152, 219, 0.15); border: 1px solid rgba(52, 152, 219, 0.3); }}
+        .avg .stat-value {{ color: #3498db; }}
+        .top-pick {{ background: rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; }}
+        .top-pick-label {{ color: rgba(255,255,255,0.6); font-size: 0.85em; margin-bottom: 4px; }}
+        .top-pick-ticker {{ font-size: 1.8em; font-weight: 700; color: #f0f0f0; }}
+        .top-pick-value {{ font-size: 1.4em; font-weight: 600; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <h2 class="title">{sentiment_emoji} Quick Summary</h2>
+            <span class="badge">{sentiment_text}</span>
+        </div>
+        <div class="grid">
+            <div class="stat-card buy">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value">{n_buy}</div>
+                <div class="stat-label">BUY Signals</div>
+            </div>
+            <div class="stat-card sell">
+                <div class="stat-icon">📉</div>
+                <div class="stat-value">{n_sell}</div>
+                <div class="stat-label">SELL Signals</div>
+            </div>
+            <div class="stat-card hold">
+                <div class="stat-icon">⏸️</div>
+                <div class="stat-value">{n_neutral}</div>
+                <div class="stat-label">HOLD</div>
+            </div>
+            <div class="stat-card avg">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value">{avg_value:+.1f}%</div>
+                <div class="stat-label">{avg_label}</div>
+            </div>
+        </div>
+        <div class="top-pick">
+            <div>
+                <div class="top-pick-label">🏆 TOP PICK (Highest {top_pick_label})</div>
+                <div class="top-pick-ticker">{top_pick}</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="top-pick-label">{top_pick_label}</div>
+                <div class="top-pick-value" style="color: {top_pick_color};">{top_pick_display}</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+    
+    # Use components.html for reliable rendering - height to fit all content
+    components.html(html, height=380)
 
 
 def render_styled_table(df, table_id="styled-table", highlight_cols=None, theme=None):
@@ -1835,7 +2223,7 @@ with theme_col2:
     theme_icon = "🌙" if current_theme == "dark" else "☀️"
     theme_label = "Light" if current_theme == "dark" else "Dark"
     
-    if st.button(theme_icon, key="theme_toggle", help=f"Switch to {theme_label} mode", use_container_width=True):
+    if st.button(theme_icon, key="theme_toggle", help=f"Switch to {theme_label} mode", width="stretch"):
         st.session_state["theme"] = "light" if current_theme == "dark" else "dark"
         st.rerun()
 
@@ -1863,13 +2251,13 @@ elif tickers:
 # Quick presets
 preset_cols = st.sidebar.columns(3)
 with preset_cols[0]:
-    if st.button("MAG7", use_container_width=True, key="preset_mag7"):
+    if st.button("MAG7", width="stretch", key="preset_mag7"):
         st.session_state["_preset_tickers"] = "AAPL, NVDA, MSFT, GOOGL, AMZN, META, TSLA"
 with preset_cols[1]:
-    if st.button("TECH", use_container_width=True, key="preset_tech"):
+    if st.button("TECH", width="stretch", key="preset_tech"):
         st.session_state["_preset_tickers"] = "AAPL, MSFT, NVDA, AMD, CRM, ADBE, INTC"
 with preset_cols[2]:
-    if st.button("FANG", use_container_width=True, key="preset_fang"):
+    if st.button("FANG", width="stretch", key="preset_fang"):
         st.session_state["_preset_tickers"] = "META, AMZN, NFLX, GOOGL"
 
 # Apply preset if clicked
@@ -1926,6 +2314,44 @@ with quick_cols[1]:
     )
 
 horizon_label = f"{prediction_horizon}D"
+
+# Trading Mode selector (NEW - Adaptive Model)
+if HAS_PRODUCTION_PREDICTOR and TRADING_MODES:
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("**🎯 Trading Mode (NEW)**")
+    
+    # Use adaptive model toggle
+    use_adaptive_model = st.sidebar.checkbox(
+        "Use Adaptive Model", 
+        value=True,
+        key="use_adaptive_model",
+        help="NEW: Classification-based model with walk-forward validated performance. Sharpe 1.10, 83% positive periods."
+    )
+    
+    if use_adaptive_model:
+        trading_mode_options = {
+            "conservative": "🛡️ Conservative - Capital preservation (Sharpe 0.68)",
+            "balanced": "⚖️ Balanced - Best risk/reward (Sharpe 1.10)",
+            "aggressive": "🚀 Aggressive - Maximum returns (Sharpe 1.17)",
+        }
+        selected_trading_mode = st.sidebar.selectbox(
+            "Trading Mode",
+            list(trading_mode_options.keys()),
+            index=1,  # Default to balanced
+            format_func=lambda x: trading_mode_options[x],
+            key="trading_mode",
+            help="Balanced is recommended. Conservative for risk-averse, Aggressive for higher returns."
+        )
+        
+        # Show mode details
+        mode_config = TRADING_MODES[selected_trading_mode]
+        st.sidebar.caption(f"📈 {mode_config.description}")
+        st.sidebar.caption(f"📊 Long @ {mode_config.long_conf:.0%} conf | Short @ {mode_config.short_conf:.0%} conf")
+    else:
+        selected_trading_mode = None
+else:
+    use_adaptive_model = False
+    selected_trading_mode = None
 
 # Get friction and options presets from strategy preset
 friction_preset = strategy_preset.friction_preset
@@ -1994,15 +2420,27 @@ with st.sidebar.expander("⚙️ Advanced Options", expanded=False):
     st.markdown("**Model**")
     
     # Model selection - independent of preset
-    all_models = ["rf", "gbrt", "xgb", "ensemble"]
+    all_models = ["xgb", "xgb_binary", "rf", "xgb_lstm", "ensemble"]
     model_type = st.selectbox(
         "Algorithm",
         all_models,
-        index=0,  # Default to RF, user can change freely
-        format_func=lambda x: {"rf": "Random Forest", "gbrt": "Gradient Boosting", "xgb": "XGBoost", "ensemble": "Ensemble (RF+GB+XGB)"}[x],
+        index=0,  # Default to XGBoost (best performer)
+        format_func=lambda x: {
+            "xgb": "XGBoost (Primary)", 
+            "xgb_binary": "XGBoost Binary (Best Single Test)",
+            "rf": "Random Forest",
+            "xgb_lstm": "XGB+LSTM (Bear Market)",
+            "ensemble": "Ensemble (RF+XGB)"
+        }[x],
         key="param_model"
     )
     auto_optimize = st.checkbox("Auto-optimize", value=True, key="param_auto_opt")
+    use_vol_scaled_target = st.checkbox(
+        "Vol-scaled target (Recommended)",
+        value=False,
+        key="param_vol_scaled_target",
+        help="Train on forward return divided by realized vol, then rescale predictions back to return space.",
+    )
     
     st.markdown("**Filters**")
     signal_threshold_pct = st.slider(
@@ -2052,23 +2490,23 @@ with st.sidebar.expander("🗑️ Clear Caches", expanded=False):
     st.caption("Clear cached data for fresh results:")
     cache_cols = st.columns(2)
     with cache_cols[0]:
-        if st.button("Clear Predictions", use_container_width=True):
+        if st.button("Clear Predictions", width="stretch"):
             clear_prediction_cache()
             st.success("✓ Predictions cleared")
     with cache_cols[1]:
-        if st.button("Clear Prices", use_container_width=True):
+        if st.button("Clear Prices", width="stretch"):
             clear_price_cache()
             st.success("✓ Prices cleared")
     cache_cols2 = st.columns(2)
     with cache_cols2[0]:
-        if st.button("Clear Options", use_container_width=True):
+        if st.button("Clear Options", width="stretch"):
             clear_options_cache()
             st.success("✓ Options cleared")
     with cache_cols2[1]:
-        if st.button("Clear Backtests", use_container_width=True):
+        if st.button("Clear Backtests", width="stretch"):
             clear_backtest_cache()
             st.success("✓ Backtests cleared")
-    if st.button("🔄 Clear All Caches", use_container_width=True, type="primary"):
+    if st.button("🔄 Clear All Caches", width="stretch", type="primary"):
         clear_all_caches()
         st.success("✓ All caches cleared!")
 
@@ -2115,7 +2553,7 @@ if HAS_DATABASE:
                 
                 col1, col2 = st.columns([4, 1])
                 with col1:
-                    if st.button(f"{fav_icon} {label}", key=f"query_{q['id']}", use_container_width=True):
+                    if st.button(f"{fav_icon} {label}", key=f"query_{q['id']}", width="stretch"):
                         # Load query into current session
                         st.session_state["_preset_tickers"] = ", ".join(q["tickers"])
                         st.session_state["param_period"] = q["period"]
@@ -2144,7 +2582,622 @@ st.sidebar.caption(f"📊 {len(tickers)} ticker(s) • {period} • {horizon_lab
 # MAIN PANEL - Tabbed Layout
 # ============================================================================
 
-tab_dash, tab_backtests, tab_port, tab_monitor = st.tabs(["📈 DASHBOARD", "🔬 BACKTEST", "📊 PORTFOLIO", "🔔 MONITORING"])
+tab_summary, tab_dash, tab_backtests, tab_port, tab_monitor = st.tabs([
+    "⚡ SUMMARY", "📈 DASHBOARD", "🔬 BACKTEST", "📊 PORTFOLIO", "🔔 MONITORING"
+])
+
+# ============================================================================
+# TAB: Quick Summary - At-a-glance overview with ticker cards
+# ============================================================================
+with tab_summary:
+    pred_df = st.session_state.get("pred_df")
+    
+    if pred_df is not None and not pred_df.empty:
+        tc = get_card_theme()
+        is_dark = st.session_state.get("theme", "dark") == "dark"
+        
+        # === HEADER ===
+        st.markdown(f"""
+        <div style='
+            background: linear-gradient(135deg, {tc["bg"]} 0%, {"#1a1f2e" if is_dark else "#e8ecf0"} 100%);
+            border: 1px solid {tc["border"]};
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+        '>
+            <div style='display: flex; justify-content: space-between; align-items: center;'>
+                <div>
+                    <div style='color: {tc["label"]}; font-size: 0.7rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;'>
+                        ⚡ QUICK SUMMARY
+                    </div>
+                    <div style='color: {tc["text"]}; font-size: 1.1rem; font-weight: 600; margin-top: 0.25rem;'>
+                        Scan opportunities at a glance, then dive deeper in Dashboard
+                    </div>
+                </div>
+                <div style='
+                    background: {tc["blue"]}20;
+                    border: 1px solid {tc["blue"]};
+                    border-radius: 8px;
+                    padding: 0.5rem 1rem;
+                    text-align: center;
+                '>
+                    <div style='color: {tc["blue"]}; font-size: 1.5rem; font-weight: 700;'>{len(pred_df)}</div>
+                    <div style='color: {tc["label"]}; font-size: 0.65rem;'>TICKERS</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # === FILTERING CONTROLS ===
+        st.markdown('<p class="section-title">🔍 Filter Opportunities</p>', unsafe_allow_html=True)
+        
+        filter_cols = st.columns([2, 2, 2, 2, 2])
+        
+        with filter_cols[0]:
+            direction_filter = st.selectbox(
+                "Direction",
+                ["All", "Bullish Only", "Bearish Only"],
+                key="summary_direction_filter"
+            )
+        
+        with filter_cols[1]:
+            confidence_filter = st.selectbox(
+                "Confidence",
+                ["All", "High (>60%)", "Medium (40-60%)", "Low (<40%)"],
+                key="summary_confidence_filter"
+            )
+        
+        with filter_cols[2]:
+            risk_filter = st.selectbox(
+                "Risk Level",
+                ["All", "Low (<20% vol)", "Medium (20-40%)", "High (>40%)"],
+                key="summary_risk_filter"
+            )
+        
+        with filter_cols[3]:
+            # ARIMA confirmation filter
+            arima_filter = st.selectbox(
+                "ARIMA Confirm",
+                ["All", "Confirmed Only", "Conflicts Only"],
+                key="summary_arima_filter"
+            )
+        
+        with filter_cols[4]:
+            sort_by = st.selectbox(
+                "Sort By",
+                ["Predicted Return", "Probability", "Confidence", "Volatility"],
+                key="summary_sort_by"
+            )
+        
+        # Apply filters
+        filtered_df = pred_df.copy()
+        
+        # Direction filter
+        if direction_filter == "Bullish Only":
+            if "pred_next_ret" in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df["pred_next_ret"] > 0]
+        elif direction_filter == "Bearish Only":
+            if "pred_next_ret" in filtered_df.columns:
+                filtered_df = filtered_df[filtered_df["pred_next_ret"] < 0]
+        
+        # Confidence filter
+        if "prob_up" in filtered_df.columns:
+            if confidence_filter == "High (>60%)":
+                filtered_df = filtered_df[(filtered_df["prob_up"] > 0.6) | (filtered_df["prob_up"] < 0.4)]
+            elif confidence_filter == "Medium (40-60%)":
+                filtered_df = filtered_df[(filtered_df["prob_up"] >= 0.4) & (filtered_df["prob_up"] <= 0.6)]
+            elif confidence_filter == "Low (<40%)":
+                filtered_df = filtered_df[(filtered_df["prob_up"] >= 0.4) & (filtered_df["prob_up"] <= 0.6)]
+        
+        # Risk filter
+        if "vol_20d" in filtered_df.columns:
+            if risk_filter == "Low (<20% vol)":
+                filtered_df = filtered_df[filtered_df["vol_20d"] < 0.20]
+            elif risk_filter == "Medium (20-40%)":
+                filtered_df = filtered_df[(filtered_df["vol_20d"] >= 0.20) & (filtered_df["vol_20d"] <= 0.40)]
+            elif risk_filter == "High (>40%)":
+                filtered_df = filtered_df[filtered_df["vol_20d"] > 0.40]
+        
+        # ARIMA filter
+        if "direction_confirmed" in filtered_df.columns:
+            if arima_filter == "Confirmed Only":
+                # Only show rows where direction_confirmed is explicitly True
+                filtered_df = filtered_df[filtered_df["direction_confirmed"] == True]
+            elif arima_filter == "Conflicts Only":
+                # Only show rows where direction_confirmed is explicitly False
+                filtered_df = filtered_df[filtered_df["direction_confirmed"] == False]
+            # Note: "All" shows everything including None/NaN values
+        
+        # Sort
+        if sort_by == "Predicted Return" and "pred_next_ret" in filtered_df.columns:
+            filtered_df = filtered_df.sort_values("pred_next_ret", ascending=False, key=abs)
+        elif sort_by == "Probability" and "prob_up" in filtered_df.columns:
+            # Sort by distance from 50%
+            filtered_df = filtered_df.copy()
+            filtered_df["_sort_prob"] = (filtered_df["prob_up"] - 0.5).abs()
+            filtered_df = filtered_df.sort_values("_sort_prob", ascending=False)
+            filtered_df = filtered_df.drop(columns=["_sort_prob"])
+        elif sort_by == "Confidence" and "confidence_score" in filtered_df.columns:
+            filtered_df = filtered_df.sort_values("confidence_score", ascending=False)
+        elif sort_by == "Volatility" and "vol_20d" in filtered_df.columns:
+            filtered_df = filtered_df.sort_values("vol_20d", ascending=False)
+        
+        # === AGGREGATE STATS ROW ===
+        st.markdown('<p class="section-title">📊 Overview</p>', unsafe_allow_html=True)
+        
+        # Calculate aggregates
+        total_tickers = len(filtered_df)
+        bullish_count = (filtered_df["pred_next_ret"] > 0).sum() if "pred_next_ret" in filtered_df.columns else 0
+        bearish_count = (filtered_df["pred_next_ret"] < 0).sum() if "pred_next_ret" in filtered_df.columns else 0
+        avg_pred = filtered_df["pred_next_ret"].mean() * 100 if "pred_next_ret" in filtered_df.columns else 0
+        avg_prob = filtered_df["prob_up"].mean() * 100 if "prob_up" in filtered_df.columns else 50
+        confirmed_count = filtered_df["direction_confirmed"].sum() if "direction_confirmed" in filtered_df.columns else 0
+        
+        stats_cols = st.columns(6)
+        
+        with stats_cols[0]:
+            st.metric("Showing", f"{total_tickers}/{len(pred_df)}", delta="filtered")
+        with stats_cols[1]:
+            st.metric("Bullish", bullish_count, delta=f"{bullish_count/max(total_tickers,1)*100:.0f}%")
+        with stats_cols[2]:
+            st.metric("Bearish", bearish_count, delta=f"{bearish_count/max(total_tickers,1)*100:.0f}%")
+        with stats_cols[3]:
+            st.metric("Avg Pred", f"{avg_pred:+.2f}%", delta="bullish" if avg_pred > 0 else "bearish")
+        with stats_cols[4]:
+            st.metric("Avg P(Up)", f"{avg_prob:.0f}%", delta="positive" if avg_prob > 50 else "negative")
+        with stats_cols[5]:
+            if "direction_confirmed" in filtered_df.columns:
+                st.metric("ARIMA Confirmed", confirmed_count, delta=f"{confirmed_count/max(total_tickers,1)*100:.0f}%")
+            else:
+                st.metric("ARIMA Confirmed", "—", delta="n/a")
+        
+        st.markdown("<hr style='border: none; border-top: 1px solid #30363d; margin: 1rem 0;'>", unsafe_allow_html=True)
+        
+        # Check if ARIMA data is available
+        has_arima = "direction_confirmed" in filtered_df.columns and filtered_df["direction_confirmed"].notna().any()
+        if not has_arima:
+            col_info, col_btn = st.columns([4, 1])
+            with col_info:
+                st.info("💡 ARIMA signals not available. Click 'Clear Cache & Refresh' to fetch fresh predictions with ARIMA analysis.")
+            with col_btn:
+                if st.button("🔄 Clear Cache & Refresh", key="summary_clear_cache", width="stretch"):
+                    st.cache_data.clear()
+                    st.session_state["pred_df"] = None
+                    st.rerun()
+        
+        # === TICKER SUMMARY CARDS ===
+        st.subheader("📋 Ticker Summary Cards")
+        
+        if filtered_df.empty:
+            st.info("No tickers match your filter criteria. Try adjusting the filters above.")
+        else:
+            # Fetch earnings warnings for all tickers (cached per session)
+            if "earnings_warnings" not in st.session_state:
+                st.session_state["earnings_warnings"] = {}
+            
+            # Fetch sentiment for all tickers (cached per session)
+            if "sentiment_cache" not in st.session_state:
+                st.session_state["sentiment_cache"] = {}
+            
+            # Fetch accuracy stats for all tickers (cached per session)
+            if "accuracy_cache" not in st.session_state:
+                st.session_state["accuracy_cache"] = {}
+            
+            # Auto-validate pending predictions once per session (limit to 50 to avoid slow startup)
+            if "predictions_validated" not in st.session_state:
+                st.session_state["predictions_validated"] = False
+                try:
+                    from src.data import validate_pending_predictions
+                    validate_pending_predictions(max_validate=50)
+                    st.session_state["predictions_validated"] = True
+                except Exception as e:
+                    print(f"[auto-validate] Failed: {e}")
+            
+            tickers_to_check = filtered_df["ticker"].unique().tolist()
+            earnings_cache = st.session_state["earnings_warnings"]
+            sentiment_cache = st.session_state["sentiment_cache"]
+            accuracy_cache = st.session_state["accuracy_cache"]
+            
+            # Fetch earnings for tickers not in cache (with error handling per ticker)
+            for tk in tickers_to_check:
+                if tk not in earnings_cache:
+                    try:
+                        earnings_cache[tk] = fetch_earnings_warning(tk)
+                    except Exception as e:
+                        print(f"[earnings] Failed for {tk}: {e}")
+                        earnings_cache[tk] = {"warning_level": "none", "error": str(e)[:80]}
+            
+            # Fetch sentiment for tickers not in cache (with error handling per ticker)
+            for tk in tickers_to_check:
+                if tk not in sentiment_cache:
+                    try:
+                        sentiment_cache[tk] = fetch_sentiment(tk)
+                    except Exception as e:
+                        print(f"[sentiment] Failed for {tk}: {e}")
+                        sentiment_cache[tk] = {"_error": str(e)[:80]}
+            
+            # Fetch accuracy for tickers not in cache
+            if not accuracy_cache:
+                try:
+                    from src.data import get_all_ticker_accuracy
+                    accuracy_cache.update(get_all_ticker_accuracy(days_back=90))
+                except Exception:
+                    pass
+            
+            # Check for any imminent/soon earnings
+            earnings_alerts = [tk for tk in tickers_to_check 
+                              if earnings_cache.get(tk, {}).get("warning_level") in ["imminent", "soon"]]
+            
+            if earnings_alerts:
+                alert_details = []
+                for tk in earnings_alerts:
+                    e = earnings_cache[tk]
+                    days = e.get("days_until", "?")
+                    level = e.get("warning_level", "")
+                    icon = "🔴" if level == "imminent" else "🟠"
+                    alert_details.append(f"{icon} **{tk}** ({days} days)")
+                
+                st.warning(f"⚠️ **EARNINGS WARNING**: {', '.join(alert_details)} - Consider adjusting positions before earnings!")
+            
+            # Show overall accuracy summary if we have data
+            if accuracy_cache:
+                total_preds = sum(s.get("total", 0) for s in accuracy_cache.values())
+                total_correct = sum(s.get("correct", 0) for s in accuracy_cache.values())
+                if total_preds >= 20:
+                    overall_wr = (total_correct / total_preds * 100) if total_preds > 0 else 0
+                    # Color based on win rate
+                    if overall_wr >= 55:
+                        wr_color = "#22c55e"  # green
+                        wr_icon = "✅"
+                    elif overall_wr >= 50:
+                        wr_color = "#3b82f6"  # blue
+                        wr_icon = "📊"
+                    else:
+                        wr_color = "#ef4444"  # red
+                        wr_icon = "⚠️"
+                    st.info(f"{wr_icon} **Historical Accuracy (90 days)**: {overall_wr:.1f}% win rate across {total_preds:,} validated predictions")
+            
+            # Generate option strategies for display
+            try:
+                strategy_df = generate_option_strategy(filtered_df)
+                strategy_map = {}
+                if strategy_df is not None and not strategy_df.empty:
+                    for _, srow in strategy_df.iterrows():
+                        strategy_map[srow["symbol"]] = {
+                            "action": srow.get("recommended_action", "Hold"),
+                            "strike": srow.get("suggested_strike", "ATM"),
+                            "cost": srow.get("estimated_cost", 0),
+                            "iv_rich": srow.get("IV_richness", 0)
+                        }
+            except Exception:
+                strategy_map = {}
+            
+            # Use Streamlit columns for grid layout (3 columns)
+            num_cols = 3
+            rows_needed = (len(filtered_df) + num_cols - 1) // num_cols
+            
+            for row_idx in range(rows_needed):
+                cols = st.columns(num_cols)
+                for col_idx in range(num_cols):
+                    df_idx = row_idx * num_cols + col_idx
+                    if df_idx >= len(filtered_df):
+                        continue
+                    
+                    row = filtered_df.iloc[df_idx]
+                    ticker = row.get("ticker", "???")
+                    pred_ret = row.get("pred_next_ret", 0) or 0
+                    prob_up = row.get("prob_up")
+                    vol_20d = row.get("vol_20d")
+                    atm_iv = row.get("atm_iv")
+                    target_price = row.get("pred_next_price")
+                    confidence = row.get("confidence_score")
+                    direction_confirmed = row.get("direction_confirmed")
+                    trend_direction = row.get("trend_direction")
+                    vol_regime = row.get("vol_regime")
+                    options_signal = row.get("options_signal")
+                    pred_zscore = row.get("pred_zscore", 0) or 0
+                    
+                    # Determine signal badge
+                    if pred_ret > 0.005:
+                        signal_badge = f"<span style='background:{tc['green']}22;color:{tc['green']};padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;'>▲ BULLISH</span>"
+                    elif pred_ret < -0.005:
+                        signal_badge = f"<span style='background:{tc['red']}22;color:{tc['red']};padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;'>▼ BEARISH</span>"
+                    else:
+                        signal_badge = f"<span style='background:{tc['yellow']}22;color:{tc['yellow']};padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;'>◆ NEUTRAL</span>"
+                    
+                    # ARIMA badges
+                    arima_html = ""
+                    if direction_confirmed is True:
+                        arima_html += f"<span style='background:{tc['green']}22;color:{tc['green']};padding:2px 6px;border-radius:4px;font-size:0.65rem;margin-right:4px;'>✓ CONFIRMED</span>"
+                    elif direction_confirmed is False:
+                        arima_html += f"<span style='background:{tc['red']}22;color:{tc['red']};padding:2px 6px;border-radius:4px;font-size:0.65rem;margin-right:4px;'>✗ CONFLICT</span>"
+                    
+                    if trend_direction:
+                        trend_icon = "▲" if trend_direction == "up" else "▼" if trend_direction == "down" else "◆"
+                        arima_html += f"<span style='background:{tc['card_inner']};color:{tc['text']};padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:500;margin-right:4px;'>{trend_icon} {trend_direction.upper()}</span>"
+                    
+                    if vol_regime:
+                        arima_html += f"<span style='background:{tc['card_inner']};color:{tc['text']};padding:2px 6px;border-radius:4px;font-size:0.7rem;font-weight:500;'>VOL: {vol_regime.upper()}</span>"
+                    
+                    # Option strategy
+                    strat = strategy_map.get(ticker, {})
+                    strat_action = strat.get("action", "—")
+                    strat_cost = strat.get("cost", 0)
+                    
+                    # Theme-aware inner box colors
+                    inner_bg = "#0d1117" if is_dark else "#f3f4f6"
+                    inner_bg2 = "#161b22" if is_dark else "#e5e7eb"
+                    label_color = "#8b949e" if is_dark else "#6b7280"
+                    
+                    # Use model's confidence score directly (0-1 scale)
+                    # The model confidence is based on ensemble agreement and prediction strength
+                    conf_pct = confidence if confidence is not None else None
+                    
+                    # Pre-calculate display values
+                    prob_display = f"{prob_up*100:.0f}%" if prob_up else "—"
+                    prob_color = tc["green"] if prob_up and prob_up > 0.55 else tc["red"] if prob_up and prob_up < 0.45 else tc["text"]
+                    pred_color = tc["green"] if pred_ret > 0 else tc["red"] if pred_ret < 0 else tc["text"]
+                    zscore_color = tc["green"] if pred_zscore > 1 else tc["red"] if pred_zscore < -1 else tc["text"]
+                    vol_display = f"{vol_20d*100:.1f}%" if vol_20d else "—"
+                    vol_color = tc["red"] if vol_20d and vol_20d > 0.4 else tc["yellow"] if vol_20d and vol_20d > 0.25 else tc["text"]
+                    iv_display = f"{atm_iv*100:.1f}%" if atm_iv else "—"
+                    conf_display = f"{conf_pct:.0%}" if conf_pct is not None else "—"
+                    conf_color = tc["green"] if conf_pct and conf_pct > 0.5 else tc["yellow"] if conf_pct and conf_pct > 0.35 else tc["text"]
+                    cost_display = f"${strat_cost:.0f}" if strat_cost else "—"
+                    target_display = f"${target_price:.2f}" if target_price else "—"
+                    arima_display = arima_html if arima_html else f"<span style='color:{label_color};font-size:0.75rem;'>No ARIMA data</span>"
+                    
+                    # Earnings warning badge
+                    earnings_info = earnings_cache.get(ticker, {})
+                    earnings_level = earnings_info.get("warning_level", "none")
+                    earnings_days = earnings_info.get("days_until", None)
+                    
+                    earnings_badge = ""
+                    if earnings_level == "imminent" and earnings_days is not None:
+                        earnings_badge = f"<span style='background:#dc262622;color:#dc2626;padding:3px 8px;border-radius:8px;font-size:0.65rem;font-weight:700;margin-left:6px;'>🔴 EARNINGS {earnings_days}d</span>"
+                    elif earnings_level == "soon" and earnings_days is not None:
+                        earnings_badge = f"<span style='background:#f9731622;color:#f97316;padding:3px 8px;border-radius:8px;font-size:0.65rem;font-weight:700;margin-left:6px;'>🟠 EARNINGS {earnings_days}d</span>"
+                    elif earnings_level == "upcoming" and earnings_days is not None:
+                        earnings_badge = f"<span style='background:#eab30822;color:#eab308;padding:3px 8px;border-radius:8px;font-size:0.65rem;font-weight:600;margin-left:6px;'>📅 {earnings_days}d</span>"
+                    
+                    # Sentiment badge (analyst recommendations)
+                    sentiment_info = sentiment_cache.get(ticker, {})
+                    has_sentiment_error = "_error" in sentiment_info
+                    analyst_recs = sentiment_info.get("analystRecommendations", {})
+                    analyst_bullish_pct = analyst_recs.get("bullishPercent")
+                    
+                    sentiment_badge = ""
+                    if has_sentiment_error:
+                        sentiment_badge = f"<span style='background:#6b728022;color:#6b7280;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>📊 N/A</span>"
+                    elif analyst_bullish_pct is not None:
+                        if analyst_bullish_pct >= 70:
+                            sentiment_badge = f"<span style='background:#22c55e22;color:#22c55e;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>📈 {analyst_bullish_pct:.0f}% BULLISH</span>"
+                        elif analyst_bullish_pct <= 30:
+                            sentiment_badge = f"<span style='background:#ef444422;color:#ef4444;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>📉 {100-analyst_bullish_pct:.0f}% BEARISH</span>"
+                        else:
+                            sentiment_badge = f"<span style='background:#6b728022;color:#9ca3af;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>⚖️ MIXED</span>"
+                    
+                    # Historical accuracy badge
+                    accuracy_info = accuracy_cache.get(ticker, {})
+                    ticker_win_rate = accuracy_info.get("win_rate")
+                    ticker_total_preds = accuracy_info.get("total", 0)
+                    
+                    accuracy_badge = ""
+                    if ticker_win_rate is not None and ticker_total_preds >= 5:
+                        wr_pct = ticker_win_rate * 100
+                        if wr_pct >= 60:
+                            accuracy_badge = f"<span style='background:#22c55e22;color:#22c55e;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>🎯 {wr_pct:.0f}% ({ticker_total_preds})</span>"
+                        elif wr_pct >= 50:
+                            accuracy_badge = f"<span style='background:#3b82f622;color:#3b82f6;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>🎯 {wr_pct:.0f}% ({ticker_total_preds})</span>"
+                        else:
+                            accuracy_badge = f"<span style='background:#ef444422;color:#ef4444;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>⚠️ {wr_pct:.0f}% ({ticker_total_preds})</span>"
+                    
+                    # Insider trading badge (MSPR = Monthly Share Purchase Ratio)
+                    insider_info = sentiment_info.get("insiderSentiment", {})
+                    insider_mspr = insider_info.get("mspr")
+                    insider_change = insider_info.get("change")
+                    
+                    insider_badge = ""
+                    if has_sentiment_error:
+                        insider_badge = f"<span style='background:#6b728022;color:#6b7280;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>👤 N/A</span>"
+                    elif insider_mspr is not None:
+                        if insider_mspr > 10:
+                            # Strong insider buying
+                            insider_badge = f"<span style='background:#22c55e22;color:#22c55e;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>🟢 INSIDER BUY</span>"
+                        elif insider_mspr > 0:
+                            # Slight insider buying
+                            insider_badge = f"<span style='background:#22c55e22;color:#22c55e;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>📥 INSIDER +</span>"
+                        elif insider_mspr < -10:
+                            # Strong insider selling
+                            insider_badge = f"<span style='background:#ef444422;color:#ef4444;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>🔴 INSIDER SELL</span>"
+                        elif insider_mspr < 0:
+                            # Slight insider selling
+                            insider_badge = f"<span style='background:#f9731622;color:#f97316;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>📤 INSIDER -</span>"
+                    
+                    # News buzz badge
+                    buzz_info = sentiment_info.get("buzz", {})
+                    articles_count = buzz_info.get("articlesInLastWeek", 0)
+                    
+                    buzz_badge = ""
+                    if has_sentiment_error:
+                        pass  # Already showing N/A on sentiment badge
+                    elif articles_count and articles_count > 200:
+                        buzz_badge = f"<span style='background:#a855f722;color:#a855f7;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>🔥 {articles_count} NEWS</span>"
+                    elif articles_count and articles_count > 100:
+                        buzz_badge = f"<span style='background:#3b82f622;color:#3b82f6;padding:2px 6px;border-radius:6px;font-size:0.6rem;font-weight:600;'>📰 {articles_count} NEWS</span>"
+                    
+                    with cols[col_idx]:
+                        # Card container
+                        st.markdown(f"""
+                        <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:12px;padding:1rem;margin-bottom:0.5rem;'>
+                            <div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid {tc["border"]};'>
+                                <div style='display:flex;align-items:center;gap:6px;flex-wrap:wrap;'>
+                                    <span style='font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;color:{tc["blue"]};'>{ticker}</span>
+                                    {accuracy_badge}
+                                    {insider_badge}
+                                    {buzz_badge}
+                                    {sentiment_badge}
+                                    {earnings_badge}
+                                </div>
+                                {signal_badge}
+                            </div>
+                            <div style='display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem;'>
+                                <div style='background:{inner_bg};border-radius:8px;padding:0.5rem;text-align:center;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;letter-spacing:0.5px;'>PRED RET</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700;color:{pred_color};margin-top:2px;'>{pred_ret*100:+.2f}%</div>
+                                </div>
+                                <div style='background:{inner_bg};border-radius:8px;padding:0.5rem;text-align:center;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;letter-spacing:0.5px;'>P(UP)</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700;color:{prob_color};margin-top:2px;'>{prob_display}</div>
+                                </div>
+                                <div style='background:{inner_bg};border-radius:8px;padding:0.5rem;text-align:center;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;letter-spacing:0.5px;'>Z-SCORE</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700;color:{zscore_color};margin-top:2px;'>{pred_zscore:+.2f}</div>
+                                </div>
+                                <div style='background:{inner_bg};border-radius:8px;padding:0.5rem;text-align:center;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;letter-spacing:0.5px;'>VOL 20D</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700;color:{vol_color};margin-top:2px;'>{vol_display}</div>
+                                </div>
+                                <div style='background:{inner_bg};border-radius:8px;padding:0.5rem;text-align:center;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;letter-spacing:0.5px;'>IV</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700;color:{tc["text"]};margin-top:2px;'>{iv_display}</div>
+                                </div>
+                                <div style='background:{inner_bg};border-radius:8px;padding:0.5rem;text-align:center;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;letter-spacing:0.5px;'>CONFIDENCE</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:1rem;font-weight:700;color:{conf_color};margin-top:2px;'>{conf_display}</div>
+                                </div>
+                            </div>
+                            <div style='background:{inner_bg2};border-radius:8px;padding:0.6rem 0.75rem;margin-bottom:0.5rem;display:flex;justify-content:space-between;'>
+                                <div>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;'>OPTION STRATEGY</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:0.9rem;font-weight:700;color:{tc["purple"]};margin-top:2px;'>{strat_action}</div>
+                                </div>
+                                <div style='text-align:right;'>
+                                    <div style='color:{label_color};font-size:0.7rem;font-weight:600;'>EST COST</div>
+                                    <div style='font-family:JetBrains Mono,monospace;font-size:0.9rem;font-weight:700;color:{tc["text"]};margin-top:2px;'>{cost_display}</div>
+                                </div>
+                            </div>
+                            <div style='display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;min-height:1.5rem;'>
+                                {arima_display}
+                            </div>
+                            <div style='display:flex;justify-content:space-between;align-items:center;padding-top:0.5rem;border-top:1px solid {tc["border"]};'>
+                                <span style='color:{label_color};font-size:0.8rem;font-weight:500;'>Target Price</span>
+                                <span style='font-family:JetBrains Mono,monospace;font-size:1.1rem;font-weight:700;color:{tc["text"]};'>{target_display}</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            # Remove the old closing div since we're not using it anymore
+            # card_html approach is replaced by columns above
+            
+            pass  # End of card generation
+            
+            # === QUICK ACTION BUTTONS ===
+            st.markdown("---")  # Simple divider
+            st.subheader("🎯 Quick Actions")
+            
+            action_cols = st.columns(4)
+            with action_cols[0]:
+                if st.button("📈 Go to Dashboard", key="summary_to_dash", width="stretch"):
+                    st.info("Switch to the Dashboard tab for detailed analysis")
+            with action_cols[1]:
+                if st.button("🔬 Run Backtest", key="summary_to_backtest", width="stretch"):
+                    st.info("Switch to the Backtest tab to validate signals")
+            with action_cols[2]:
+                if st.button("📊 View Portfolio", key="summary_to_portfolio", width="stretch"):
+                    st.info("Switch to the Portfolio tab for position management")
+            with action_cols[3]:
+                # Export summary
+                if st.button("📥 Export CSV", key="summary_export", width="stretch"):
+                    # Create export dataframe
+                    export_cols = ["ticker", "pred_next_ret", "prob_up", "vol_20d", "atm_iv", 
+                                   "pred_next_price", "direction_confirmed", "trend_direction", "options_signal"]
+                    export_df = filtered_df[[c for c in export_cols if c in filtered_df.columns]].copy()
+                    csv = export_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download CSV",
+                        data=csv,
+                        file_name="ticker_summary.csv",
+                        mime="text/csv",
+                        key="download_summary_csv"
+                    )
+        
+        # === LEGEND ===
+        with st.expander("📖 Metric Legend", expanded=False):
+            legend_cols = st.columns(3)
+            with legend_cols[0]:
+                st.markdown("""
+                **Prediction Metrics:**
+                - **Pred Return**: Forecasted return for the horizon
+                - **P(Up)**: Probability of upward move
+                - **Z-Score**: Signal strength (|Z|>1 = strong signal)
+                - **Confidence**: Model confidence score
+                """)
+            with legend_cols[1]:
+                st.markdown("""
+                **Volatility Metrics:**
+                - **Vol (20D)**: 20-day realized volatility (annualized)
+                - **IV**: Implied volatility from options
+                - **IV vs RV**: IV premium (+) or discount (-) vs realized
+                - **Risk**: LOW (<20%), MED (20-40%), HIGH (>40%)
+                """)
+            with legend_cols[2]:
+                st.markdown("""
+                **ARIMA Signals:**
+                - **✓ CONFIRMED**: ML & ARIMA agree on direction
+                - **✗ CONFLICT**: ML & ARIMA disagree (lower confidence)
+                - **Trend**: ARIMA-detected momentum direction
+                - **Vol Regime**: LOW/NORMAL/HIGH volatility environment
+                """)
+    
+    else:
+        # Empty state - no predictions yet
+        st.markdown(f"""
+        <div style='
+            background: {"#161b22" if st.session_state.get("theme", "dark") == "dark" else "#f6f8fa"};
+            border: 2px dashed {"#30363d" if st.session_state.get("theme", "dark") == "dark" else "#d0d7de"};
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            margin: 2rem 0;
+        '>
+            <div style='font-size: 3rem; margin-bottom: 1rem;'>🚀</div>
+            <h2 style='color: {"#f0f6fc" if st.session_state.get("theme", "dark") == "dark" else "#1f2328"}; margin-bottom: 0.5rem;'>
+                No Predictions Yet
+            </h2>
+            <p style='color: {"#8b949e" if st.session_state.get("theme", "dark") == "dark" else "#656d76"}; margin-bottom: 1.5rem;'>
+                Run predictions from the Dashboard tab to see your quick summary here
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("### What you'll see:")
+        
+        info_cols = st.columns(3)
+        with info_cols[0]:
+            st.markdown("""
+            **📈 At-a-Glance Cards**
+            - Ticker symbol & signal direction
+            - Predicted return & probability
+            - Risk level (low/med/high)
+            - Target price
+            """)
+        with info_cols[1]:
+            st.markdown("""
+            **📊 Options Strategy**
+            - Suggested option play (calls/puts/spreads)
+            - Estimated cost
+            - IV richness indicator
+            """)
+        with info_cols[2]:
+            st.markdown("""
+            **🔍 ARIMA Confirmation**
+            - Direction confirmation status
+            - Trend structure detection
+            - Volatility regime
+            """)
+        
+        st.info("👉 **Tip**: Go to the Dashboard tab, enter your tickers, and click 'Run Predictions' to get started!")
 
 # ============================================================================
 # TAB: Dashboard - Professional Trading View
@@ -2154,14 +3207,21 @@ with tab_dash:
     # === HEADER ROW: Run Button + Status ===
     header_cols = st.columns([2, 6, 2])
     with header_cols[0]:
-        run_btn = st.button("🚀 RUN PREDICTIONS", type="primary", key="run_predictions", use_container_width=True)
+        run_btn = st.button("🚀 RUN PREDICTIONS", type="primary", key="run_predictions", width="stretch")
     with header_cols[1]:
         tc = get_card_theme()
+        # Show model info (adaptive or legacy)
+        if use_adaptive_model and HAS_PRODUCTION_PREDICTOR:
+            mode_display = (selected_trading_mode or "balanced").upper()
+            model_display = f"ADAPTIVE-{mode_display}"
+        else:
+            model_display = model_type.upper()
+        
         st.markdown(f"""
         <div style='display: flex; align-items: center; gap: 1rem; padding: 0.5rem 0;'>
             <span class='ticker-symbol'>{len(tickers)} TICKERS</span>
             <span style='color: {tc["label"]}; font-family: JetBrains Mono, monospace; font-size: 0.8rem;'>
-                {model_type.upper()} • {period} • {horizon_label} Horizon
+                {model_display} • {period} • {horizon_label} Horizon
             </span>
         </div>
         """, unsafe_allow_html=True)
@@ -2193,23 +3253,35 @@ with tab_dash:
             current_auto_optimize = auto_optimize if 'auto_optimize' in dir() else True
             current_use_elasticnet = use_elasticnet_select if 'use_elasticnet_select' in dir() else False
             current_pricing_model = pricing_model if 'pricing_model' in dir() else PricingModel.BLACK_SCHOLES
+            current_use_vol_scaled_target = use_vol_scaled_target if 'use_vol_scaled_target' in dir() else True
             
             for i, tk in enumerate(tickers):
                 status.text(f"Processing {tk} ({i+1}/{len(tickers)})...")
                 
-                # Use cached prediction with safe API call wrapper
-                run_gaf_val = run_gaf if 'run_gaf' in dir() else False
-                pred, error = safe_api_call(
-                    _cached_prediction,
-                    ticker=tk,
-                    period=period,
-                    model_type=model_type,
-                    horizon=prediction_horizon,
-                    run_gaf=run_gaf_val,
-                    auto_optimize=current_auto_optimize,
-                    use_elasticnet=current_use_elasticnet,
-                    error_prefix=f"Prediction failed for {tk}"
-                )
+                # Check if using adaptive model (NEW)
+                if use_adaptive_model and HAS_PRODUCTION_PREDICTOR:
+                    # Use new adaptive predictor
+                    pred, error = safe_api_call(
+                        _cached_adaptive_prediction,
+                        ticker=tk,
+                        mode=selected_trading_mode or "balanced",
+                        error_prefix=f"Adaptive prediction failed for {tk}"
+                    )
+                else:
+                    # Use legacy prediction with safe API call wrapper
+                    run_gaf_val = run_gaf if 'run_gaf' in dir() else False
+                    pred, error = safe_api_call(
+                        _cached_prediction,
+                        ticker=tk,
+                        period=period,
+                        model_type=model_type,
+                        horizon=prediction_horizon,
+                        run_gaf=run_gaf_val,
+                        auto_optimize=current_auto_optimize,
+                        use_elasticnet=current_use_elasticnet,
+                        use_vol_scaled_target=current_use_vol_scaled_target,
+                        error_prefix=f"Prediction failed for {tk}"
+                    )
                 
                 if error:
                     errors.append((tk, error))
@@ -2317,20 +3389,30 @@ with tab_dash:
                         st.error(f"Trader not found: {TRADER_PATH}")
                     else:
                         with st.spinner("Executing trades..."):
-                            res = subprocess.run(
-                                [sys.executable, str(TRADER_PATH)],
-                                cwd=str(BASE_DIR),
-                                capture_output=True,
-                                text=True,
-                            )
-                            st.session_state["last_trader_stdout"] = res.stdout or ""
-                            st.session_state["last_trader_stderr"] = res.stderr or ""
-                            st.session_state["last_trader_rc"] = res.returncode
-                            
-                            if res.returncode == 0:
-                                st.success("Trade execution complete")
+                            try:
+                                res = subprocess.run(
+                                    [sys.executable, str(TRADER_PATH)],
+                                    cwd=str(BASE_DIR),
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=120,  # Kill if stuck for >2 minutes
+                                )
+                            except subprocess.TimeoutExpired:
+                                st.error("⏰ Trade execution timed out after 2 minutes. Check logs.")
+                                res = None
+                            if res is not None:
+                                st.session_state["last_trader_stdout"] = res.stdout or ""
+                                st.session_state["last_trader_stderr"] = res.stderr or ""
+                                st.session_state["last_trader_rc"] = res.returncode
+                                
+                                if res.returncode == 0:
+                                    st.success("Trade execution complete")
+                                else:
+                                    st.error(f"Trade failed: code {res.returncode}")
                             else:
-                                st.error(f"Trade failed: code {res.returncode}")
+                                st.session_state["last_trader_stdout"] = "Timed out"
+                                st.session_state["last_trader_stderr"] = "Process killed after 120s"
+                                st.session_state["last_trader_rc"] = -1
                 
                 st.rerun()
     
@@ -2568,6 +3650,128 @@ with tab_dash:
             """
             st.markdown(period_html, unsafe_allow_html=True)
         
+        # === ARIMA SIGNALS SUMMARY ROW ===
+        # Check if any predictions have ARIMA signals
+        has_arima_data = "direction_confirmed" in pred_df.columns or "vol_regime" in pred_df.columns
+        
+        if has_arima_data:
+            st.markdown('<p class="section-title">ARIMA Signal Summary</p>', unsafe_allow_html=True)
+            
+            arima_card_cols = st.columns(4)
+            
+            # Calculate ARIMA aggregates (handle None values)
+            if "direction_confirmed" in pred_df.columns:
+                # Fill None with False before operations
+                direction_col = pred_df["direction_confirmed"].fillna(False).astype(bool)
+                confirmed_count = direction_col.sum()
+                conflict_count = (~direction_col).sum()
+            else:
+                confirmed_count = 0
+                conflict_count = 0
+            
+            # Volatility regime breakdown
+            low_vol_count = (pred_df["vol_regime"] == "low").sum() if "vol_regime" in pred_df.columns else 0
+            high_vol_count = (pred_df["vol_regime"].isin(["high", "extreme"])).sum() if "vol_regime" in pred_df.columns else 0
+            
+            # Trend direction breakdown
+            trend_up = (pred_df["trend_direction"] == "up").sum() if "trend_direction" in pred_df.columns else 0
+            trend_down = (pred_df["trend_direction"] == "down").sum() if "trend_direction" in pred_df.columns else 0
+            
+            # Options signals
+            sell_vol_count = (pred_df["options_signal"] == "sell_vol").sum() if "options_signal" in pred_df.columns else 0
+            buy_vol_count = (pred_df["options_signal"] == "buy_vol").sum() if "options_signal" in pred_df.columns else 0
+            
+            # Card 1: Direction Confirmation
+            with arima_card_cols[0]:
+                conf_pct = confirmed_count / max(len(pred_df), 1) * 100
+                conf_color = tc["green"] if conf_pct >= 60 else tc["red"] if conf_pct < 40 else tc["yellow"]
+                
+                st.markdown(f"""
+                <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                    <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                        🔍 DIRECTION CONFIRM
+                    </div>
+                    <div style='margin-top:0.5rem;'>
+                        <span style='color:{tc["green"]};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;'>{confirmed_count}✓</span>
+                        <span style='color:{tc["muted"]};'> / </span>
+                        <span style='color:{tc["red"]};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;'>{conflict_count}✗</span>
+                    </div>
+                    <div style='color:{tc["muted"]};font-size:0.7rem;margin-top:0.25rem;'>ML + ARIMA agreement</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Card 2: Volatility Regime
+            with arima_card_cols[1]:
+                if high_vol_count > low_vol_count:
+                    vol_bias = "HIGH VOL"
+                    vol_color = tc["red"]
+                elif low_vol_count > high_vol_count:
+                    vol_bias = "LOW VOL"
+                    vol_color = tc["green"]
+                else:
+                    vol_bias = "NORMAL"
+                    vol_color = tc["yellow"]
+                
+                st.markdown(f"""
+                <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                    <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                        📊 VOL REGIME
+                    </div>
+                    <div style='color:{vol_color};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
+                        {vol_bias}
+                    </div>
+                    <div style='color:{tc["muted"]};font-size:0.7rem;margin-top:0.25rem;'>{low_vol_count} low / {high_vol_count} high</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Card 3: Trend Structure
+            with arima_card_cols[2]:
+                if trend_up > trend_down:
+                    trend_bias = "▲ UPTREND"
+                    trend_color = tc["green"]
+                elif trend_down > trend_up:
+                    trend_bias = "▼ DOWNTREND"
+                    trend_color = tc["red"]
+                else:
+                    trend_bias = "◆ MIXED"
+                    trend_color = tc["yellow"]
+                
+                st.markdown(f"""
+                <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                    <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                        🔮 TREND STRUCTURE
+                    </div>
+                    <div style='color:{trend_color};font-family:JetBrains Mono,monospace;font-size:1.25rem;font-weight:700;margin-top:0.5rem;'>
+                        {trend_bias}
+                    </div>
+                    <div style='color:{tc["muted"]};font-size:0.7rem;margin-top:0.25rem;'>{trend_up} up / {trend_down} down</div>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # Card 4: Options Signal
+            with arima_card_cols[3]:
+                if sell_vol_count > buy_vol_count:
+                    opt_bias = "📉 SELL VOL"
+                    opt_color = tc["green"]
+                elif buy_vol_count > sell_vol_count:
+                    opt_bias = "📈 BUY VOL"
+                    opt_color = tc["red"]
+                else:
+                    opt_bias = "◆ NEUTRAL"
+                    opt_color = tc["yellow"]
+                
+                st.markdown(f"""
+                <div style='background:{tc["bg"]};border:1px solid {tc["border"]};border-radius:8px;padding:1rem;text-align:center;'>
+                    <div style='color:{tc["label"]};font-size:0.65rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;'>
+                        📋 OPTIONS SIGNAL
+                    </div>
+                    <div style='color:{opt_color};font-family:JetBrains Mono,monospace;font-size:1.1rem;font-weight:700;margin-top:0.5rem;'>
+                        {opt_bias}
+                    </div>
+                    <div style='color:{tc["muted"]};font-size:0.7rem;margin-top:0.25rem;'>{sell_vol_count} sell / {buy_vol_count} buy</div>
+                </div>
+                """, unsafe_allow_html=True)
+        
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
         
         # === SIGNALS TABLE ===
@@ -2648,6 +3852,7 @@ with tab_dash:
         # === Build columns for display (ensure Z-SCORE always present) ===
         cols = [
             "ticker", "pred_next_ret_pct", "prediction_zscore", "prob_up", "vol_20d",
+            "direction_confirmed", "trend_direction", "options_signal",  # ARIMA columns
             "base_quantity", "vol_scale_factor", "vol_scaled_quantity",
             "atm_iv", "pred_next_price", "num_features", "prob_up_gaf",
         ]
@@ -2664,6 +3869,9 @@ with tab_dash:
             "prediction_zscore": "Z-SCORE",
             "prob_up": "P(UP)",
             "vol_20d": "VOL",
+            "direction_confirmed": "CONFIRM",
+            "trend_direction": "TREND",
+            "options_signal": "OPT SIG",
             "base_quantity": "BASE QTY",
             "vol_scale_factor": "VOL SCALE",
             "vol_scaled_quantity": "VOL QTY",
@@ -2807,6 +4015,34 @@ with tab_dash:
                             html += f'<td class="{cell_class}">{val:.0%}</td>'
                         else:
                             html += f'<td>—</td>'
+                    elif col == "CONFIRM":
+                        # Direction confirmation from ARIMA
+                        if val is True:
+                            html += f'<td class="bullish">✓ YES</td>'
+                        elif val is False:
+                            html += f'<td class="bearish">✗ NO</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "TREND":
+                        # ARIMA trend direction
+                        if val == "up":
+                            html += f'<td class="bullish">▲ UP</td>'
+                        elif val == "down":
+                            html += f'<td class="bearish">▼ DOWN</td>'
+                        elif val == "neutral":
+                            html += f'<td class="weak">◆ NEUT</td>'
+                        else:
+                            html += f'<td>—</td>'
+                    elif col == "OPT SIG":
+                        # ARIMA options signal
+                        if val == "sell_vol":
+                            html += f'<td class="bullish">📉 SELL</td>'
+                        elif val == "buy_vol":
+                            html += f'<td class="bearish">📈 BUY</td>'
+                        elif val == "neutral":
+                            html += f'<td>◆ NEUT</td>'
+                        else:
+                            html += f'<td>—</td>'
                     else:
                         html += f'<td>{val if not pd.isna(val) else "—"}</td>'
                 html += "</tr>"
@@ -2826,7 +4062,13 @@ with tab_dash:
             for tk in tickers:
                 try:
                     # Use cached backtest
-                    result = _cached_backtest_one_ticker(tk, period, model_type, horizon)
+                    result = _cached_backtest_one_ticker(
+                        tk,
+                        period,
+                        model_type,
+                        horizon,
+                        use_vol_scaled_target=use_vol_scaled_target if 'use_vol_scaled_target' in dir() else True,
+                    )
                     if result and "error" not in result:
                         pnl_data.append({
                             "ticker": tk,
@@ -2944,8 +4186,8 @@ with tab_dash:
                 st.info("Run predictions first to see P&L and risk metrics.")
 
         # === Model type options ===
-        # Ensemble now supported via ModelEnsemble from model_improvements.py
-        model_type_options = ["rf", "gbrt", "xgb", "ensemble"]
+        # XGB is primary, XGB+LSTM for bear markets, RF kept for comparison
+        model_type_options = ["xgb", "rf", "xgb_lstm", "ensemble"]
         st.session_state['model_type_options'] = model_type_options
         
         st.markdown("<hr class='divider'>", unsafe_allow_html=True)
@@ -3449,10 +4691,12 @@ with tab_dash:
                         
                         # Estimated Cost
                         cost = row.get('estimated_cost', 0)
+                        cost = float(cost) if cost is not None else 0.0
                         html += f"<td>${cost:.2f}</td>"
                         
                         # Confidence
                         conf = row.get('confidence', 0)
+                        conf = float(conf) if conf is not None else 0.0
                         conf_pct = conf * 100 if conf <= 1 else conf
                         if conf_pct >= 60:
                             html += f"<td class='bullish'>{conf_pct:.0f}%</td>"
@@ -3463,6 +4707,7 @@ with tab_dash:
                         
                         # IV Richness
                         iv_rich = row.get('IV_richness', 0)
+                        iv_rich = float(iv_rich) if iv_rich is not None else 0.0
                         iv_pct = iv_rich * 100 if abs(iv_rich) <= 1 else iv_rich
                         if iv_pct > 10:
                             html += f"<td class='iv-rich'>+{iv_pct:.0f}%</td>"
@@ -3489,7 +4734,7 @@ with tab_dash:
         
         val_cols = st.columns([2, 8])
         with val_cols[0]:
-            run_all_acc = st.button("🔬 VALIDATE ALL", key="dash_run_all_acc", type="secondary", use_container_width=True)
+            run_all_acc = st.button("🔬 VALIDATE ALL", key="dash_run_all_acc", type="secondary", width="stretch")
         with val_cols[1]:
             st.caption("Run historical accuracy test on all predicted tickers")
         
@@ -3517,7 +4762,11 @@ with tab_dash:
                     }
                     try:
                         results_test, acc = _cached_track_predictions(
-                            tk, period=period, model_type=model_type, horizon=display_horizon
+                            tk,
+                            period=period,
+                            model_type=model_type,
+                            horizon=display_horizon,
+                            use_vol_scaled_target=use_vol_scaled_target if 'use_vol_scaled_target' in dir() else True,
                         )
                         if results_test is None or results_test.empty:
                             row["ERR"] = "No data"
@@ -3830,6 +5079,180 @@ with tab_dash:
                     else:
                         st.metric(label="THEO ATM CALL", value="—", delta="no data")
                 
+                # === ARIMA SIGNALS SECTION ===
+                # Check if ARIMA signals are available in the prediction
+                has_arima = row.get("use_arima") or row.get("vol_current") is not None or row.get("trend_direction") is not None
+                
+                if has_arima:
+                    st.markdown('<p class="section-title">ARIMA Signals</p>', unsafe_allow_html=True)
+                    
+                    arima_cols = st.columns(2)
+                    
+                    # Volatility Signals Card
+                    with arima_cols[0]:
+                        vol_current = row.get("vol_current")
+                        vol_forecast = row.get("vol_forecast")
+                        vol_direction = row.get("vol_direction", "neutral")
+                        vol_regime = row.get("vol_regime", "normal")
+                        options_signal = row.get("options_signal", "neutral")
+                        
+                        # Determine colors based on regime
+                        if vol_regime == "low":
+                            regime_color = tc["green"]
+                        elif vol_regime in ("high", "extreme"):
+                            regime_color = tc["red"]
+                        else:
+                            regime_color = tc["yellow"]
+                        
+                        # Options signal color
+                        if options_signal == "sell_vol":
+                            opt_color = tc["green"]
+                            opt_icon = "📉"
+                        elif options_signal == "buy_vol":
+                            opt_color = tc["red"]
+                            opt_icon = "📈"
+                        else:
+                            opt_color = tc["muted"]
+                            opt_icon = "◆"
+                        
+                        vol_cur_pct = f"{vol_current*100:.1f}%" if vol_current else "—"
+                        vol_fc_pct = f"{vol_forecast*100:.1f}%" if vol_forecast else "—"
+                        
+                        st.markdown(f"""
+                        <div style='
+                            background: {tc["bg"]};
+                            border: 1px solid {tc["border"]};
+                            border-radius: 8px;
+                            padding: 1rem;
+                        '>
+                            <div style='color: {tc["label"]}; font-size: 0.65rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.75rem;'>
+                                📊 VOLATILITY FORECAST
+                            </div>
+                            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
+                                <div>
+                                    <span style='color: {tc["muted"]}; font-size: 0.75rem;'>Current:</span>
+                                    <span style='color: {tc["text"]}; font-family: JetBrains Mono, monospace; font-weight: 600;'> {vol_cur_pct}</span>
+                                </div>
+                                <span style='color: {tc["muted"]};'>→</span>
+                                <div>
+                                    <span style='color: {tc["muted"]}; font-size: 0.75rem;'>Forecast:</span>
+                                    <span style='color: {tc["text"]}; font-family: JetBrains Mono, monospace; font-weight: 600;'> {vol_fc_pct}</span>
+                                </div>
+                            </div>
+                            <div style='display: flex; justify-content: space-between; margin-top: 0.75rem;'>
+                                <div style='
+                                    background: {regime_color}20;
+                                    border: 1px solid {regime_color};
+                                    border-radius: 4px;
+                                    padding: 0.25rem 0.5rem;
+                                    font-size: 0.7rem;
+                                    color: {regime_color};
+                                    font-weight: 600;
+                                '>
+                                    {vol_regime.upper()} VOL
+                                </div>
+                                <div style='
+                                    background: {opt_color}20;
+                                    border: 1px solid {opt_color};
+                                    border-radius: 4px;
+                                    padding: 0.25rem 0.5rem;
+                                    font-size: 0.7rem;
+                                    color: {opt_color};
+                                    font-weight: 600;
+                                '>
+                                    {opt_icon} {options_signal.upper().replace("_", " ")}
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    # Trend Structure Card
+                    with arima_cols[1]:
+                        trend_direction = row.get("trend_direction", "neutral")
+                        trend_strength = row.get("trend_strength")
+                        has_structure = row.get("has_structure", False)
+                        direction_confirmed = row.get("direction_confirmed")
+                        
+                        # Determine colors based on trend
+                        if trend_direction == "up":
+                            trend_color = tc["green"]
+                            trend_icon = "▲"
+                        elif trend_direction == "down":
+                            trend_color = tc["red"]
+                            trend_icon = "▼"
+                        else:
+                            trend_color = tc["yellow"]
+                            trend_icon = "◆"
+                        
+                        # Confirmation color
+                        if direction_confirmed is True:
+                            conf_color = tc["green"]
+                            conf_text = "✓ CONFIRMED"
+                        elif direction_confirmed is False:
+                            conf_color = tc["red"]
+                            conf_text = "✗ CONFLICT"
+                        else:
+                            conf_color = tc["muted"]
+                            conf_text = "— N/A"
+                        
+                        strength_pct = f"{trend_strength*100:.0f}%" if trend_strength else "—"
+                        structure_text = "YES" if has_structure else "NO"
+                        structure_color = tc["green"] if has_structure else tc["muted"]
+                        
+                        st.markdown(f"""
+                        <div style='
+                            background: {tc["bg"]};
+                            border: 1px solid {tc["border"]};
+                            border-radius: 8px;
+                            padding: 1rem;
+                        '>
+                            <div style='color: {tc["label"]}; font-size: 0.65rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0.75rem;'>
+                                🔍 TREND STRUCTURE
+                            </div>
+                            <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;'>
+                                <div style='
+                                    background: {trend_color}20;
+                                    border: 1px solid {trend_color};
+                                    border-radius: 4px;
+                                    padding: 0.35rem 0.75rem;
+                                    color: {trend_color};
+                                    font-weight: 700;
+                                    font-family: JetBrains Mono, monospace;
+                                '>
+                                    {trend_icon} {trend_direction.upper()}
+                                </div>
+                                <div style='text-align: right;'>
+                                    <span style='color: {tc["muted"]}; font-size: 0.75rem;'>Strength:</span>
+                                    <span style='color: {tc["text"]}; font-family: JetBrains Mono, monospace; font-weight: 600;'> {strength_pct}</span>
+                                </div>
+                            </div>
+                            <div style='display: flex; justify-content: space-between; margin-top: 0.75rem;'>
+                                <div style='
+                                    background: {structure_color}20;
+                                    border: 1px solid {structure_color};
+                                    border-radius: 4px;
+                                    padding: 0.25rem 0.5rem;
+                                    font-size: 0.7rem;
+                                    color: {structure_color};
+                                    font-weight: 600;
+                                '>
+                                    STRUCTURE: {structure_text}
+                                </div>
+                                <div style='
+                                    background: {conf_color}20;
+                                    border: 1px solid {conf_color};
+                                    border-radius: 4px;
+                                    padding: 0.25rem 0.5rem;
+                                    font-size: 0.7rem;
+                                    color: {conf_color};
+                                    font-weight: 600;
+                                '>
+                                    {conf_text}
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                
                 # === PRICE CHART ===
                 st.markdown('<p class="section-title" style="margin-top: 1.5rem;">Price Chart</p>', unsafe_allow_html=True)
                 
@@ -3838,65 +5261,68 @@ with tab_dash:
                     st.info("No price data available")
                 else:
                     close = hist["Close"].dropna()
-                    last_dt = close.index[-1]
-                    pred_price = row.get("pred_next_price")
+                    if close.empty:
+                        st.info("No valid price data available")
+                    else:
+                        last_dt = close.index[-1]
+                        pred_price = row.get("pred_next_price")
                     
-                    fig = go.Figure()
-                    
-                    # Price line
-                    fig.add_trace(go.Scatter(
-                        x=close.index, 
-                        y=close.values, 
-                        name="Price", 
-                        mode="lines",
-                        line=dict(color="#388bfd", width=2),
-                        hovertemplate="$%{y:.2f}<extra></extra>"
-                    ))
-                    
-                    # Prediction marker
-                    if pred_price is not None:
-                        future_dt = last_dt + pd.Timedelta(days=int(display_horizon))
-                        pred_color = "#3fb950" if pred_price > float(close.iloc[-1]) else "#f85149"
+                        fig = go.Figure()
+                        
+                        # Price line
                         fig.add_trace(go.Scatter(
-                            x=[last_dt, future_dt],
-                            y=[float(close.iloc[-1]), pred_price],
-                            name="Forecast", 
-                            mode="lines+markers",
-                            line=dict(color=pred_color, dash="dash", width=2),
-                            marker=dict(size=10, symbol="diamond"),
-                            hovertemplate="$%{y:.2f}<extra>Forecast</extra>"
+                            x=close.index, 
+                            y=close.values, 
+                            name="Price", 
+                            mode="lines",
+                            line=dict(color="#388bfd", width=2),
+                            hovertemplate="$%{y:.2f}<extra></extra>"
                         ))
-                    
-                    fig.update_layout(
-                        height=350,
-                        margin=dict(l=0, r=0, t=10, b=0),
-                        xaxis=dict(
-                            showgrid=False, 
-                            zeroline=False,
-                            color=THEME["text_secondary"]
-                        ),
-                        yaxis=dict(
-                            showgrid=True, 
-                            gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', 
-                            zeroline=False,
-                            color=THEME["text_secondary"],
-                            tickprefix="$"
-                        ),
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        font=dict(family="Inter, sans-serif", color=THEME["text_secondary"], size=11),
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h", 
-                            yanchor="bottom", 
-                            y=1.02, 
-                            xanchor="left",
-                            x=0,
-                            font=dict(size=10)
-                        ),
-                        hovermode="x unified",
-                    )
-                    st.plotly_chart(fig, width="stretch")
+                        
+                        # Prediction marker
+                        if pred_price is not None:
+                            future_dt = last_dt + pd.Timedelta(days=int(display_horizon))
+                            pred_color = "#3fb950" if pred_price > float(close.iloc[-1]) else "#f85149"
+                            fig.add_trace(go.Scatter(
+                                x=[last_dt, future_dt],
+                                y=[float(close.iloc[-1]), pred_price],
+                                name="Forecast", 
+                                mode="lines+markers",
+                                line=dict(color=pred_color, dash="dash", width=2),
+                                marker=dict(size=10, symbol="diamond"),
+                                hovertemplate="$%{y:.2f}<extra>Forecast</extra>"
+                            ))
+                        
+                        fig.update_layout(
+                            height=350,
+                            margin=dict(l=0, r=0, t=10, b=0),
+                            xaxis=dict(
+                                showgrid=False, 
+                                zeroline=False,
+                                color=THEME["text_secondary"]
+                            ),
+                            yaxis=dict(
+                                showgrid=True, 
+                                gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', 
+                                zeroline=False,
+                                color=THEME["text_secondary"],
+                                tickprefix="$"
+                            ),
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(family="Inter, sans-serif", color=THEME["text_secondary"], size=11),
+                            showlegend=True,
+                            legend=dict(
+                                orientation="h", 
+                                yanchor="bottom", 
+                                y=1.02, 
+                                xanchor="left",
+                                x=0,
+                                font=dict(size=10)
+                            ),
+                            hovermode="x unified",
+                        )
+                        st.plotly_chart(fig, width="stretch")
                 
                 # === OPTIONS & RISK DETAILS ===
                 detail_cols = st.columns(2)
@@ -3942,169 +5368,172 @@ with tab_dash:
                         st.info("No history available to compute risk metrics.")
                     else:
                         returns = hist_full["Close"].pct_change().dropna()
-                        risk_summary = summarize_risk(returns)
-                        risk = prepare_risk_timeseries(returns)
-                        
-                        dd_df = risk.get("drawdown", pd.DataFrame())
-                        sharpe_60 = risk.get("sharpe_60", pd.Series())
-                        sortino_60 = risk.get("sortino_60", pd.Series())
-                        vol_20 = risk.get("vol_20", pd.Series())
-                        var95 = risk.get("var95", pd.Series())
-                        es95 = risk.get("es95", pd.Series())
-                        
-                        # Risk badge
-                        tc = get_card_theme()
-                        risk_label = risk_summary.get("label", "unknown")
-                        badge_color = {"low": tc["green"], "medium": tc["yellow"], "high": tc["red"]}.get(risk_label, tc["label"])
-                        st.markdown(
-                            f"<div style='padding:12px;border-radius:6px;background:{badge_color}15;border:1px solid {badge_color};margin-bottom:1rem;'>"
-                            f"<strong style='color:{badge_color};'>Risk: {risk_label.upper()}</strong> — {risk_summary.get('summary','')}<br>"
-                            f"<span style='color:{tc['label']};font-size:0.8rem;'>{risk_summary.get('check','')}</span>"
-                            f"</div>",
-                            unsafe_allow_html=True,
-                        )
-                        
-                        # 1. Drawdown chart
-                        st.markdown("##### 📉 Drawdown History")
-                        if not dd_df.empty and "drawdown" in dd_df.columns:
-                            max_dd = dd_df["drawdown"].min()
-                            fig_dd = go.Figure()
-                            fig_dd.add_trace(go.Scatter(
-                                x=dd_df.index, y=dd_df["drawdown"],
-                                name="Drawdown", fill="tozeroy", mode="lines",
-                                line=dict(color="#f85149", width=1.5),
-                                fillcolor="rgba(248,81,73,0.2)"
-                            ))
-                            fig_dd.update_layout(
-                                height=220,
-                                title=dict(text=f"Max Drawdown: {max_dd:.1%}", font=dict(size=11, color=THEME["text_primary"])),
-                                margin=dict(l=0, r=0, t=30, b=0),
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color=THEME["text_secondary"], size=10),
-                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.0%', title=""),
-                                xaxis=dict(showgrid=False),
-                            )
-                            st.plotly_chart(fig_dd, width="stretch")
+                        if returns.empty or len(returns) < 10:
+                            st.info("Insufficient data to compute risk metrics (need at least 10 data points).")
                         else:
-                            st.info("Drawdown data unavailable")
+                            risk_summary = summarize_risk(returns)
+                            risk = prepare_risk_timeseries(returns)
                         
-                        # 2. Rolling Sharpe & Sortino (two columns)
-                        risk_cols = st.columns(2)
-                        
-                        with risk_cols[0]:
-                            st.markdown("##### 📈 Rolling Sharpe (60D)")
-                            if not sharpe_60.empty:
-                                fig_sharpe = go.Figure()
-                                fig_sharpe.add_trace(go.Scatter(
-                                    x=sharpe_60.index, y=sharpe_60.values,
-                                    name="Sharpe 60D", mode="lines",
-                                    line=dict(color="#388bfd", width=1.5)
+                            dd_df = risk.get("drawdown", pd.DataFrame())
+                            sharpe_60 = risk.get("sharpe_60", pd.Series())
+                            sortino_60 = risk.get("sortino_60", pd.Series())
+                            vol_20 = risk.get("vol_20", pd.Series())
+                            var95 = risk.get("var95", pd.Series())
+                            es95 = risk.get("es95", pd.Series())
+                            
+                            # Risk badge
+                            tc = get_card_theme()
+                            risk_label = risk_summary.get("label", "unknown")
+                            badge_color = {"low": tc["green"], "medium": tc["yellow"], "high": tc["red"]}.get(risk_label, tc["label"])
+                            st.markdown(
+                                f"<div style='padding:12px;border-radius:6px;background:{badge_color}15;border:1px solid {badge_color};margin-bottom:1rem;'>"
+                                f"<strong style='color:{badge_color};'>Risk: {risk_label.upper()}</strong> — {risk_summary.get('summary','')}<br>"
+                                f"<span style='color:{tc['label']};font-size:0.8rem;'>{risk_summary.get('check','')}</span>"
+                                f"</div>",
+                                unsafe_allow_html=True,
+                            )
+                            
+                            # 1. Drawdown chart
+                            st.markdown("##### 📉 Drawdown History")
+                            if not dd_df.empty and "drawdown" in dd_df.columns:
+                                max_dd = dd_df["drawdown"].min()
+                                fig_dd = go.Figure()
+                                fig_dd.add_trace(go.Scatter(
+                                    x=dd_df.index, y=dd_df["drawdown"],
+                                    name="Drawdown", fill="tozeroy", mode="lines",
+                                    line=dict(color="#f85149", width=1.5),
+                                    fillcolor="rgba(248,81,73,0.2)"
                                 ))
-                                fig_sharpe.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
-                                fig_sharpe.add_hline(y=1, line_dash="dot", line_color=THEME["accent_green"], line_width=1)
-                                fig_sharpe.add_hline(y=-1, line_dash="dot", line_color=THEME["accent_red"], line_width=1)
-                                fig_sharpe.update_layout(
+                                fig_dd.update_layout(
+                                    height=220,
+                                    title=dict(text=f"Max Drawdown: {max_dd:.1%}", font=dict(size=11, color=THEME["text_primary"])),
+                                    margin=dict(l=0, r=0, t=30, b=0),
+                                    plot_bgcolor='rgba(0,0,0,0)',
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    font=dict(color=THEME["text_secondary"], size=10),
+                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.0%', title=""),
+                                    xaxis=dict(showgrid=False),
+                                )
+                                st.plotly_chart(fig_dd, width="stretch")
+                            else:
+                                st.info("Drawdown data unavailable")
+                            
+                            # 2. Rolling Sharpe & Sortino (two columns)
+                            risk_cols = st.columns(2)
+                            
+                            with risk_cols[0]:
+                                st.markdown("##### 📈 Rolling Sharpe (60D)")
+                                if not sharpe_60.empty:
+                                    fig_sharpe = go.Figure()
+                                    fig_sharpe.add_trace(go.Scatter(
+                                        x=sharpe_60.index, y=sharpe_60.values,
+                                        name="Sharpe 60D", mode="lines",
+                                        line=dict(color="#388bfd", width=1.5)
+                                    ))
+                                    fig_sharpe.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
+                                    fig_sharpe.add_hline(y=1, line_dash="dot", line_color=THEME["accent_green"], line_width=1)
+                                    fig_sharpe.add_hline(y=-1, line_dash="dot", line_color=THEME["accent_red"], line_width=1)
+                                    fig_sharpe.update_layout(
+                                        height=200,
+                                        margin=dict(l=0, r=0, t=10, b=0),
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        font=dict(color=THEME["text_secondary"], size=10),
+                                        yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', title=""),
+                                        xaxis=dict(showgrid=False),
+                                        showlegend=False,
+                                    )
+                                    st.plotly_chart(fig_sharpe, width="stretch")
+                                else:
+                                    st.info("Sharpe data unavailable")
+                            
+                            with risk_cols[1]:
+                                st.markdown("##### 📈 Rolling Sortino (60D)")
+                                if not sortino_60.empty:
+                                    fig_sortino = go.Figure()
+                                    fig_sortino.add_trace(go.Scatter(
+                                        x=sortino_60.index, y=sortino_60.values,
+                                        name="Sortino 60D", mode="lines",
+                                        line=dict(color="#a371f7", width=1.5)
+                                    ))
+                                    fig_sortino.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
+                                    fig_sortino.add_hline(y=1, line_dash="dot", line_color=THEME["accent_green"], line_width=1)
+                                    fig_sortino.update_layout(
+                                        height=200,
+                                        margin=dict(l=0, r=0, t=10, b=0),
+                                        plot_bgcolor='rgba(0,0,0,0)',
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        font=dict(color=THEME["text_secondary"], size=10),
+                                        yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', title=""),
+                                        xaxis=dict(showgrid=False),
+                                        showlegend=False,
+                                    )
+                                    st.plotly_chart(fig_sortino, width="stretch")
+                                else:
+                                    st.info("Sortino data unavailable")
+                            
+                            # 3. Rolling Volatility
+                            st.markdown("##### 📊 Rolling Volatility (20D Annualized)")
+                            if not vol_20.empty:
+                                fig_vol = go.Figure()
+                                fig_vol.add_trace(go.Scatter(
+                                    x=vol_20.index, y=vol_20.values,
+                                    name="Volatility 20D", mode="lines", fill="tozeroy",
+                                    line=dict(color="#d29922", width=1.5),
+                                    fillcolor="rgba(210,153,34,0.15)"
+                                ))
+                                # Add average line
+                                avg_vol = vol_20.mean()
+                                fig_vol.add_hline(y=avg_vol, line_dash="dash", line_color=THEME["text_primary"], line_width=1,
+                                                 annotation_text=f"Avg: {avg_vol:.1%}", annotation_position="right")
+                                fig_vol.update_layout(
                                     height=200,
                                     margin=dict(l=0, r=0, t=10, b=0),
                                     plot_bgcolor='rgba(0,0,0,0)',
                                     paper_bgcolor='rgba(0,0,0,0)',
                                     font=dict(color=THEME["text_secondary"], size=10),
-                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', title=""),
+                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.0%', title=""),
                                     xaxis=dict(showgrid=False),
                                     showlegend=False,
                                 )
-                                st.plotly_chart(fig_sharpe, width="stretch")
+                                st.plotly_chart(fig_vol, width="stretch")
                             else:
-                                st.info("Sharpe data unavailable")
-                        
-                        with risk_cols[1]:
-                            st.markdown("##### 📈 Rolling Sortino (60D)")
-                            if not sortino_60.empty:
-                                fig_sortino = go.Figure()
-                                fig_sortino.add_trace(go.Scatter(
-                                    x=sortino_60.index, y=sortino_60.values,
-                                    name="Sortino 60D", mode="lines",
-                                    line=dict(color="#a371f7", width=1.5)
+                                st.info("Volatility data unavailable")
+                            
+                            # 4. VaR & Expected Shortfall (combined chart)
+                            st.markdown("##### ⚠️ Value-at-Risk & Expected Shortfall (95%, 250D Rolling)")
+                            if not var95.empty and not es95.empty:
+                                fig_var = go.Figure()
+                                fig_var.add_trace(go.Scatter(
+                                    x=var95.index, y=var95.values,
+                                    name="VaR 95%", mode="lines",
+                                    line=dict(color="#f85149", width=1.5)
                                 ))
-                                fig_sortino.add_hline(y=0, line_dash="dash", line_color=THEME["text_muted"], line_width=1)
-                                fig_sortino.add_hline(y=1, line_dash="dot", line_color=THEME["accent_green"], line_width=1)
-                                fig_sortino.update_layout(
+                                fig_var.add_trace(go.Scatter(
+                                    x=es95.index, y=es95.values,
+                                    name="ES 95%", mode="lines",
+                                    line=dict(color="#ff7b72", width=1.5, dash="dot")
+                                ))
+                                fig_var.update_layout(
                                     height=200,
-                                    margin=dict(l=0, r=0, t=10, b=0),
+                                    margin=dict(l=0, r=0, t=10, b=30),
                                     plot_bgcolor='rgba(0,0,0,0)',
                                     paper_bgcolor='rgba(0,0,0,0)',
                                     font=dict(color=THEME["text_secondary"], size=10),
-                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', title=""),
+                                    yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.1%', title=""),
                                     xaxis=dict(showgrid=False),
-                                    showlegend=False,
+                                    legend=dict(
+                                        orientation="h",
+                                        yanchor="bottom",
+                                        y=-0.15,
+                                        xanchor="center",
+                                        x=0.5,
+                                        font=dict(size=10, color=THEME["text_primary"])
+                                    ),
                                 )
-                                st.plotly_chart(fig_sortino, width="stretch")
+                                st.plotly_chart(fig_var, width="stretch")
                             else:
-                                st.info("Sortino data unavailable")
-                        
-                        # 3. Rolling Volatility
-                        st.markdown("##### 📊 Rolling Volatility (20D Annualized)")
-                        if not vol_20.empty:
-                            fig_vol = go.Figure()
-                            fig_vol.add_trace(go.Scatter(
-                                x=vol_20.index, y=vol_20.values,
-                                name="Volatility 20D", mode="lines", fill="tozeroy",
-                                line=dict(color="#d29922", width=1.5),
-                                fillcolor="rgba(210,153,34,0.15)"
-                            ))
-                            # Add average line
-                            avg_vol = vol_20.mean()
-                            fig_vol.add_hline(y=avg_vol, line_dash="dash", line_color=THEME["text_primary"], line_width=1,
-                                             annotation_text=f"Avg: {avg_vol:.1%}", annotation_position="right")
-                            fig_vol.update_layout(
-                                height=200,
-                                margin=dict(l=0, r=0, t=10, b=0),
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color=THEME["text_secondary"], size=10),
-                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.0%', title=""),
-                                xaxis=dict(showgrid=False),
-                                showlegend=False,
-                            )
-                            st.plotly_chart(fig_vol, width="stretch")
-                        else:
-                            st.info("Volatility data unavailable")
-                        
-                        # 4. VaR & Expected Shortfall (combined chart)
-                        st.markdown("##### ⚠️ Value-at-Risk & Expected Shortfall (95%, 250D Rolling)")
-                        if not var95.empty and not es95.empty:
-                            fig_var = go.Figure()
-                            fig_var.add_trace(go.Scatter(
-                                x=var95.index, y=var95.values,
-                                name="VaR 95%", mode="lines",
-                                line=dict(color="#f85149", width=1.5)
-                            ))
-                            fig_var.add_trace(go.Scatter(
-                                x=es95.index, y=es95.values,
-                                name="ES 95%", mode="lines",
-                                line=dict(color="#ff7b72", width=1.5, dash="dot")
-                            ))
-                            fig_var.update_layout(
-                                height=200,
-                                margin=dict(l=0, r=0, t=10, b=30),
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                paper_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color=THEME["text_secondary"], size=10),
-                                yaxis=dict(gridcolor='rgba(48,54,61,0.5)' if st.session_state.get("theme", "dark") == "dark" else 'rgba(208,215,222,0.5)', tickformat='.1%', title=""),
-                                xaxis=dict(showgrid=False),
-                                legend=dict(
-                                    orientation="h",
-                                    yanchor="bottom",
-                                    y=-0.15,
-                                    xanchor="center",
-                                    x=0.5,
-                                    font=dict(size=10, color=THEME["text_primary"])
-                                ),
-                            )
-                            st.plotly_chart(fig_var, width="stretch")
-                        else:
-                            st.info("VaR/ES data unavailable")
+                                st.info("VaR/ES data unavailable")
                 
                 # === NEWS & HEADLINES ===
                 with st.expander("📰 News & Headlines", expanded=False):
@@ -4410,7 +5839,7 @@ with tab_dash:
                     
                     display_cols = [c for c in ["timestamp", "ticker", "pred", "z_score", "threshold", "strength"] if c in weak_df.columns]
                     
-                    st.dataframe(weak_df[display_cols].tail(50), use_container_width=True)
+                    st.dataframe(weak_df[display_cols].tail(50), width="stretch")
                     st.caption(f"Showing last 50 of {len(weak_logs)} weak signals logged")
                     
                     # Clear log button
@@ -4433,7 +5862,7 @@ with tab_dash:
             with hist_cols[0]:
                 hist_ticker = st.text_input("Filter by Ticker", value="", placeholder="e.g., AAPL", key="hist_ticker")
             with hist_cols[1]:
-                hist_model = st.selectbox("Filter by Model", ["All", "rf", "xgb", "gbrt"], index=0, key="hist_model")
+                hist_model = st.selectbox("Filter by Model", ["All", "xgb", "rf", "xgb_lstm", "ensemble"], index=0, key="hist_model")
             with hist_cols[2]:
                 hist_days = st.selectbox("Time Range", [7, 14, 30, 90], index=2, format_func=lambda x: f"Last {x} days", key="hist_days")
             with hist_cols[3]:
@@ -4463,7 +5892,7 @@ with tab_dash:
                     
                     display_df.columns = ["Time", "Ticker", "Model", "Horizon", "Pred %", "P(Up)", "Conf", "Correct"]
                     
-                    st.dataframe(display_df, use_container_width=True, hide_index=True)
+                    st.dataframe(display_df, width="stretch", hide_index=True)
                     
                     # Accuracy summary
                     accuracy_stats = get_accuracy_stats(
@@ -4503,15 +5932,20 @@ with tab_backtests:
     with input_cols[0]:
         bt_ticker = st.text_input("Symbol", "NVDA", key="backtest_ticker")
     with input_cols[1]:
-        bt_model = st.selectbox("Model", ["rf", "xgb", "gbrt"], index=0, key="bt_model",
-                                format_func=lambda x: {"rf": "Random Forest", "xgb": "XGBoost", "gbrt": "Gradient Boost"}[x])
+        bt_model = st.selectbox("Model", ["xgb", "rf", "xgb_lstm", "ensemble"], index=0, key="bt_model",
+                                format_func=lambda x: {
+                                    "xgb": "XGBoost (Primary)", 
+                                    "rf": "Random Forest", 
+                                    "xgb_lstm": "XGB+LSTM (Bear)",
+                                    "ensemble": "Ensemble (RF+XGB)"
+                                }[x])
     with input_cols[2]:
         bt_horizon = st.selectbox("Horizon", [1, 2, 3, 4, 5], index=4, key="bt_horizon",
                                   format_func=lambda x: f"{x} Day")
     with input_cols[3]:
         bt_period = st.selectbox("Period", ["2y", "5y", "10y"], index=1, key="bt_period")
     with input_cols[4]:
-        run_backtest_btn = st.button("🔬 RUN BACKTEST", key="run_backtest", type="primary", use_container_width=True)
+        run_backtest_btn = st.button("🔬 RUN BACKTEST", key="run_backtest", type="primary", width="stretch")
     
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     
@@ -4694,16 +6128,16 @@ with tab_port:
         # Quick preset buttons
         preset_cols = st.columns(4)
         with preset_cols[0]:
-            if st.button("MAG7", use_container_width=True, key="port_mag7"):
+            if st.button("MAG7", width="stretch", key="port_mag7"):
                 st.session_state["_port_universe"] = "AAPL, NVDA, MSFT, GOOGL, AMZN, META, TSLA"
         with preset_cols[1]:
-            if st.button("TECH", use_container_width=True, key="port_tech"):
+            if st.button("TECH", width="stretch", key="port_tech"):
                 st.session_state["_port_universe"] = "AAPL, MSFT, NVDA, AMD, CRM, ADBE, INTC"
         with preset_cols[2]:
-            if st.button("FANG", use_container_width=True, key="port_fang"):
+            if st.button("FANG", width="stretch", key="port_fang"):
                 st.session_state["_port_universe"] = "META, AMZN, NFLX, GOOGL"
         with preset_cols[3]:
-            if st.button("BANKS", use_container_width=True, key="port_banks"):
+            if st.button("BANKS", width="stretch", key="port_banks"):
                 st.session_state["_port_universe"] = "JPM, BAC, WFC, GS, MS"
         
         if "_port_universe" in st.session_state and st.session_state["_port_universe"]:
@@ -4713,9 +6147,14 @@ with tab_port:
     with config_cols[1]:
         port_model = st.selectbox(
             "Model", 
-            ["rf", "xgb", "gbrt"], 
+            ["rf", "xgb", "xgb_binary", "gbrt"], 
             key="port_model",
-            format_func=lambda x: {"rf": "Random Forest", "xgb": "XGBoost", "gbrt": "Gradient Boost"}[x]
+            format_func=lambda x: {
+                "rf": "Random Forest",
+                "xgb": "XGBoost",
+                "xgb_binary": "XGBoost Binary",
+                "gbrt": "Gradient Boost",
+            }[x]
         )
         
         preset_option = st.selectbox(
@@ -4744,10 +6183,13 @@ with tab_port:
         with st.expander("Advanced", expanded=False):
             train_years = st.slider("Train years", 0.5, 4.0, float(default_train), 0.25)
             test_years = st.slider("Test years", 0.05, 1.0, float(default_test), 0.05)
+            step_days = st.slider("Step days", 5, 63, 21, 1)
+            purge_gap_days = st.slider("Purge gap (days)", 0, 21, 5, 1)
+            embargo_days = st.slider("Embargo (days)", 0, 21, 5, 1)
     
     with config_cols[3]:
         st.markdown("<div style='height: 28px'></div>", unsafe_allow_html=True)  # Spacer
-        run_wf = st.button("🚀 RUN ANALYSIS", type="primary", key="run_port_wf", use_container_width=True)
+        run_wf = st.button("🚀 RUN ANALYSIS", type="primary", key="run_port_wf", width="stretch")
     
     st.markdown("<hr class='divider'>", unsafe_allow_html=True)
     
@@ -4788,6 +6230,7 @@ with tab_port:
                         # Use cached walk-forward backtest with safe API call
                         train_yrs = train_years if 'train_years' in dir() else default_train
                         test_yrs = test_years if 'test_years' in dir() else default_test
+                        current_use_vol_scaled_target = use_vol_scaled_target if 'use_vol_scaled_target' in dir() else True
                         
                         folds, wf_error = safe_api_call(
                             _cached_walk_forward_backtest,
@@ -4797,7 +6240,10 @@ with tab_port:
                             model_type=port_model,
                             train_years=train_yrs,
                             test_years=test_yrs,
-                            step_days=21,
+                            step_days=step_days,
+                            purge_gap_days=purge_gap_days,
+                            embargo_days=embargo_days,
+                            use_vol_scaled_target=current_use_vol_scaled_target,
                             error_prefix=f"Walk-forward failed for {tk}"
                         )
                         
@@ -4839,6 +6285,7 @@ with tab_port:
         if not results_df.empty:
             # Summary metrics
             median_sharpe = results_df["sharpe"].median() if "sharpe" in results_df.columns else 0
+            median_calmar = results_df["calmar"].median() if "calmar" in results_df.columns else 0
             avg_accuracy = results_df["accuracy"].mean() * 100 if "accuracy" in results_df.columns else 0
             total_folds = len(results_df)
             num_tickers = results_df["ticker"].nunique() if "ticker" in results_df.columns else 0
@@ -4846,16 +6293,18 @@ with tab_port:
             st.markdown('<p class="section-title">Performance Summary</p>', unsafe_allow_html=True)
             
             # Metrics row
-            m_cols = st.columns(5)
+            m_cols = st.columns(6)
             with m_cols[0]:
                 st.metric("Median Sharpe", f"{median_sharpe:.2f}")
             with m_cols[1]:
-                st.metric("Avg Accuracy", f"{avg_accuracy:.0f}%")
+                st.metric("Median Calmar", f"{median_calmar:.2f}")
             with m_cols[2]:
-                st.metric("Total Folds", total_folds)
+                st.metric("Avg Accuracy", f"{avg_accuracy:.0f}%")
             with m_cols[3]:
-                st.metric("Assets", num_tickers)
+                st.metric("Total Folds", total_folds)
             with m_cols[4]:
+                st.metric("Assets", num_tickers)
+            with m_cols[5]:
                 # Model quality badge
                 if median_sharpe > 1.2:
                     st.markdown("<span class='status-badge bullish'>EXCELLENT</span>", unsafe_allow_html=True)
@@ -4909,7 +6358,7 @@ with tab_port:
                     csv,
                     "walkforward_results.csv",
                     "text/csv",
-                    use_container_width=True
+                    width="stretch"
                 )
     else:
         tc = get_card_theme()
@@ -5074,7 +6523,7 @@ with tab_monitor:
             ticker_df = pd.DataFrame(ticker_data)
             st.dataframe(
                 ticker_df,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:
@@ -5103,7 +6552,7 @@ with tab_monitor:
             trades_df = pd.DataFrame(trade_data)
             st.dataframe(
                 trades_df,
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
         else:

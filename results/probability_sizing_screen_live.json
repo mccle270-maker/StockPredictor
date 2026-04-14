@@ -1,0 +1,153 @@
+{
+  "config": {
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "AMZN",
+      "GOOGL"
+    ],
+    "period": "2y",
+    "horizon": 1,
+    "train_years": 0.5,
+    "test_years": 0.125,
+    "step_days": 31,
+    "purge_gap_days": 5,
+    "embargo_days": 5,
+    "cost_per_trade": 0.0005,
+    "output": "results/probability_sizing_screen_live.json"
+  },
+  "tickers": {
+    "AAPL": {
+      "prepared_rows": 477,
+      "num_features": 57,
+      "variants": {
+        "binary_uncalibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.32247681717163285,
+          "median_sharpe": 0.0,
+          "mean_calmar": 4.035245563191582,
+          "mean_accuracy": 0.5197132616487455,
+          "positive_sharpe_pct": 0.2222222222222222,
+          "mean_trades": 0.2222222222222222
+        },
+        "binary_calibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.32247681717163285,
+          "median_sharpe": 0.0,
+          "mean_calmar": 4.035245563191582,
+          "mean_accuracy": 0.5017921146953405,
+          "positive_sharpe_pct": 0.2222222222222222,
+          "mean_trades": 0.2222222222222222
+        },
+        "confidence_sized_calibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.25310958291839025,
+          "median_sharpe": 0.0,
+          "mean_calmar": 3.391358398295266,
+          "mean_accuracy": 0.5017921146953405,
+          "positive_sharpe_pct": 0.4444444444444444,
+          "mean_trades": 0.6666666666666666
+        }
+      }
+    },
+    "MSFT": {
+      "prepared_rows": 477,
+      "num_features": 57,
+      "variants": {
+        "binary_uncalibrated": {
+          "folds": 9,
+          "mean_sharpe": -0.10206855452494384,
+          "median_sharpe": 0.0,
+          "mean_calmar": -0.8186884197076904,
+          "mean_accuracy": 0.5376344086021505,
+          "positive_sharpe_pct": 0.1111111111111111,
+          "mean_trades": 0.3333333333333333
+        },
+        "binary_calibrated": {
+          "folds": 9,
+          "mean_sharpe": -0.10206855452494384,
+          "median_sharpe": 0.0,
+          "mean_calmar": -0.8186884197076904,
+          "mean_accuracy": 0.5376344086021505,
+          "positive_sharpe_pct": 0.1111111111111111,
+          "mean_trades": 0.3333333333333333
+        },
+        "confidence_sized_calibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.06281806810102816,
+          "median_sharpe": 0.0,
+          "mean_calmar": 3.747461289056399,
+          "mean_accuracy": 0.5376344086021505,
+          "positive_sharpe_pct": 0.3333333333333333,
+          "mean_trades": 0.7777777777777778
+        }
+      }
+    },
+    "AMZN": {
+      "prepared_rows": 477,
+      "num_features": 57,
+      "variants": {
+        "binary_uncalibrated": {
+          "folds": 9,
+          "mean_sharpe": -0.2484556332873231,
+          "median_sharpe": 0.0,
+          "mean_calmar": -3.9701940196805876,
+          "mean_accuracy": 0.4982078853046594,
+          "positive_sharpe_pct": 0.0,
+          "mean_trades": 0.1111111111111111
+        },
+        "binary_calibrated": {
+          "folds": 9,
+          "mean_sharpe": -0.2484556332873231,
+          "median_sharpe": 0.0,
+          "mean_calmar": -3.9701940196805876,
+          "mean_accuracy": 0.4982078853046594,
+          "positive_sharpe_pct": 0.0,
+          "mean_trades": 0.1111111111111111
+        },
+        "confidence_sized_calibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.0907244097239297,
+          "median_sharpe": 0.0,
+          "mean_calmar": 3.221046851982807,
+          "mean_accuracy": 0.4982078853046594,
+          "positive_sharpe_pct": 0.2222222222222222,
+          "mean_trades": 0.5555555555555556
+        }
+      }
+    },
+    "GOOGL": {
+      "prepared_rows": 477,
+      "num_features": 57,
+      "variants": {
+        "binary_uncalibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.15699622714435746,
+          "median_sharpe": 0.0,
+          "mean_calmar": 7.167061519977295,
+          "mean_accuracy": 0.49462365591397844,
+          "positive_sharpe_pct": 0.3333333333333333,
+          "mean_trades": 0.5555555555555556
+        },
+        "binary_calibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.15699622714435746,
+          "median_sharpe": 0.0,
+          "mean_calmar": 7.167061519977295,
+          "mean_accuracy": 0.48387096774193544,
+          "positive_sharpe_pct": 0.3333333333333333,
+          "mean_trades": 0.5555555555555556
+        },
+        "confidence_sized_calibrated": {
+          "folds": 9,
+          "mean_sharpe": 0.049945775709807926,
+          "median_sharpe": 0.0,
+          "mean_calmar": 5.531397388613315,
+          "mean_accuracy": 0.48387096774193544,
+          "positive_sharpe_pct": 0.3333333333333333,
+          "mean_trades": 0.6666666666666666
+        }
+      }
+    }
+  }
+}

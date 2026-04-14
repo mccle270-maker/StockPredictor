@@ -1,0 +1,140 @@
+{
+  "provider_health": {
+    "alpaca": {
+      "available": true,
+      "success_count": 0,
+      "failure_count": 0,
+      "success_rate": null,
+      "requires_key": true
+    },
+    "yfinance": {
+      "available": true,
+      "success_count": 0,
+      "failure_count": 0,
+      "success_rate": null,
+      "requires_key": false
+    },
+    "tiingo": {
+      "available": true,
+      "success_count": 0,
+      "failure_count": 0,
+      "success_rate": null,
+      "requires_key": true
+    },
+    "finnhub": {
+      "available": true,
+      "success_count": 0,
+      "failure_count": 0,
+      "success_rate": null,
+      "requires_key": true
+    },
+    "sec_edgar": {
+      "available": true,
+      "success_count": 0,
+      "failure_count": 0,
+      "success_rate": null,
+      "requires_key": false
+    },
+    "alphavantage": {
+      "available": false,
+      "success_count": 0,
+      "failure_count": 0,
+      "success_rate": null,
+      "requires_key": true
+    }
+  },
+  "tickers": [
+    {
+      "ticker": "AAPL",
+      "period": "2y",
+      "price_rows": 251,
+      "spx_rows": 0,
+      "vix_rows": 1283,
+      "macro_rows": 1330,
+      "feature_count": 46,
+      "macro_feature_count": 8,
+      "model_ready_rows": 251,
+      "constant_features": [
+        "bull_streak",
+        "bear_streak",
+        "rel_strength_1d",
+        "rel_momentum_5d",
+        "beta_60_spx",
+        "corr_20_spx",
+        "mkt_ret_1d"
+      ],
+      "top_nan_features": {
+        "bull_streak": 1.0,
+        "bear_streak": 1.0,
+        "vol_ratio_10_60": 0.24701195219123506,
+        "gbm_exp_ret_1d": 0.24701195219123506,
+        "gbm_p05_ret_1d": 0.24701195219123506,
+        "gbm_p95_ret_1d": 0.24701195219123506,
+        "gbm_prob_up_5d": 0.24701195219123506,
+        "gbm_exp_ret_5d": 0.24701195219123506,
+        "gbm_p05_ret_5d": 0.24701195219123506,
+        "gbm_p95_ret_5d": 0.24701195219123506,
+        "gbm_prob_up_1d": 0.24701195219123506,
+        "vol_60d": 0.24701195219123506,
+        "gbm_mu_60d": 0.24302788844621515,
+        "gbm_sig_60d": 0.24302788844621515,
+        "vol_20d": 0.08764940239043825
+      },
+      "fundamentals_nonzero": {},
+      "options_snapshot": {
+        "atm_iv": null,
+        "put_call_oi_ratio": null,
+        "opt_exp": null,
+        "call_oi": null,
+        "put_oi": null
+      },
+      "news_count": 0
+    },
+    {
+      "ticker": "MSFT",
+      "period": "2y",
+      "price_rows": 251,
+      "spx_rows": 0,
+      "vix_rows": 1283,
+      "macro_rows": 1330,
+      "feature_count": 46,
+      "macro_feature_count": 8,
+      "model_ready_rows": 251,
+      "constant_features": [
+        "bull_streak",
+        "bear_streak",
+        "rel_strength_1d",
+        "rel_momentum_5d",
+        "beta_60_spx",
+        "corr_20_spx",
+        "mkt_ret_1d"
+      ],
+      "top_nan_features": {
+        "bull_streak": 1.0,
+        "bear_streak": 1.0,
+        "vol_ratio_10_60": 0.24701195219123506,
+        "gbm_exp_ret_1d": 0.24701195219123506,
+        "gbm_p05_ret_1d": 0.24701195219123506,
+        "gbm_p95_ret_1d": 0.24701195219123506,
+        "gbm_prob_up_5d": 0.24701195219123506,
+        "gbm_exp_ret_5d": 0.24701195219123506,
+        "gbm_p05_ret_5d": 0.24701195219123506,
+        "gbm_p95_ret_5d": 0.24701195219123506,
+        "gbm_prob_up_1d": 0.24701195219123506,
+        "vol_60d": 0.24701195219123506,
+        "gbm_mu_60d": 0.24302788844621515,
+        "gbm_sig_60d": 0.24302788844621515,
+        "vol_20d": 0.08764940239043825
+      },
+      "fundamentals_nonzero": {},
+      "options_snapshot": {
+        "atm_iv": null,
+        "put_call_oi_ratio": null,
+        "opt_exp": null,
+        "call_oi": null,
+        "put_oi": null
+      },
+      "news_count": 0
+    }
+  ]
+}

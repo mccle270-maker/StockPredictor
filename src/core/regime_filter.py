@@ -580,3 +580,289 @@ def get_current_regime() -> RegimeState:
     """Get current market regime state."""
     rf = get_regime_filter()
     return rf.get_regime_state()
+
+
+# ============================================================================
+# HMM-BASED REGIME DETECTION
+# ============================================================================
+# Uses a Hidden Markov Model to detect latent market regimes from returns + volatility.
+# More sophisticated than simple 200DMA — captures non-linear regime transitions.
+# Added 2026-01-12
+
+class HMMRegimeDetector:
+    """
+    Hidden Markov Model regime detector.
+    
+    Fits a Gaussian HMM on (returns, realized_vol) to detect latent market states:
+    - State 0: Low-vol / Bull (typically)
+    - State 1: Medium-vol / Normal
+    - State 2: High-vol / Bear/Crisis
+    
+    States are auto-labeled after fitting based on mean return & volatility.
+    
+    Usage:
+        detector = HMMRegimeDetector(n_states=3)
+        regimes = detector.fit_predict(price_series)
+        current = detector.current_regime()
+    """
+    
+    # Map HMM states to MarketRegime enums
+    REGIME_MAP = {
+        "bull": MarketRegime.BULL,
+        "neutral": MarketRegime.NEUTRAL,
+        "bear": MarketRegime.BEAR,
+    }
+    
+    def __init__(
+        self,
+        n_states: int = 3,
+        vol_lookback: int = 21,
+        covariance_type: str = "full",
+        n_iter: int = 100,
+        random_state: int = 42,
+    ):
+        """
+        Args:
+            n_states: Number of hidden states (default 3: bull/neutral/bear)
+            vol_lookback: Rolling window for realized volatility feature
+            covariance_type: HMM covariance type ('full', 'diag', 'tied', 'spherical')
+            n_iter: Maximum EM iterations
+            random_state: Random seed for reproducibility
+        """
+        self.n_states = n_states
+        self.vol_lookback = vol_lookback
+        self.covariance_type = covariance_type
+        self.n_iter = n_iter
+        self.random_state = random_state
+        
+        self._model = None
+        self._state_labels = {}  # Maps HMM state index → 'bull'/'neutral'/'bear'
+        self._last_regimes = None  # Full regime series
+        self._fitted = False
+    
+    def _build_features(self, prices: pd.Series) -> tuple[np.ndarray, pd.DatetimeIndex]:
+        """
+        Build observation features for HMM from price series.
+        
+        Features:
+        1. Daily log returns (captures return level)
+        2. Realized volatility (captures volatility regime)
+        
+        Returns (features_array, valid_index)
+        """
+        # Log returns (more Gaussian than simple returns)
+        log_ret = np.log(prices / prices.shift(1))
+        
+        # Realized volatility
+        real_vol = log_ret.rolling(self.vol_lookback).std() * np.sqrt(252)
+        
+        # Combine and drop NaN
+        features = pd.DataFrame({
+            "log_return": log_ret,
+            "realized_vol": real_vol,
+        }).dropna()
+        
+        return features.values, features.index
+    
+    def _label_states(self, means: np.ndarray) -> dict[int, str]:
+        """
+        Auto-label HMM states based on their mean return.
+        
+        The state with highest mean return → bull
+        The state with lowest mean return → bear
+        Middle state → neutral
+        """
+        # means[:, 0] is mean log return per state
+        mean_returns = means[:, 0]
+        
+        if self.n_states == 2:
+            sorted_states = np.argsort(mean_returns)
+            return {sorted_states[0]: "bear", sorted_states[1]: "bull"}
+        
+        # 3+ states: sort by mean return
+        sorted_states = np.argsort(mean_returns)
+        labels = {}
+        labels[sorted_states[0]] = "bear"
+        labels[sorted_states[-1]] = "bull"
+        for s in sorted_states[1:-1]:
+            labels[s] = "neutral"
+        
+        return labels
+    
+    def fit_predict(self, prices: pd.Series) -> pd.Series:
+        """
+        Fit HMM and predict regime for each day.
+        
+        Args:
+            prices: Price series with DatetimeIndex
+        
+        Returns:
+            Series of regime labels ('bull', 'neutral', 'bear') indexed by date
+        """
+        try:
+            from hmmlearn.hmm import GaussianHMM
+        except ImportError:
+            logger.warning("hmmlearn not installed, falling back to simple regime")
+            return pd.Series("neutral", index=prices.index, name="hmm_regime")
+        
+        features, valid_idx = self._build_features(prices)
+        
+        if len(features) < 60:
+            logger.warning(f"Insufficient data for HMM ({len(features)} obs), need ≥60")
+            return pd.Series("neutral", index=prices.index, name="hmm_regime")
+        
+        # Fit HMM
+        model = GaussianHMM(
+            n_components=self.n_states,
+            covariance_type=self.covariance_type,
+            n_iter=self.n_iter,
+            random_state=self.random_state,
+        )
+        
+        try:
+            model.fit(features)
+        except Exception as e:
+            logger.error(f"HMM fitting failed: {e}")
+            return pd.Series("neutral", index=prices.index, name="hmm_regime")
+        
+        self._model = model
+        self._fitted = True
+        
+        # Predict states
+        hidden_states = model.predict(features)
+        
+        # Auto-label states
+        self._state_labels = self._label_states(model.means_)
+        
+        # Map integer states to labels
+        regime_labels = [self._state_labels[s] for s in hidden_states]
+        
+        regime_series = pd.Series(regime_labels, index=valid_idx, name="hmm_regime")
+        
+        # Reindex to full price index
+        self._last_regimes = regime_series.reindex(prices.index).ffill().bfill()
+        
+        return self._last_regimes
+    
+    def current_regime(self) -> str:
+        """Get the most recent regime label. Must call fit_predict first."""
+        if self._last_regimes is None:
+            return "neutral"
+        return str(self._last_regimes.iloc[-1])
+    
+    def current_regime_enum(self) -> MarketRegime:
+        """Get the most recent regime as MarketRegime enum."""
+        label = self.current_regime()
+        return self.REGIME_MAP.get(label, MarketRegime.NEUTRAL)
+    
+    def get_regime_probabilities(self, prices: pd.Series = None) -> pd.DataFrame:
+        """
+        Get probability of each regime for each day.
+        
+        Returns DataFrame with columns like 'prob_bull', 'prob_neutral', 'prob_bear'.
+        """
+        if not self._fitted or self._model is None:
+            if prices is not None:
+                self.fit_predict(prices)
+            else:
+                return pd.DataFrame()
+        
+        features, valid_idx = self._build_features(prices if prices is not None else pd.Series())
+        
+        if len(features) == 0:
+            return pd.DataFrame()
+        
+        try:
+            # Get posterior probabilities
+            posteriors = self._model.predict_proba(features)
+        except Exception:
+            return pd.DataFrame()
+        
+        # Build DataFrame with labeled columns
+        prob_df = pd.DataFrame(posteriors, index=valid_idx)
+        prob_df.columns = [f"prob_{self._state_labels.get(i, f'state_{i}')}" for i in range(self.n_states)]
+        
+        return prob_df
+    
+    def get_state_stats(self) -> dict:
+        """Get mean return & volatility for each regime state."""
+        if not self._fitted or self._model is None:
+            return {}
+        
+        stats = {}
+        for state_idx, label in self._state_labels.items():
+            mean_ret = self._model.means_[state_idx, 0] * 252  # Annualize
+            mean_vol = self._model.means_[state_idx, 1] if self._model.means_.shape[1] > 1 else 0
+            stats[label] = {
+                "annualized_return": float(mean_ret),
+                "mean_vol": float(mean_vol),
+                "state_index": int(state_idx),
+            }
+        return stats
+    
+    def get_transition_matrix(self) -> pd.DataFrame:
+        """Get regime transition probability matrix."""
+        if not self._fitted or self._model is None:
+            return pd.DataFrame()
+        
+        labels = [self._state_labels.get(i, f"state_{i}") for i in range(self.n_states)]
+        return pd.DataFrame(
+            self._model.transmat_,
+            index=[f"from_{l}" for l in labels],
+            columns=[f"to_{l}" for l in labels],
+        )
+
+
+def add_hmm_regime_features(
+    df: pd.DataFrame,
+    price_col: str = "Close",
+    n_states: int = 3,
+    vol_lookback: int = 21,
+) -> pd.DataFrame:
+    """
+    Add HMM regime features to a DataFrame.
+    
+    Adds columns:
+    - hmm_regime: Regime label ('bull', 'neutral', 'bear')
+    - hmm_regime_bull: 1/0 indicator for bull regime
+    - hmm_regime_bear: 1/0 indicator for bear regime
+    - hmm_regime_neutral: 1/0 indicator for neutral regime
+    
+    All features are shifted by 1 day to prevent look-ahead bias.
+    
+    Args:
+        df: DataFrame with price data
+        price_col: Price column name
+        n_states: Number of HMM states
+        vol_lookback: Volatility lookback window
+    
+    Returns:
+        DataFrame with HMM regime features added
+    """
+    detector = HMMRegimeDetector(n_states=n_states, vol_lookback=vol_lookback)
+    
+    try:
+        regimes = detector.fit_predict(df[price_col])
+        
+        # Shift by 1 day (look-ahead bias prevention)
+        regimes_lagged = regimes.shift(1)
+        
+        df["hmm_regime"] = regimes_lagged
+        df["hmm_regime_bull"] = (regimes_lagged == "bull").astype(int)
+        df["hmm_regime_bear"] = (regimes_lagged == "bear").astype(int)
+        df["hmm_regime_neutral"] = (regimes_lagged == "neutral").astype(int)
+        
+        # Fill NaN from shift with neutral
+        df["hmm_regime"] = df["hmm_regime"].fillna("neutral")
+        df["hmm_regime_bull"] = df["hmm_regime_bull"].fillna(0).astype(int)
+        df["hmm_regime_bear"] = df["hmm_regime_bear"].fillna(0).astype(int)
+        df["hmm_regime_neutral"] = df["hmm_regime_neutral"].fillna(1).astype(int)
+        
+    except Exception as e:
+        logger.warning(f"HMM regime detection failed: {e}, using neutral defaults")
+        df["hmm_regime"] = "neutral"
+        df["hmm_regime_bull"] = 0
+        df["hmm_regime_bear"] = 0
+        df["hmm_regime_neutral"] = 1
+    
+    return df

@@ -1,0 +1,136 @@
+{
+  "date": "2026-01-21",
+  "metrics": {
+    "current_equity": 46922.26,
+    "peak_equity": 50000.0,
+    "current_drawdown_pct": 0.06155479999999996,
+    "sharpe_21d": 0.0,
+    "sharpe_63d": 0.0,
+    "win_rate_20": 0.25,
+    "win_rate_all": 0.25,
+    "pnl_today": 7.360004882812518,
+    "pnl_week": -10.129995117187523,
+    "pnl_month": -22.389995117187517,
+    "pnl_total": -22.38999511718752,
+    "trades_today": 1,
+    "trades_week": 5,
+    "trades_total": 8,
+    "last_updated": "2026-01-21T20:58:52.621521+00:00"
+  },
+  "ticker_breakdown": {
+    "GOLD260116P00040000": {
+      "symbol": "GOLD260116P00040000",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -11.599999999999998,
+      "pnl_avg": -11.599999999999998,
+      "best_trade": 0.0,
+      "worst_trade": -11.599999999999998
+    },
+    "PLUG260116P00002500": {
+      "symbol": "PLUG260116P00002500",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.12,
+      "pnl_avg": -0.12,
+      "best_trade": 0.0,
+      "worst_trade": -0.12
+    },
+    "NEM260116C00106000": {
+      "symbol": "NEM260116C00106000",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.5399999999999991,
+      "pnl_avg": -0.5399999999999991,
+      "best_trade": 0.0,
+      "worst_trade": -0.5399999999999991
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -9.01000000000002,
+      "pnl_avg": -9.01000000000002,
+      "best_trade": 0.0,
+      "worst_trade": -9.01000000000002
+    },
+    "SQM": {
+      "symbol": "SQM",
+      "trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "win_rate": 1.0,
+      "pnl_total": 4.819999999999993,
+      "pnl_avg": 4.819999999999993,
+      "best_trade": 4.819999999999993,
+      "worst_trade": 0.0
+    },
+    "BBAI": {
+      "symbol": "BBAI",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.1900000000000004,
+      "pnl_avg": -0.1900000000000004,
+      "best_trade": 0.0,
+      "worst_trade": -0.1900000000000004
+    },
+    "TSLA": {
+      "symbol": "TSLA",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -13.110000000000014,
+      "pnl_avg": -13.110000000000014,
+      "best_trade": 0.0,
+      "worst_trade": -13.110000000000014
+    },
+    "TLN": {
+      "symbol": "TLN",
+      "trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "win_rate": 1.0,
+      "pnl_total": 7.360004882812518,
+      "pnl_avg": 7.360004882812518,
+      "best_trade": 7.360004882812518,
+      "worst_trade": 0.0
+    }
+  },
+  "active_alerts": [
+    {
+      "level": "WARNING",
+      "category": "drawdown",
+      "message": "Drawdown approaching critical: 6.2%",
+      "value": 0.06155479999999996,
+      "threshold": 0.05,
+      "timestamp": "2026-01-21T20:58:52.888344+00:00"
+    }
+  ],
+  "trades_today": [
+    {
+      "trade_id": "b7f08a7e-b9c4-49b9-ab21-7e27172085cf",
+      "symbol": "TLN",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 359.1199951171875,
+      "exit_price": 366.48,
+      "entry_time": "2026-01-21T17:19:31.468507+00:00",
+      "exit_time": "2026-01-21T17:19:31.468507+00:00",
+      "pnl": 7.360004882812518,
+      "pnl_pct": 2.049455608956224,
+      "strategy": "PRED_TARGET",
+      "notes": ""
+    }
+  ]
+}

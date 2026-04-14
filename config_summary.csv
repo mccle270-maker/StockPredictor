@@ -1,0 +1,7 @@
+config,sharpe_mean,sharpe_std,sharpe_min,sharpe_max,sharpe_count,accuracy_mean,max_drawdown_mean,total_return_mean,num_trades_sum
+XGB + High Conf + ARIMA,2.95,2.237,-3.189,5.837,14,0.0,0.0,70.947,0
+XGB Conservative,2.615,1.983,-2.827,5.175,14,0.0,0.0,70.947,0
+XGB + High Confidence,2.565,1.945,-2.773,5.076,14,0.0,0.0,70.947,0
+XGB + ARIMA Confirm,2.313,1.755,-2.501,4.578,14,0.0,0.0,70.947,0
+XGB Baseline (No Filters),2.012,1.526,-2.175,3.981,14,0.0,0.0,70.947,0
+RF Baseline (No Filters),-0.69,1.122,-2.358,1.474,14,0.0,0.0,-15.16,0

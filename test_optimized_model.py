@@ -168,7 +168,6 @@ baseline_params = {
 baseline_model = XGBClassifier(
     **baseline_params,
     objective='binary:logistic',
-    use_label_encoder=False,
     verbosity=0
 )
 y_train_binary = (y_train > 0).astype(int)

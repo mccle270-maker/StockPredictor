@@ -1,13 +1,13 @@
 {
   "daily_pnl": 0.0,
-  "weekly_pnl": -0.003255574212790633,
+  "weekly_pnl": 0.0,
   "trades_today": 0,
-  "consecutive_losses": 3,
+  "consecutive_losses": 1,
   "peak_equity": 50000.0,
-  "current_drawdown_pct": 0.04948880000000005,
+  "current_drawdown_pct": 0.08361960000000006,
   "is_tripped": false,
   "trip_reason": "",
   "trip_time": "",
-  "last_reset_date": "2026-01-09",
-  "last_week_reset": "2026-01-05"
+  "last_reset_date": "2026-04-01",
+  "last_week_reset": "2026-03-30"
 }

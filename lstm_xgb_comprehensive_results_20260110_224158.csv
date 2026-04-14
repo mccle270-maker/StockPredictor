@@ -1,0 +1,185 @@
+ticker,model,accuracy,sharpe,max_drawdown,win_rate,status,error,train_samples,test_samples,period,test_type
+AAPL,rf,45.98930481283423,-1.7471304033016044,-85.35310307615606,45.98930481283423,success,,1064,187,full,full_period
+AAPL,xgb,56.68449197860963,3.852134678427945,-31.940731734143874,56.68449197860963,success,,1064,187,full,full_period
+AAPL,lstm_small,52.94117647058824,0.3429888552136033,-49.440055960066886,52.94117647058824,success,,1064,187,full,full_period
+AAPL,ensemble_lstm_heavy_70_30,48.663101604278076,-1.2066825674351254,-72.02436398078915,48.663101604278076,success,,1064,187,full,full_period
+AAPL,ensemble_equal_50_50,46.524064171122994,-1.9616135653200901,-74.34748339035184,46.524064171122994,success,,1064,187,full,full_period
+AAPL,ensemble_xgb_heavy_30_70,47.593582887700535,-2.678365434547214,-81.75637750079632,47.593582887700535,success,,1064,187,full,full_period
+MSFT,rf,36.898395721925134,-2.3301239630018897,-83.18669260780513,36.898395721925134,success,,1064,187,full,full_period
+MSFT,xgb,65.24064171122996,3.6434248582939515,-41.87418022644466,65.24064171122996,success,,1064,187,full,full_period
+MSFT,lstm_small,37.4331550802139,-3.2888649493975692,-86.63971236196349,37.4331550802139,success,,1064,187,full,full_period
+MSFT,ensemble_lstm_heavy_70_30,37.967914438502675,-2.4953804906103043,-82.77118063810397,37.967914438502675,success,,1064,187,full,full_period
+MSFT,ensemble_equal_50_50,38.50267379679144,-0.27765398174425626,-71.56458399045711,38.50267379679144,success,,1064,187,full,full_period
+MSFT,ensemble_xgb_heavy_30_70,34.22459893048128,-2.234037385312106,-76.2440111416519,34.22459893048128,success,,1064,187,full,full_period
+NVDA,rf,57.21925133689839,1.1927473692053052,-70.71670346914267,57.21925133689839,success,,1064,187,full,full_period
+NVDA,xgb,66.31016042780749,5.527614273027563,-47.63806267240707,66.31016042780749,success,,1064,187,full,full_period
+NVDA,lstm_small,56.68449197860963,2.527729584609213,-60.219070148432266,56.68449197860963,success,,1064,187,full,full_period
+NVDA,ensemble_lstm_heavy_70_30,57.75401069518716,1.3035708512739699,-62.511533935007336,57.75401069518716,success,,1064,187,full,full_period
+NVDA,ensemble_equal_50_50,68.98395721925134,5.521513477181922,-39.401866302468925,68.98395721925134,success,,1064,187,full,full_period
+NVDA,ensemble_xgb_heavy_30_70,62.56684491978609,2.771994294445547,-62.51153393500732,62.56684491978609,success,,1064,187,full,full_period
+GOOGL,rf,36.36363636363637,-5.992493034311877,-97.48494628261261,36.36363636363637,success,,1064,187,full,full_period
+GOOGL,xgb,68.44919786096256,8.196348792506907,-21.378310198821005,68.44919786096256,success,,1064,187,full,full_period
+GOOGL,lstm_small,36.898395721925134,-3.7699134863660904,-91.42759758983698,36.898395721925134,success,,1064,187,full,full_period
+GOOGL,ensemble_lstm_heavy_70_30,46.524064171122994,-1.5704992184721525,-74.74698279410019,46.524064171122994,success,,1064,187,full,full_period
+GOOGL,ensemble_equal_50_50,36.898395721925134,-6.441881279943422,-96.50908561678496,36.898395721925134,success,,1064,187,full,full_period
+GOOGL,ensemble_xgb_heavy_30_70,39.57219251336899,-5.168216741381926,-93.80698033211925,39.57219251336899,success,,1064,187,full,full_period
+AMZN,rf,42.24598930481284,-3.1198828706074773,-85.50834549758282,42.24598930481284,success,,1064,187,full,full_period
+AMZN,xgb,59.35828877005348,3.258313950769146,-42.90183985291069,59.35828877005348,success,,1064,187,full,full_period
+AMZN,lstm_small,49.73262032085562,-0.7999428938418094,-79.46033601578118,49.73262032085562,success,,1064,187,full,full_period
+AMZN,ensemble_lstm_heavy_70_30,44.38502673796791,-1.7262975334668647,-79.93748802930813,44.38502673796791,success,,1064,187,full,full_period
+AMZN,ensemble_equal_50_50,45.45454545454545,-1.7319210948769683,-75.90329711362035,45.45454545454545,success,,1064,187,full,full_period
+AMZN,ensemble_xgb_heavy_30_70,45.98930481283423,-1.7208877376245577,-83.54047864459874,45.98930481283423,success,,1064,187,full,full_period
+JPM,rf,32.62032085561498,-5.480044767289831,-85.41187267958293,32.62032085561498,success,,1064,187,full,full_period
+JPM,xgb,69.5187165775401,6.850866451735148,-23.75677425459573,69.5187165775401,success,,1064,187,full,full_period
+JPM,lstm_small,66.84491978609626,5.57166485159035,-23.756774254595694,66.84491978609626,success,,1064,187,full,full_period
+JPM,ensemble_lstm_heavy_70_30,68.44919786096256,6.7800516075830135,-23.27372983551561,68.44919786096256,success,,1064,187,full,full_period
+JPM,ensemble_equal_50_50,59.893048128342244,2.5705960890851016,-50.57164819158948,59.893048128342244,success,,1064,187,full,full_period
+JPM,ensemble_xgb_heavy_30_70,51.87165775401069,-0.672648731077901,-49.15013280648045,51.87165775401069,success,,1064,187,full,full_period
+BAC,rf,35.294117647058826,-3.953787343539706,-86.48270136071099,35.294117647058826,success,,1064,187,full,full_period
+BAC,xgb,71.12299465240642,7.191152358753215,-26.35565195911512,71.12299465240642,success,,1064,187,full,full_period
+BAC,lstm_small,48.663101604278076,-2.6322108549868233,-78.59174160278599,48.663101604278076,success,,1064,187,full,full_period
+BAC,ensemble_lstm_heavy_70_30,44.919786096256686,-2.0354248062520006,-73.04982123585576,44.919786096256686,success,,1064,187,full,full_period
+BAC,ensemble_equal_50_50,48.663101604278076,-2.07444184202731,-64.1669751120859,48.663101604278076,success,,1064,187,full,full_period
+BAC,ensemble_xgb_heavy_30_70,41.17647058823529,-3.147196628403849,-73.05365447966055,41.17647058823529,success,,1064,187,full,full_period
+GS,rf,37.4331550802139,-5.966404198411146,-92.74176173555738,37.4331550802139,success,,1064,187,full,full_period
+GS,xgb,67.37967914438502,8.813426944313461,-27.20289038779314,67.37967914438502,success,,1064,187,full,full_period
+GS,lstm_small,52.94117647058824,2.037755713953801,-61.21401257156782,52.94117647058824,success,,1064,187,full,full_period
+GS,ensemble_lstm_heavy_70_30,45.98930481283423,-1.6958031785476861,-60.567059377647794,45.98930481283423,success,,1064,187,full,full_period
+GS,ensemble_equal_50_50,45.45454545454545,-2.9617342817233383,-79.0092981611908,45.45454545454545,success,,1064,187,full,full_period
+GS,ensemble_xgb_heavy_30_70,49.19786096256685,-0.9504694150803861,-53.8736398691508,49.19786096256685,success,,1064,187,full,full_period
+JNJ,rf,39.57219251336899,-4.801797648716123,-83.51781340900175,39.57219251336899,success,,1064,187,full,full_period
+JNJ,xgb,63.63636363636363,6.24322740324786,-20.06730956569179,63.63636363636363,success,,1064,187,full,full_period
+JNJ,lstm_small,35.82887700534759,-4.33138420475528,-76.86440230952351,35.82887700534759,success,,1064,187,full,full_period
+JNJ,ensemble_lstm_heavy_70_30,49.19786096256685,-0.5984686426253941,-67.89754255706015,49.19786096256685,success,,1064,187,full,full_period
+JNJ,ensemble_equal_50_50,50.26737967914438,-1.3863941288998285,-67.01271161888957,50.26737967914438,success,,1064,187,full,full_period
+JNJ,ensemble_xgb_heavy_30_70,47.593582887700535,-1.9126368681447712,-64.27518919615096,47.593582887700535,success,,1064,187,full,full_period
+PFE,rf,59.35828877005348,3.192934244502081,-40.33159239792495,59.35828877005348,success,,1064,187,full,full_period
+PFE,xgb,57.75401069518716,2.4880423589108447,-37.76107044025009,57.75401069518716,success,,1064,187,full,full_period
+PFE,lstm_small,45.98930481283423,-0.7461395433084547,-61.32846826861863,45.98930481283423,success,,1064,187,full,full_period
+PFE,ensemble_lstm_heavy_70_30,58.82352941176471,3.143710654814791,-48.654385386882424,58.82352941176471,success,,1064,187,full,full_period
+PFE,ensemble_equal_50_50,56.68449197860963,3.291184967900121,-44.76523464528532,56.68449197860963,success,,1064,187,full,full_period
+PFE,ensemble_xgb_heavy_30_70,54.54545454545454,2.3333295034221724,-32.923227159539245,54.54545454545454,success,,1064,187,full,full_period
+WMT,rf,45.98930481283423,-0.9014929223993098,-68.57417622208814,45.98930481283423,success,,1064,187,full,full_period
+WMT,xgb,59.893048128342244,3.9228544741122113,-29.89029174654133,59.893048128342244,success,,1064,187,full,full_period
+WMT,lstm_small,60.42780748663101,3.8911192640020396,-29.890291746541326,60.42780748663101,success,,1064,187,full,full_period
+WMT,ensemble_lstm_heavy_70_30,51.33689839572193,1.461187105684926,-52.09114551465519,51.33689839572193,success,,1064,187,full,full_period
+WMT,ensemble_equal_50_50,54.01069518716578,0.2830881746024517,-49.404709806710684,54.01069518716578,success,,1064,187,full,full_period
+WMT,ensemble_xgb_heavy_30_70,45.98930481283423,-1.6507204997322316,-64.55940552615111,45.98930481283423,success,,1064,187,full,full_period
+COST,rf,43.85026737967914,-0.33835557245338116,-49.64907815395386,43.85026737967914,success,,1064,187,full,full_period
+COST,xgb,43.85026737967914,-0.5595738933551289,-62.192719474598505,43.85026737967914,success,,1064,187,full,full_period
+COST,lstm_small,39.57219251336899,-1.7686994786432464,-62.88827385808826,39.57219251336899,success,,1064,187,full,full_period
+COST,ensemble_lstm_heavy_70_30,43.85026737967914,-0.9952871494604653,-54.14059286516869,43.85026737967914,success,,1064,187,full,full_period
+COST,ensemble_equal_50_50,41.711229946524064,-2.0861178325134992,-66.50429136869239,41.711229946524064,success,,1064,187,full,full_period
+COST,ensemble_xgb_heavy_30_70,43.85026737967914,-1.7941120204405558,-64.90983895721058,43.85026737967914,success,,1064,187,full,full_period
+XOM,rf,50.80213903743316,-0.2580298405453345,-47.36898395378912,50.80213903743316,success,,1064,187,full,full_period
+XOM,xgb,58.82352941176471,3.205007397698799,-31.07335086409593,58.82352941176471,success,,1064,187,full,full_period
+XOM,lstm_small,50.26737967914438,0.1026247000796928,-51.95152383304734,50.26737967914438,success,,1064,187,full,full_period
+XOM,ensemble_lstm_heavy_70_30,51.87165775401069,1.0139607281394916,-38.70184600173067,51.87165775401069,success,,1064,187,full,full_period
+XOM,ensemble_equal_50_50,42.780748663101605,-1.3828131155565924,-70.14151761572744,42.780748663101605,success,,1064,187,full,full_period
+XOM,ensemble_xgb_heavy_30_70,48.663101604278076,0.02687876311460517,-51.96597616611005,48.663101604278076,success,,1064,187,full,full_period
+CVX,rf,52.94117647058824,1.255334123596732,-28.97622409826245,52.406417112299465,success,,1064,187,full,full_period
+CVX,xgb,55.61497326203209,3.1103045774720686,-27.249441653509365,55.61497326203209,success,,1064,187,full,full_period
+CVX,lstm_small,52.406417112299465,0.5928012415567726,-33.503607147468145,51.87165775401069,success,,1064,187,full,full_period
+CVX,ensemble_lstm_heavy_70_30,52.406417112299465,-0.6079518385152656,-50.01364796795838,51.87165775401069,success,,1064,187,full,full_period
+CVX,ensemble_equal_50_50,49.73262032085562,-1.0284164592891998,-52.55451105475187,49.19786096256685,success,,1064,187,full,full_period
+CVX,ensemble_xgb_heavy_30_70,58.288770053475936,2.5990216270016377,-43.19984947052438,57.75401069518716,success,,1064,187,full,full_period
+AAPL,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+AAPL,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+AAPL,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+AAPL,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+AAPL,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+MSFT,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+MSFT,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+MSFT,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+MSFT,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+MSFT,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+NVDA,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+NVDA,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+NVDA,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+NVDA,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+NVDA,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+JPM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+JPM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+JPM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+JPM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+JPM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+XOM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+XOM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+XOM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+XOM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+XOM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2021-01-01 to 2021-12-31,regime_bull_2021
+AAPL,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+AAPL,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+AAPL,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+AAPL,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+AAPL,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+MSFT,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+MSFT,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+MSFT,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+MSFT,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+MSFT,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+NVDA,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+NVDA,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+NVDA,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+NVDA,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+NVDA,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+JPM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+JPM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+JPM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+JPM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+JPM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+XOM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+XOM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+XOM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+XOM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+XOM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2022-01-01 to 2022-12-31,regime_bear_2022
+AAPL,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+AAPL,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+AAPL,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+AAPL,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+AAPL,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+MSFT,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+MSFT,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+MSFT,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+MSFT,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+MSFT,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+NVDA,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+NVDA,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+NVDA,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+NVDA,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+NVDA,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+JPM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+JPM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+JPM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+JPM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+JPM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+XOM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+XOM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+XOM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+XOM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+XOM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2023-01-01 to 2023-12-31,regime_recovery_2023
+AAPL,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+AAPL,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+AAPL,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+AAPL,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+AAPL,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+MSFT,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+MSFT,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+MSFT,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+MSFT,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+MSFT,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+NVDA,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+NVDA,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+NVDA,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+NVDA,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+NVDA,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+JPM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+JPM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+JPM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+JPM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+JPM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+XOM,xgb,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+XOM,lstm_small,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+XOM,ensemble_equal_50_50,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+XOM,ensemble_lstm_heavy_70_30,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024
+XOM,ensemble_xgb_heavy_30_70,0.0,0.0,0.0,0.0,failed,"Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp",0,0,2024-01-01 to 2024-12-31,regime_current_2024

@@ -63,8 +63,9 @@ def _get_spx(start, end, tz=None):
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
 
-            # Restrict to requested window
-            df = df.loc[(df.index.tz_localize(None) >= start_ts) & (df.index.tz_localize(None) <= end_ts)]
+            # Restrict to requested window (handle both tz-aware and tz-naive)
+            idx_naive = df.index.tz_localize(None) if df.index.tz is not None else df.index
+            df = df.loc[(idx_naive >= start_ts) & (idx_naive <= end_ts)]
             if df.empty:
                 continue
 
@@ -81,10 +82,12 @@ def _get_spx(start, end, tz=None):
     else:
         # Make index match caller tz
         idx = pd.DatetimeIndex(spx.index)
+        if idx.tz is not None:
+            idx = idx.tz_localize(None)
         if tz is not None:
             spx.index = idx.tz_localize(tz)
         else:
-            spx.index = idx.tz_localize(None)
+            spx.index = idx
 
     _SPX_CACHE[key] = spx
     return spx
@@ -716,6 +719,22 @@ def get_fred_series(series_id: str, start: dt.date, end: dt.date) -> pd.Series:
 
 # Strip timezone so downstream comparisons don't thrash...
 def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> pd.DataFrame:
+    """
+    Fetch price history using the fixed multi-source pipeline.
+    
+    Fallback chain: yfinance → Tiingo → Alpaca (lazy-loaded)
+    Removed: Stooq (empty data), Alpha Vantage (premium-only)
+    """
+    # Use the fixed src.data.market module (has proper fallback chain)
+    try:
+        from src.data.market import get_price_history as _market_get_price
+        df = _market_get_price(ticker, period=period, interval=interval)
+        if df is not None and not df.empty:
+            return df
+    except Exception as e:
+        print(f"[get_price_history] src.data.market failed for {ticker} ({period}): {e}")
+
+    # Legacy fallback: data_fetch cached Yahoo
     try:
         df = get_history_yahoo(ticker, period=period, interval=interval)
         if df is not None and not df.empty:
@@ -723,37 +742,7 @@ def get_price_history(ticker: str, period: str = "5y", interval: str = "1d") -> 
     except Exception as e:
         print(f"[get_price_history] Yahoo cached failed for {ticker} ({period}): {e}")
 
-    try:
-        if interval != "1d":
-            raise ValueError("Stooq fallback only supports daily interval")
-
-        stooq_symbol = f"{ticker.lower()}.us"
-        url = f"https://stooq.com/q/d/l/?s={stooq_symbol}&i=d"
-        raw = pd.read_csv(url)
-        if raw.empty:
-            raise ValueError("Empty Stooq CSV")
-
-        raw["Date"] = pd.to_datetime(raw["Date"])
-        raw = raw.set_index("Date").sort_index()
-
-        years_map = {"10y": 10, "5y": 5, "3y": 3, "2y": 2, "1y": 1}
-        months_map = {"6mo": 0.5, "3mo": 0.25}
-
-        today = dt.date.today()
-        if period in years_map:
-            start_date = today - dt.timedelta(days=365 * years_map[period])
-        elif period in months_map:
-            start_date = today - dt.timedelta(days=int(365 * months_map[period]))
-        else:
-            start_date = raw.index.min().date()
-
-        df = raw[raw.index.date >= start_date].copy()
-        df = df.rename(columns={"Open": "Open", "High": "High", "Low": "Low", "Close": "Close", "Volume": "Volume"})
-        print(f"[get_price_history] Using Stooq data for {ticker} ({period}), rows={len(df)}")
-        return df
-    except Exception as e:
-        print(f"[get_price_history] Stooq failed for {ticker}: {e}")
-
+    # Last resort: raw Yahoo download
     try:
         df = get_history_yahoo_raw(ticker, period=period, interval=interval)
         if df is not None and not df.empty:
@@ -821,6 +810,9 @@ def get_macro_df(symbol="^GSPC", period="5y") -> pd.DataFrame:
         hist = pd.DataFrame(index=idx, data={"Close": 100.0})
 
     df = pd.DataFrame(index=hist.index)
+    # Always normalize to tz-naive to prevent join errors with callers
+    if df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
     df["mkt_ret_1d"] = hist.get("Close", pd.Series(index=hist.index, data=100.0)).pct_change().fillna(0.0)
 
     # Pre-seed macro columns with zeros so downstream filtering retains them even if FRED is unavailable
@@ -1528,6 +1520,17 @@ def make_model(model_type: str = "rf", random_state: int = 42, task: str = "reg"
         else:
             print("⚠️ model_improvements.py not available, falling back to RF")
             model_type = "rf"
+    
+    # Handle xgb_lstm ensemble (for bear markets)
+    if model_type == "xgb_lstm":
+        try:
+            from src.core.lstm_xgb_ensemble import LSTMXGBEnsemble
+            print("🐻 Creating XGB+LSTM Ensemble (optimized for bear markets)")
+            return LSTMXGBEnsemble(lstm_weight=0.5, xgb_weight=0.5)
+        except ImportError:
+            print("⚠️ LSTMXGBEnsemble not available, falling back to XGB")
+            model_type = "xgb"
+    
     # Log model version if enabled
     if log_version:
         try:
@@ -1862,6 +1865,11 @@ def build_features_and_target(
             # Try to get macro data, but don't fail if unavailable
             try:
                 macro_df = get_macro_df(symbol="^GSPC", period=per)
+                # Normalize both indices to tz-naive to avoid join errors
+                if hist.index.tz is not None:
+                    hist.index = hist.index.tz_localize(None)
+                if macro_df.index.tz is not None:
+                    macro_df.index = macro_df.index.tz_localize(None)
                 hist = hist.join(macro_df, how="left")
             except Exception as e:
                 print(f"[build_features_and_target] Warning: Could not fetch macro data: {e}")
@@ -2446,6 +2454,8 @@ def predict_next_for_ticker(
     use_vol_scaled_target: bool = False,
     auto_optimize: bool = True,
     run_gaf: bool = False,
+    use_arima: bool = True,
+    arima_weight: float = 0.3,
 ):
     if modeltype is not None:
         model_type = modeltype
@@ -2601,6 +2611,112 @@ def predict_next_for_ticker(
     if use_vol_scaled_target:
         pred_ret = pred_ret * float(last_vol_20d)
 
+    # === ARIMA ENSEMBLE INTEGRATION ===
+    arima_pred = None
+    arima_order = None
+    ensemble_pred = pred_ret  # Default to ML-only prediction
+    ensemble_weights = {"ml": 1.0, "arima": 0.0}  # Default weights
+    
+    # === ARIMA Volatility & Trend Structure Signals ===
+    vol_forecast_result = None
+    trend_structure_result = None
+    arima_signals = {}
+    
+    if use_arima:
+        try:
+            from arima_integration import ARIMAPredictor, VolatilityForecaster, TrendStructureDetector
+            
+            # Fetch returns series for ARIMA
+            hist_for_arima = get_price_history(ticker, period=period, interval="1d")
+            if hist_for_arima is not None and not hist_for_arima.empty and "Close" in hist_for_arima.columns:
+                # Calculate returns
+                returns_series = hist_for_arima["Close"].pct_change().dropna()
+                
+                if len(returns_series) >= 60:  # Need enough data for ARIMA
+                    # --- Original ARIMA on returns (for blending) ---
+                    arima_predictor = ARIMAPredictor(max_p=3, max_d=1, max_q=3, verbose=False)
+                    
+                    if arima_predictor.fit(returns_series):
+                        # Get ARIMA forecast for the horizon
+                        arima_forecast = arima_predictor.predict(steps=horizon)
+                        arima_order = arima_predictor.get_fitted_order()
+                        
+                        if arima_forecast is not None and len(arima_forecast) > 0:
+                            # Sum the forecasted returns for multi-day horizon
+                            arima_pred = float(np.sum(arima_forecast))
+                            
+                            # Blend ML and ARIMA predictions
+                            ml_weight = 1.0 - arima_weight
+                            ensemble_pred = ml_weight * pred_ret + arima_weight * arima_pred
+                            ensemble_weights = {"ml": ml_weight, "arima": arima_weight}
+                            
+                            print(f"  📈 {ticker} ARIMA{arima_order}: pred={arima_pred:.4f}, "
+                                  f"blended={ensemble_pred:.4f} (ML={pred_ret:.4f} @ {ml_weight:.0%})")
+                        else:
+                            print(f"  ⚠️ {ticker} ARIMA forecast returned None")
+                    else:
+                        print(f"  ⚠️ {ticker} ARIMA fit failed, using ML-only")
+                    
+                    # --- NEW: Volatility Forecaster (for options strategies) ---
+                    try:
+                        vol_forecaster = VolatilityForecaster(lookback=60, vol_window=20, verbose=False)
+                        # fit_and_forecast takes PRICE series, not returns
+                        price_series = hist_for_arima["Close"]
+                        vol_forecast_result = vol_forecaster.fit_and_forecast(price_series, horizon=5)
+                        if vol_forecast_result and vol_forecast_result.get("success"):
+                            arima_signals["vol_current"] = vol_forecast_result.get("vol_current")
+                            arima_signals["vol_forecast"] = vol_forecast_result.get("vol_forecast")
+                            arima_signals["vol_direction"] = vol_forecast_result.get("vol_direction")
+                            arima_signals["vol_regime"] = vol_forecast_result.get("vol_regime")
+                            
+                            # Derive options signal from vol direction and regime
+                            vol_regime = vol_forecast_result.get("vol_regime", "normal")
+                            vol_dir = vol_forecast_result.get("vol_direction", "neutral")
+                            if vol_regime in ("low", "normal") and vol_dir == "down":
+                                arima_signals["options_signal"] = "sell_vol"  # Vol low/falling, sell premium
+                            elif vol_regime in ("high", "extreme") or vol_dir == "up":
+                                arima_signals["options_signal"] = "buy_vol"  # Vol high/rising, buy protection
+                            else:
+                                arima_signals["options_signal"] = "neutral"
+                                
+                            print(f"  📊 {ticker} Vol: {vol_forecast_result.get('vol_current', 0)*100:.1f}% → "
+                                  f"{vol_forecast_result.get('vol_forecast', 0)*100:.1f}% ({vol_forecast_result.get('vol_direction', 'n/a')}) "
+                                  f"→ {arima_signals.get('options_signal', 'neutral')}")
+                    except Exception as vol_err:
+                        print(f"  ⚠️ {ticker} VolatilityForecaster error: {vol_err}")
+                    
+                    # --- NEW: Trend Structure Detector (for direction confirmation) ---
+                    try:
+                        trend_detector = TrendStructureDetector(momentum_window=10, smooth_window=5, verbose=False)
+                        # analyze_trend takes PRICE series, not momentum
+                        price_series = hist_for_arima["Close"]
+                        trend_structure_result = trend_detector.analyze_trend(price_series, horizon=5)
+                        if trend_structure_result and trend_structure_result.get("success"):
+                            arima_signals["trend_direction"] = trend_structure_result.get("trend_direction")
+                            arima_signals["trend_strength"] = trend_structure_result.get("trend_strength")
+                            arima_signals["has_structure"] = trend_structure_result.get("structure_detected")
+                            arima_signals["trend_order"] = trend_structure_result.get("arima_order")
+                            
+                            # Check for direction confirmation with ML prediction
+                            ml_direction = "up" if pred_ret > 0 else "down" if pred_ret < 0 else "neutral"
+                            trend_dir = trend_structure_result.get("trend_direction", "neutral")
+                            direction_confirmed = (ml_direction == trend_dir) or (trend_dir == "neutral")
+                            arima_signals["direction_confirmed"] = direction_confirmed
+                            
+                            print(f"  🔍 {ticker} Trend: {trend_dir} @ {trend_structure_result.get('trend_strength', 0):.0%} strength, "
+                                  f"structure={trend_structure_result.get('structure_detected')}, "
+                                  f"ML confirms: {direction_confirmed}")
+                    except Exception as trend_err:
+                        print(f"  ⚠️ {ticker} TrendStructureDetector error: {trend_err}")
+                else:
+                    print(f"  ⚠️ {ticker} Not enough data for ARIMA ({len(returns_series)} < 60)")
+            else:
+                print(f"  ⚠️ {ticker} Could not fetch price history for ARIMA")
+        except ImportError:
+            print(f"  ⚠️ ARIMA not available (pmdarima not installed)")
+        except Exception as arima_err:
+            print(f"  ⚠️ {ticker} ARIMA error: {arima_err}")
+
     # NEW: Calculate confidence score (absolute prediction magnitude)
     # Higher |pred_ret| = higher confidence model has in the prediction
     confidence_score = float(abs(pred_ret))
@@ -2711,6 +2827,23 @@ def predict_next_for_ticker(
         "elasticnet_l1_ratio": float(os.environ.get("ELASTICNET_L1_RATIO", 0.5)),
         "elasticnet_cv_folds": int(os.environ.get("ELASTICNET_CV_FOLDS", 5)),
         "elasticnet_selected_n": int(len(actual_feat_cols)) if use_elasticnet_now else None,
+        # ARIMA ensemble fields
+        "arima_pred": arima_pred,  # ARIMA-only prediction (or None if failed)
+        "arima_order": arima_order,  # ARIMA order tuple (p,d,q) or None
+        "ensemble_pred": ensemble_pred,  # Blended ML + ARIMA prediction
+        "ensemble_weights": ensemble_weights,  # {"ml": 0.7, "arima": 0.3}
+        "use_arima": use_arima,  # Whether ARIMA was requested
+        # NEW: ARIMA volatility & trend signals for options strategies
+        "arima_signals": arima_signals,  # Dict with vol/trend signals
+        "vol_current": arima_signals.get("vol_current"),  # Current 20d annualized vol
+        "vol_forecast": arima_signals.get("vol_forecast"),  # Forecasted 5d ahead vol
+        "vol_direction": arima_signals.get("vol_direction"),  # "up", "down", "neutral"
+        "vol_regime": arima_signals.get("vol_regime"),  # "low", "normal", "high"
+        "options_signal": arima_signals.get("options_signal"),  # "sell_vol", "buy_vol", "neutral"
+        "trend_direction": arima_signals.get("trend_direction"),  # ARIMA trend direction
+        "trend_strength": arima_signals.get("trend_strength"),  # 0-100% strength
+        "has_structure": arima_signals.get("has_structure"),  # True if ARIMA found structure
+        "direction_confirmed": arima_signals.get("direction_confirmed"),  # ML + ARIMA agree
     }
 
 
@@ -3342,6 +3475,11 @@ def walk_forward_backtest(
     # Make macro data optional
     try:
         macro_df = get_macro_df(symbol="^GSPC", period=period)
+        # Normalize both indices to tz-naive to avoid join errors
+        if hist.index.tz is not None:
+            hist.index = hist.index.tz_localize(None)
+        if macro_df.index.tz is not None:
+            macro_df.index = macro_df.index.tz_localize(None)
         hist = hist.join(macro_df, how="left")
     except Exception as e:
         print(f"[walk_forward_backtest] Warning: Could not fetch macro data: {e}")

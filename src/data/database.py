@@ -330,6 +330,203 @@ def update_prediction_outcome(
         return cursor.rowcount > 0
 
 
+def validate_pending_predictions(max_validate: int = 500) -> Dict[str, Any]:
+    """
+    Validate pending predictions by fetching actual prices and calculating outcomes.
+    
+    This function:
+    1. Finds predictions where actual_ret is NULL and enough time has passed
+    2. Fetches actual prices for those dates
+    3. Updates was_correct based on direction accuracy
+    
+    Returns:
+        Dict with validation statistics
+    """
+    from datetime import datetime, timedelta
+    from .aggregator import fetch_prices
+    
+    init_database()
+    
+    validated = 0
+    errors = 0
+    by_ticker = {}
+    
+    with get_db_connection() as conn:
+        # Find unvalidated predictions where horizon has passed
+        cursor = conn.execute("""
+            SELECT id, ticker, timestamp, horizon, pred_next_ret, last_close
+            FROM prediction_history
+            WHERE was_correct IS NULL
+              AND actual_ret IS NULL
+              AND timestamp < datetime('now', '-1 day')
+            ORDER BY timestamp DESC
+            LIMIT ?
+        """, (max_validate,))
+        
+        pending = cursor.fetchall()
+        
+        if not pending:
+            return {"validated": 0, "errors": 0, "message": "No pending predictions to validate"}
+        
+        # Group by ticker for efficient fetching
+        ticker_predictions = {}
+        for row in pending:
+            ticker = row["ticker"]
+            if ticker not in ticker_predictions:
+                ticker_predictions[ticker] = []
+            ticker_predictions[ticker].append(dict(row))
+        
+        # Process each ticker
+        for ticker, preds in ticker_predictions.items():
+            try:
+                # Fetch price history using our multi-source aggregator
+                df = fetch_prices(ticker, period="6mo")
+                
+                if df is None or df.empty:
+                    errors += len(preds)
+                    continue
+                
+                # Normalize index
+                df.index = pd.to_datetime(df.index)
+                if df.index.tz is not None:
+                    df.index = df.index.tz_localize(None)
+                
+                # Handle multi-level columns from yfinance
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.get_level_values(0)
+                
+                # Get close column
+                close_col = None
+                for col in ["Close", "close", "Adj Close", "adj_close"]:
+                    if col in df.columns:
+                        close_col = col
+                        break
+                
+                if close_col is None:
+                    errors += len(preds)
+                    continue
+                
+                for pred in preds:
+                    try:
+                        pred_date = datetime.fromisoformat(pred["timestamp"].replace("Z", ""))
+                        horizon = pred["horizon"] or 1
+                        outcome_date = pred_date + timedelta(days=horizon)
+                        
+                        # Find the actual close price on or after outcome date
+                        future_prices = df[df.index >= outcome_date]
+                        if future_prices.empty:
+                            continue  # Not enough data yet
+                        
+                        actual_price = float(future_prices.iloc[0][close_col])
+                        last_close = pred["last_close"]
+                        
+                        if last_close and last_close > 0:
+                            actual_ret = (actual_price - last_close) / last_close
+                            pred_ret = pred["pred_next_ret"] or 0
+                            
+                            # Direction correct if both positive or both negative
+                            was_correct = 1 if (pred_ret > 0) == (actual_ret > 0) else 0
+                            
+                            # Update the prediction
+                            conn.execute("""
+                                UPDATE prediction_history
+                                SET actual_ret = ?, actual_price = ?, 
+                                    outcome_date = ?, was_correct = ?
+                                WHERE id = ?
+                            """, (actual_ret, actual_price, outcome_date.isoformat(), 
+                                  was_correct, pred["id"]))
+                            
+                            validated += 1
+                            by_ticker[ticker] = by_ticker.get(ticker, 0) + 1
+                    except Exception:
+                        errors += 1
+                        continue
+                        
+            except Exception:
+                errors += len(preds)
+                continue
+        
+        conn.commit()
+    
+    return {
+        "validated": validated,
+        "errors": errors,
+        "by_ticker": by_ticker,
+        "message": f"Validated {validated} predictions across {len(by_ticker)} tickers"
+    }
+
+
+def get_ticker_accuracy(ticker: str, days_back: int = 90) -> Dict[str, Any]:
+    """
+    Get accuracy statistics for a specific ticker.
+    
+    Returns:
+        Dict with win_rate, total_predictions, correct_predictions, avg_error
+    """
+    init_database()
+    
+    with get_db_connection() as conn:
+        cursor = conn.execute("""
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN was_correct = 1 THEN 1 ELSE 0 END) as correct,
+                AVG(CASE WHEN was_correct IS NOT NULL THEN was_correct ELSE NULL END) as win_rate,
+                AVG(ABS(pred_next_ret - actual_ret)) as avg_error
+            FROM prediction_history
+            WHERE ticker = ?
+              AND was_correct IS NOT NULL
+              AND timestamp >= datetime('now', ?)
+        """, (ticker, f'-{days_back} days'))
+        
+        row = cursor.fetchone()
+        
+        if not row or row["total"] == 0:
+            return {"total": 0, "win_rate": None, "correct": 0, "avg_error": None}
+        
+        return {
+            "total": row["total"],
+            "correct": row["correct"] or 0,
+            "win_rate": row["win_rate"],
+            "avg_error": row["avg_error"]
+        }
+
+
+def get_all_ticker_accuracy(days_back: int = 90) -> Dict[str, Dict[str, Any]]:
+    """
+    Get accuracy statistics for all tickers with validated predictions.
+    
+    Returns:
+        Dict mapping ticker -> accuracy stats
+    """
+    init_database()
+    
+    with get_db_connection() as conn:
+        cursor = conn.execute("""
+            SELECT 
+                ticker,
+                COUNT(*) as total,
+                SUM(CASE WHEN was_correct = 1 THEN 1 ELSE 0 END) as correct,
+                AVG(CASE WHEN was_correct IS NOT NULL THEN was_correct ELSE NULL END) as win_rate,
+                AVG(ABS(pred_next_ret - actual_ret)) as avg_error
+            FROM prediction_history
+            WHERE was_correct IS NOT NULL
+              AND timestamp >= datetime('now', ?)
+            GROUP BY ticker
+            ORDER BY total DESC
+        """, (f'-{days_back} days',))
+        
+        results = {}
+        for row in cursor.fetchall():
+            results[row["ticker"]] = {
+                "total": row["total"],
+                "correct": row["correct"] or 0,
+                "win_rate": row["win_rate"],
+                "avg_error": row["avg_error"]
+            }
+        
+        return results
+
+
 def get_accuracy_stats(
     ticker: Optional[str] = None,
     model_type: Optional[str] = None,

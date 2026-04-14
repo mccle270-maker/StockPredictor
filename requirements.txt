@@ -6,6 +6,7 @@ scikit-learn
 xgboost
 scipy
 statsmodels
+pmdarima
 pyts
 matplotlib
 plotly
@@ -21,3 +22,4 @@ streamlit-option-menu
 fastapi
 uvicorn[standard]
 python-dotenv
+tensorflow>=2.13.0,<2.17.0

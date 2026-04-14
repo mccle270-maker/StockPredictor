@@ -1,0 +1,167 @@
+{
+  "date": "2026-01-20",
+  "metrics": {
+    "current_equity": 46339.39,
+    "peak_equity": 50000.0,
+    "current_drawdown_pct": 0.0732122,
+    "sharpe_21d": 0.0,
+    "sharpe_63d": 0.0,
+    "win_rate_20": 0.14285714285714285,
+    "win_rate_all": 0.14285714285714285,
+    "pnl_today": -17.49000000000004,
+    "pnl_week": -17.49000000000004,
+    "pnl_month": -29.750000000000036,
+    "pnl_total": -29.75000000000004,
+    "trades_today": 4,
+    "trades_week": 4,
+    "trades_total": 7,
+    "last_updated": "2026-01-21T00:06:54.899881+00:00"
+  },
+  "ticker_breakdown": {
+    "GOLD260116P00040000": {
+      "symbol": "GOLD260116P00040000",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -11.599999999999998,
+      "pnl_avg": -11.599999999999998,
+      "best_trade": 0.0,
+      "worst_trade": -11.599999999999998
+    },
+    "PLUG260116P00002500": {
+      "symbol": "PLUG260116P00002500",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.12,
+      "pnl_avg": -0.12,
+      "best_trade": 0.0,
+      "worst_trade": -0.12
+    },
+    "NEM260116C00106000": {
+      "symbol": "NEM260116C00106000",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.5399999999999991,
+      "pnl_avg": -0.5399999999999991,
+      "best_trade": 0.0,
+      "worst_trade": -0.5399999999999991
+    },
+    "NVDA": {
+      "symbol": "NVDA",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -9.01000000000002,
+      "pnl_avg": -9.01000000000002,
+      "best_trade": 0.0,
+      "worst_trade": -9.01000000000002
+    },
+    "SQM": {
+      "symbol": "SQM",
+      "trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "win_rate": 1.0,
+      "pnl_total": 4.819999999999993,
+      "pnl_avg": 4.819999999999993,
+      "best_trade": 4.819999999999993,
+      "worst_trade": 0.0
+    },
+    "BBAI": {
+      "symbol": "BBAI",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -0.1900000000000004,
+      "pnl_avg": -0.1900000000000004,
+      "best_trade": 0.0,
+      "worst_trade": -0.1900000000000004
+    },
+    "TSLA": {
+      "symbol": "TSLA",
+      "trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "win_rate": 0.0,
+      "pnl_total": -13.110000000000014,
+      "pnl_avg": -13.110000000000014,
+      "best_trade": 0.0,
+      "worst_trade": -13.110000000000014
+    }
+  },
+  "active_alerts": [
+    {
+      "level": "WARNING",
+      "category": "drawdown",
+      "message": "Drawdown approaching critical: 7.3%",
+      "value": 0.0732122,
+      "threshold": 0.05,
+      "timestamp": "2026-01-21T00:06:55.193611+00:00"
+    }
+  ],
+  "trades_today": [
+    {
+      "trade_id": "92ae99fd-92d1-441e-ac48-6677678e03b1",
+      "symbol": "NVDA",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 189.18,
+      "exit_price": 180.17,
+      "entry_time": "2026-01-20T16:40:00.333131+00:00",
+      "exit_time": "2026-01-20T16:40:00.333131+00:00",
+      "pnl": -9.01000000000002,
+      "pnl_pct": -4.762659900623754,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "eccc1167-b0a2-4cdb-977f-cf6ed8eaff31",
+      "symbol": "SQM",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 74.34,
+      "exit_price": 79.16,
+      "entry_time": "2026-01-20T16:40:00.391319+00:00",
+      "exit_time": "2026-01-20T16:40:00.391319+00:00",
+      "pnl": 4.819999999999993,
+      "pnl_pct": 6.483723432875966,
+      "strategy": "TAKE-PROFIT",
+      "notes": ""
+    },
+    {
+      "trade_id": "96551f6f-125d-4ecc-bc92-eeae1df411b3",
+      "symbol": "BBAI",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 6.23,
+      "exit_price": 6.04,
+      "entry_time": "2026-01-20T18:31:45.274167+00:00",
+      "exit_time": "2026-01-20T18:31:45.274167+00:00",
+      "pnl": -0.1900000000000004,
+      "pnl_pct": -3.0497592295345166,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    },
+    {
+      "trade_id": "483216be-c913-485e-b993-93356fba177f",
+      "symbol": "TSLA",
+      "side": "BUY",
+      "qty": 1.0,
+      "entry_price": 433.76,
+      "exit_price": 420.65,
+      "entry_time": "2026-01-20T20:03:54.996059+00:00",
+      "exit_time": "2026-01-20T20:03:54.996059+00:00",
+      "pnl": -13.110000000000014,
+      "pnl_pct": -3.0224087052748096,
+      "strategy": "STOP-LOSS",
+      "notes": ""
+    }
+  ]
+}

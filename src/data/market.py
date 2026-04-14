@@ -1,15 +1,44 @@
 """
 Market data fetching (prices, volume).
-Handles Yahoo Finance with fallbacks to Stooq.
+
+Data source priority:
+1. yfinance Ticker.history() (fast, free, reliable)
+2. yfinance download() (fallback)
+3. Alpaca Markets API (demoted - under maintenance 2026-04)
+
+Removed:
+- Stooq CSV: returns empty data as of 2026-04
+- Alpha Vantage: now premium-only, always rate-limited
 """
 import pandas as pd
 import numpy as np
 from typing import Optional, Dict
 from functools import lru_cache
 import warnings
+from pathlib import Path
+
+from .cache_manager import get_cache
 
 # Suppress yfinance warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+# Alpaca import is LAZY — only loaded when actually needed
+# (Alpaca SDK can hang on import if API is under maintenance)
+HAS_ALPACA = False
+get_price_history_alpaca = None
+
+def _lazy_load_alpaca():
+    """Load Alpaca module on demand to avoid blocking imports."""
+    global HAS_ALPACA, get_price_history_alpaca
+    if get_price_history_alpaca is not None:
+        return  # Already loaded
+    try:
+        from .alpaca_market import get_price_history_alpaca as _fn, HAS_ALPACA as _has
+        HAS_ALPACA = _has
+        get_price_history_alpaca = _fn
+    except ImportError:
+        HAS_ALPACA = False
+        get_price_history_alpaca = None
 
 try:
     import yfinance as yf
@@ -31,6 +60,8 @@ except ImportError:
 # ============================================================================
 
 _SPX_CACHE: Dict[tuple, pd.DataFrame] = {}
+_PRICE_CACHE = get_cache()
+_PRICE_CACHE_DIR = Path(".cache/data/price")
 
 
 def _period_to_days(period: str) -> int:
@@ -64,6 +95,48 @@ def _days_to_period(days: int) -> str:
     return "5d"
 
 
+def _get_stale_cached_price(
+    ticker: str,
+    interval: str = "1d",
+    min_days: int = 0,
+) -> Optional[pd.DataFrame]:
+    """Return the longest cached history for a ticker when exact key misses."""
+    if not _PRICE_CACHE_DIR.exists():
+        return None
+    
+    best_df = None
+    best_len = -1
+    for cache_file in _PRICE_CACHE_DIR.glob("*.cache"):
+        try:
+            import pickle
+            with open(cache_file, "rb") as f:
+                entry = pickle.load(f)
+            if entry.get("identifier") != ticker:
+                continue
+            if entry.get("params", {}).get("interval") != interval:
+                continue
+            data = entry.get("data")
+            if data is None or data.empty:
+                continue
+            if min_days > 0:
+                try:
+                    idx = pd.DatetimeIndex(data.index)
+                    if len(idx) < max(30, min_days // 5):
+                        continue
+                    covered_days = max(0, (idx.max() - idx.min()).days)
+                    if covered_days < int(min_days * 0.7):
+                        continue
+                except Exception:
+                    continue
+            if len(data) > best_len:
+                best_df = data
+                best_len = len(data)
+        except Exception:
+            continue
+    
+    return best_df.copy() if best_df is not None else None
+
+
 # ============================================================================
 # PRICE HISTORY
 # ============================================================================
@@ -76,6 +149,11 @@ def get_price_history(
     """
     Fetch price history with fallback chain.
     
+    Data source priority:
+    1. yfinance Ticker.history() (fast, free, reliable)
+    2. yfinance download() (fallback)
+    3. Alpaca (demoted - under maintenance)
+    
     Args:
         ticker: Stock symbol
         period: Time period (1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, max)
@@ -84,50 +162,68 @@ def get_price_history(
     Returns:
         DataFrame with OHLCV data or None
     """
+    cached = _PRICE_CACHE.get("price", ticker, period=period, interval=interval)
+    if cached is not None:
+        return cached.copy() if hasattr(cached, "copy") else cached
+    
+    stale_cached = _get_stale_cached_price(
+        ticker,
+        interval=interval,
+        min_days=_period_to_days(period),
+    )
+    if stale_cached is not None:
+        return stale_cached
+
     if not HAS_YFINANCE:
-        print("yfinance not installed")
+        # If yfinance is unavailable, try Alpaca as last resort
+        _lazy_load_alpaca()
+        if HAS_ALPACA and get_price_history_alpaca is not None:
+            try:
+                df = get_price_history_alpaca(ticker, period=period, interval=interval)
+                if df is not None and not df.empty:
+                    _PRICE_CACHE.set("price", ticker, df, period=period, interval=interval)
+                    return df
+            except Exception as e:
+                print(f"[get_price_history] Alpaca failed for {ticker}: {e}")
+        print("No data providers available (yfinance not installed, Alpaca failed)")
         return None
     
-    # Try 1: yfinance Ticker.history()
+    # Try 1: yfinance Ticker.history() — fastest
     try:
         t = yf.Ticker(ticker)
-        df = t.history(period=period, interval=interval, auto_adjust=True)
+        df = t.history(period=period, interval=interval, auto_adjust=True, timeout=15)
         
         if df is not None and not df.empty:
             # Normalize MultiIndex columns if present
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
+            _PRICE_CACHE.set("price", ticker, df, period=period, interval=interval)
             return df
     except Exception as e:
         print(f"[get_price_history] yfinance Ticker.history failed for {ticker}: {e}")
     
-    # Try 2: Stooq CSV (daily only)
-    if interval == "1d":
-        try:
-            url = f"https://stooq.com/q/d/l/?s={ticker.lower()}.us&i=d"
-            df = pd.read_csv(url, parse_dates=["Date"], index_col="Date")
-            df = df.sort_index()
-            
-            # Filter by period
-            days = _period_to_days(period)
-            cutoff = pd.Timestamp.now() - pd.Timedelta(days=days)
-            df = df[df.index >= cutoff]
-            
-            if not df.empty:
-                return df
-        except Exception as e:
-            print(f"[get_price_history] Stooq failed for {ticker}: {e}")
-    
-    # Try 3: yfinance download
+    # Try 2: yfinance download() — different code path, sometimes works when .history() doesn't
     try:
-        df = yf.download(ticker, period=period, interval=interval, progress=False)
+        df = yf.download(ticker, period=period, interval=interval, progress=False, timeout=15)
         
         if df is not None and not df.empty:
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = df.columns.get_level_values(0)
+            _PRICE_CACHE.set("price", ticker, df, period=period, interval=interval)
             return df
     except Exception as e:
         print(f"[get_price_history] yfinance download failed for {ticker}: {e}")
+    
+    # Try 3: Alpaca (last resort — may be slow or under maintenance)
+    _lazy_load_alpaca()
+    if HAS_ALPACA and get_price_history_alpaca is not None:
+        try:
+            df = get_price_history_alpaca(ticker, period=period, interval=interval)
+            if df is not None and not df.empty:
+                _PRICE_CACHE.set("price", ticker, df, period=period, interval=interval)
+                return df
+        except Exception as e:
+            print(f"[get_price_history] Alpaca failed for {ticker}: {e}")
     
     return None
 
@@ -208,7 +304,9 @@ def get_spx(
     period = _days_to_period(days)
     
     # Try multiple symbols
-    candidates = ["^GSPC", "^SPX", "SPY", "VOO"]
+    # Prefer ETF proxies first because they are more likely to exist in local cache
+    # and tend to be more reliable than index symbols across providers.
+    candidates = ["SPY", "VOO", "^GSPC", "^SPX"]
     
     spx = pd.DataFrame()
     for sym in candidates:

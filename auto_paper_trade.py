@@ -1555,17 +1555,10 @@ def main():
     positions = trade_client.get_all_positions()
     held = {p.symbol for p in positions}
 
-    # --- ENFORCE MAX OPEN POSITIONS ---
-    max_positions = PRODUCTION_CONFIG.get("max_open_positions", 10)
-    open_trades = trade_log.get_open_trades()
-    if len(open_trades) >= max_positions:
-        logger.warning(f"🚫 Max open positions reached ({len(open_trades)}/{max_positions}). No new trades.")
-        return
-
-    # --- ENFORCE MAX RISK PER TRADE ---
-    max_risk_pct = PRODUCTION_CONFIG.get("max_position_size_pct", 0.05)
-
-    # Auto take-profit / stop-loss on existing positions before new entries
+    # === AUTO EXIT CHECK - Must run BEFORE position limits check ===
+    # This ensures we close positions that hit take-profit/stop-loss even when at max positions
+    
+    # Auto take-profit / stop-loss on existing positions
     try:
         take_profit_pct = PRODUCTION_CONFIG.get("default_take_profit_pct", 0.05)
         stop_loss_pct = PRODUCTION_CONFIG.get("default_stop_loss_pct", 0.03)
@@ -1588,6 +1581,16 @@ def main():
         )
     except Exception as e:
         logger.warning(f"[pred-target-exit] skipped: {e}")
+
+    # --- ENFORCE MAX OPEN POSITIONS (after exits, before new entries) ---
+    max_positions = PRODUCTION_CONFIG.get("max_open_positions", 10)
+    open_trades = trade_log.get_open_trades()
+    if len(open_trades) >= max_positions:
+        logger.warning(f"🚫 Max open positions reached ({len(open_trades)}/{max_positions}). No new trades.")
+        return
+
+    # --- ENFORCE MAX RISK PER TRADE ---
+    max_risk_pct = PRODUCTION_CONFIG.get("max_position_size_pct", 0.05)
 
     signals = load_signals()
     logger.info(f"📁 signals.json path: {SIGNALS_PATH}")

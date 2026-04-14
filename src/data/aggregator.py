@@ -16,6 +16,7 @@ from .providers.tiingo_provider import TiingoProvider
 from .providers.finnhub_provider import FinnhubProvider
 from .providers.sec_edgar_provider import SECEdgarProvider
 from .providers.alphavantage_provider import AlphaVantageProvider
+from .providers.alpaca_provider import AlpacaProvider
 
 
 logger = logging.getLogger(__name__)
@@ -25,23 +26,28 @@ logger = logging.getLogger(__name__)
 class AggregatorConfig:
     """Configuration for data aggregator."""
     # Provider priority for price data
+    # yfinance is primary - fast, free, reliable
+    # Alpaca demoted - currently under maintenance (2026-04-01)
+    # Alpha Vantage removed - now premium-only, always rate-limited
+    # Stooq removed - returns empty data
     price_providers: List[str] = field(default_factory=lambda: [
-        "yfinance",     # Primary - free, fast, reliable
-        "tiingo",       # Backup - good data quality
-        "alphavantage", # Last resort - heavily rate limited
+        "yfinance",     # Primary - fast, free, reliable
+        "tiingo",       # Backup - good data quality, requires key
+        "alpaca",       # Demoted - under maintenance, may hang
     ])
     
     # Provider priority for fundamentals
+    # Alpha Vantage removed - premium-only
     fundamentals_providers: List[str] = field(default_factory=lambda: [
         "yfinance",     # Primary - quick fundamentals
-        "tiingo",       # Backup - detailed fundamentals
-        "sec_edgar",    # Official SEC data
-        "alphavantage", # Last resort
+        "finnhub",      # Backup - basic financials + metrics
+        "sec_edgar",    # Official SEC data (slower but free)
+        "tiingo",       # Backup - limited fundamentals
     ])
     
     # Provider priority for sentiment
     sentiment_providers: List[str] = field(default_factory=lambda: [
-        "finnhub",      # News sentiment
+        "finnhub",      # News sentiment, insider, analyst recs
     ])
     
     # Enable caching
@@ -72,6 +78,7 @@ class DataAggregator:
         
         # Initialize all providers
         self._providers = {
+            "alpaca": AlpacaProvider(),
             "yfinance": YFinanceProvider(),
             "tiingo": TiingoProvider(),
             "finnhub": FinnhubProvider(),
@@ -279,7 +286,7 @@ class DataAggregator:
     def _has_key_fundamentals(self, data: Dict) -> bool:
         """Check if we have the key fundamental metrics."""
         key_metrics = ["fund_pe_trailing", "fund_pb", "fund_marketcap"]
-        return sum(1 for m in key_metrics if data.get(m) is not None) >= 2
+        return all(data.get(m) not in (None, 0, 0.0) for m in key_metrics)
     
     def get_provider_health(self) -> Dict[str, Dict[str, Any]]:
         """Get health status of all providers."""
@@ -339,3 +346,38 @@ def fetch_fundamentals(ticker: str) -> Dict[str, Any]:
 def fetch_sentiment(ticker: str) -> Dict[str, Any]:
     """Fetch sentiment using the global aggregator."""
     return get_aggregator().get_sentiment(ticker)
+
+
+def fetch_earnings_warning(ticker: str) -> Dict[str, Any]:
+    """
+    Fetch estimated earnings date and warning level for a ticker.
+    
+    Returns dict with:
+        - estimated_next_date: str (YYYY-MM-DD)
+        - days_until: int
+        - is_soon: bool (True if within 14 days)
+        - warning_level: "none", "upcoming", "soon", "imminent"
+        - last_eps: float
+        - last_surprise_pct: float
+    """
+    try:
+        provider = FinnhubProvider()
+        result = provider.get_estimated_next_earnings(ticker)
+        
+        if result.success and result.data:
+            return result.data
+        return {"error": result.error or "No earnings data", "warning_level": "none"}
+    except Exception as e:
+        return {"error": str(e)[:100], "warning_level": "none"}
+
+
+def fetch_earnings_warnings_batch(tickers: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Fetch earnings warnings for multiple tickers.
+    
+    Returns dict mapping ticker -> earnings info.
+    """
+    results = {}
+    for ticker in tickers:
+        results[ticker] = fetch_earnings_warning(ticker)
+    return results

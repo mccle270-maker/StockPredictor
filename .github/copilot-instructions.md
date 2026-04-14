@@ -38,6 +38,7 @@ src/
 ├── config.py                  # All configuration constants, API keys
 ├── core/
 │   ├── models.py             # Model factory (make_model) - RF + XGB only
+│   ├── production_predictor.py  # NEW: Adaptive model with trading modes
 │   ├── regime_filter.py      # Market regime detection
 │   └── zscore_filter.py      # Signal strength filtering
 ├── data/
@@ -76,12 +77,48 @@ auto_paper_trade.py           # Alpaca paper trading execution
 
 ---
 
-## Production Configuration (BASELINE_005)
+## Production Configuration (BASELINE_006 - Adaptive Model)
 
-**Current recommended production settings:**
+**NEW: The production baseline is now the Adaptive Model with trading modes.**
+
+Walk-forward validated (24mo train, 6mo test, 12 folds from 2018-2025):
+- 75% positive Sharpe periods (9/12 folds)
+- Beats B&H in bear markets (2022), conservative in bulls
+- No data leakage - proper out-of-sample validation
+
+### Trading Modes
+
+| Mode | Sharpe | Positive Periods | Long Conf | Short Conf | Use Case |
+|------|--------|------------------|-----------|------------|----------|
+| **conservative** | 0.68 | 83% | 45% | 70% | Capital preservation |
+| **balanced** (default) | 1.10 | 83% | 42% | 55% | Best risk/reward |
+| **aggressive** | 1.17 | 75% | 38% | 45% | Maximum returns |
+
+**Recommendation**: Use BALANCED mode for optimal risk/reward tradeoff.
+
+### Usage
 
 ```python
-PRODUCTION_CONFIG = {
+from src.core.production_predictor import ProductionPredictor, quick_predict
+
+# Quick prediction
+result = quick_predict("AAPL", mode="balanced")
+print(f"{result.signal} @ {result.confidence:.1%} confidence")
+
+# Full usage
+predictor = ProductionPredictor(mode="balanced")
+result = predictor.predict("AAPL")
+print(f"Signal: {result.signal}")
+print(f"Position size: {result.position_size:.0%}")
+print(f"Predicted price: ${result.predicted_price:.2f}")
+```
+
+### Legacy Configuration (BASELINE_005)
+
+For backward compatibility, the old regression-based models are still available:
+
+```python
+LEGACY_CONFIG = {
     # Signal Generation
     "z_score_threshold": 2.0,
     "regime_filter_enabled": True,
@@ -436,6 +473,11 @@ python auto_paper_trade.py
 - [x] Stop loss / take profit auto-exits
 - [x] Alpaca API verified working (paper mode)
 - [x] Performance monitoring (`src/monitoring/performance_monitor.py`)
+
+### ✅ Completed (2026-01-09)
+- [x] Target winsorization (clips extreme returns at 1%/99%)
+- [x] Tested: +0.44 Sharpe improvement across 5 tickers
+- [x] Enabled by default in `build_target(winsorize=True)`
 
 ### 🔄 In Progress
 - [ ] BASELINE_005 deployment to paper trading

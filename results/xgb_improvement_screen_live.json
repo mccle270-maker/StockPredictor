@@ -1,0 +1,193 @@
+{
+  "tickers": {
+    "AAPL": {
+      "prepared_rows": 499,
+      "num_features": 57,
+      "stable_features_from_first_half": [
+        "rel_strength_1d",
+        "close_position",
+        "oas",
+        "macd",
+        "mkt_ret_1d",
+        "vol_20d",
+        "ret_1d",
+        "atr_pct_14",
+        "adx_14",
+        "rel_momentum_5d",
+        "ret_3d",
+        "rsi14",
+        "mfi14",
+        "vix",
+        "vol_10d",
+        "daily_range",
+        "beta_60_spx"
+      ],
+      "variants": [
+        {
+          "variant": "baseline_optimized",
+          "folds": 10,
+          "mean_sharpe": -0.5050100684524781,
+          "median_sharpe": -2.1866456203931,
+          "mean_calmar": 7.441795044158697,
+          "mean_accuracy": 0.49677419354838703,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.3
+        },
+        {
+          "variant": "xgb_regularized_shallow",
+          "folds": 10,
+          "mean_sharpe": 0.2433780963436613,
+          "median_sharpe": 0.0,
+          "mean_calmar": 5.612219549359433,
+          "mean_accuracy": 0.5064516129032258,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.2
+        },
+        {
+          "variant": "xgb_medium_regularized",
+          "folds": 10,
+          "mean_sharpe": -1.1132339713541202,
+          "median_sharpe": -2.190624588158851,
+          "mean_calmar": -0.8275710404463718,
+          "mean_accuracy": 0.5225806451612902,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.3
+        },
+        {
+          "variant": "xgb_vol_scaled_target",
+          "folds": 10,
+          "mean_sharpe": 0.13452571968830923,
+          "median_sharpe": -0.8149243162543258,
+          "mean_calmar": 6.187036890014807,
+          "mean_accuracy": 0.4935483870967742,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.4
+        },
+        {
+          "variant": "baseline_later_half",
+          "folds": 5,
+          "mean_sharpe": -1.0246162490830908,
+          "median_sharpe": -2.582374792865704,
+          "mean_calmar": 4.267172637601284,
+          "mean_accuracy": 0.5032258064516129,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.2
+        },
+        {
+          "variant": "xgb_shap_stable_later_half",
+          "folds": 5,
+          "mean_sharpe": -1.431916340539029,
+          "median_sharpe": -1.8047828447839545,
+          "mean_calmar": -2.777911645133721,
+          "mean_accuracy": 0.5096774193548387,
+          "mean_num_features": 17.0,
+          "positive_sharpe_pct": 0.2
+        }
+      ]
+    },
+    "MSFT": {
+      "prepared_rows": 499,
+      "num_features": 57,
+      "stable_features_from_first_half": [
+        "close_position",
+        "ret_3d",
+        "bb_width",
+        "ret_5d",
+        "t10y",
+        "macd",
+        "rel_strength_1d",
+        "rel_momentum_5d",
+        "daily_range",
+        "oas",
+        "gbm_prob_up_1d",
+        "mkt_ret_1d",
+        "ret_1d",
+        "macdhist",
+        "atr_pct_14",
+        "macdsignal",
+        "vix",
+        "gbm_p05_ret_5d",
+        "gbm_exp_ret_1d",
+        "vol_20d"
+      ],
+      "variants": [
+        {
+          "variant": "baseline_optimized",
+          "folds": 10,
+          "mean_sharpe": -0.5507777740680665,
+          "median_sharpe": -0.7360629221426973,
+          "mean_calmar": 162.3892597770079,
+          "mean_accuracy": 0.4612903225806452,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.4
+        },
+        {
+          "variant": "xgb_regularized_shallow",
+          "folds": 10,
+          "mean_sharpe": -0.19918674220291338,
+          "median_sharpe": 0.0,
+          "mean_calmar": -3.5129250849206843,
+          "mean_accuracy": 0.532258064516129,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.0
+        },
+        {
+          "variant": "xgb_medium_regularized",
+          "folds": 10,
+          "mean_sharpe": -1.1778796785497536,
+          "median_sharpe": -1.1264982951878266,
+          "mean_calmar": 0.9988595502662628,
+          "mean_accuracy": 0.5064516129032258,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.4
+        },
+        {
+          "variant": "xgb_vol_scaled_target",
+          "folds": 10,
+          "mean_sharpe": 0.7296525746379429,
+          "median_sharpe": 0.6836031960378838,
+          "mean_calmar": 5.110765050889446,
+          "mean_accuracy": 0.4838709677419354,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.7
+        },
+        {
+          "variant": "baseline_later_half",
+          "folds": 5,
+          "mean_sharpe": -0.10521503218596022,
+          "median_sharpe": -0.568923700732225,
+          "mean_calmar": 3.2837915170479435,
+          "mean_accuracy": 0.4709677419354839,
+          "mean_num_features": 57.0,
+          "positive_sharpe_pct": 0.4
+        },
+        {
+          "variant": "xgb_shap_stable_later_half",
+          "folds": 5,
+          "mean_sharpe": -0.5564614188456917,
+          "median_sharpe": -0.7047172486595172,
+          "mean_calmar": 0.8196228042358221,
+          "mean_accuracy": 0.5225806451612903,
+          "mean_num_features": 20.0,
+          "positive_sharpe_pct": 0.4
+        }
+      ]
+    }
+  },
+  "config": {
+    "tickers": [
+      "AAPL",
+      "MSFT"
+    ],
+    "period": "2y",
+    "horizon": 1,
+    "train_years": 0.5,
+    "test_years": 0.125,
+    "step_days": 31,
+    "purge_gap_days": 5,
+    "embargo_days": 5,
+    "threshold": 0.002,
+    "cost_per_trade": 0.0005,
+    "output": "results/xgb_improvement_screen_live.json"
+  }
+}

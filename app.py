@@ -901,6 +901,16 @@ def run_app():
         run_gaf = st.checkbox("Run GAF-CNN (slow)", value=False)
         fetch_live_price = st.checkbox("Fetch intraday live price (slower)", value=False)
         run_mc = st.checkbox("Compute Monte Carlo metrics (slower)", value=False)
+        
+        # Regime-specific models (experimental)
+        use_regime_models = st.checkbox(
+            "Use regime-specific models (experimental)", 
+            value=False,
+            help="Train separate models for bull/bear market regimes. May improve predictions in trending markets."
+        )
+        # Update config at runtime
+        from src.config import set_regime_models_enabled
+        set_regime_models_enabled(use_regime_models)
 
                 # --- Friction presets ---
         st.markdown("Execution (frictions)")
